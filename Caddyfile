@@ -1,0 +1,41 @@
+# Прод: TLS через ACME. HTML с FastAPI уже получает CSP из SecurityHeadersMiddleware (см. app/middleware/security_headers.py).
+# При отдаче статики только через Caddy без FastAPI — продублируйте политику там или проксируйте на FastAPI.
+yourdomain.com {
+    encode gzip
+
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
+        Strict-Transport-Security max-age=31536000;
+    }
+
+    handle / {
+        root * /srv/frontend
+        try_files {path} /index.html
+        file_server
+    }
+
+    handle_path /api/* {
+        reverse_proxy fastapi:8000
+    }
+
+    handle_path /admin/* {
+        reverse_proxy fastapi:8000
+    }
+
+    handle /health {
+        reverse_proxy fastapi:8000
+    }
+
+    handle /health/ready {
+        reverse_proxy fastapi:8000
+    }
+}
+
+# Локальная разработка в Docker: без ACME/TLS, весь трафик на FastAPI (лендинг /static и /api).
+# За внешним reverse proxy задайте доверие к X-Forwarded-For (см. README: вебхуки ЮKassa).
+http://localhost, http://127.0.0.1 {
+    encode gzip
+    reverse_proxy fastapi:8000
+}

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: 'DejaVu Serif', serif; margin: 2cm; }
+        h1, h2 { color: #2c3e50; }
+        .chart { text-align: center; margin: 20px 0; }
+        .footer { margin-top: 50px; font-size: 0.8em; color: #7f8c8d; text-align: center; }
+    </style>
+</head>
+<body>
+    {% if locale == 'en' %}
+    <h1>Personal natal chart</h1>
+    <p><strong>Name:</strong> {{ full_name }}</p>
+    <p><strong>Date and place of birth:</strong> {{ birth_data }}, {{ birth_place }}</p>
+    <p><strong>Plan:</strong> {{ tariff_name }}</p>
+    <p><strong>Generated:</strong> {{ generated_at }}</p>
+    {% else %}
+    <h1>Персональная натальная карта</h1>
+    <p><strong>Имя:</strong> {{ full_name }}</p>
+    <p><strong>Дата и место рождения:</strong> {{ birth_data }}, {{ birth_place }}</p>
+    <p><strong>Тариф:</strong> {{ tariff_name }}</p>
+    <p><strong>Сгенерировано:</strong> {{ generated_at }}</p>
+    {% endif %}
+
+    <div class="chart">
+        <img src="{{ chart_img_path }}" alt="Natal Chart">
+    </div>
+
+    {{ interpretation | safe }}
+
+    <div class="footer">
+        {% if locale == 'en' %}
+        This report was generated automatically. For informational purposes only.<br>
+        AstroGen © 2024. All rights reserved.
+        {% else %}
+        Отчёт сгенерирован автоматически. Информация носит ознакомительный характер.<br>
+        AstroGen © 2024. Все права защищены.
+        {% endif %}
+    </div>
+</body>
+</html>

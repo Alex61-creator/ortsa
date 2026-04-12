@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Natальная карта · Алексей · 27.01.1992 · Astrogen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary: #1677FF;
+  --primary-light: #E6F4FF;
+  --primary-border: #91CAFF;
+  --bg: #F0F0F0;
+  --page-bg: #FFFFFF;
+  --border: #E8E8E8;
+  --border-dark: #D9D9D9;
+  --text: rgba(0,0,0,0.88);
+  --text-2: #595959;
+  --text-3: #8C8C8C;
+  --success: #52C41A;
+  --warning: #FAAD14;
+  --danger: #FF4D4F;
+  --ff-display: 'Cormorant Garamond', Georgia, serif;
+  --ff-body: 'IBM Plex Sans', system-ui, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); font-family: var(--ff-body); color: var(--text); }
+
+/* ── Top bar ── */
+.top-bar {
+  background: #fff; border-bottom: 1px solid var(--border-dark);
+  padding: 10px 24px; display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100; font-size: 13px;
+}
+.top-bar-logo { font-family: var(--ff-display); font-size: 18px; color: var(--text); display: flex; align-items: center; gap: 8px; }
+.top-bar-logo .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); }
+.top-bar-actions { display: flex; gap: 10px; }
+.btn-print {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 16px; border-radius: 6px; cursor: pointer; font-size: 13px;
+  background: var(--primary); color: #fff; border: none; font-family: var(--ff-body);
+  transition: background 0.15s;
+}
+.btn-print:hover { background: #0958D9; }
+.btn-outline {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 16px; border-radius: 6px; cursor: pointer; font-size: 13px;
+  background: #fff; color: var(--text); border: 1px solid var(--border-dark); font-family: var(--ff-body);
+}
+
+/* ── Pages ── */
+.doc { max-width: 794px; margin: 32px auto; display: flex; flex-direction: column; gap: 24px; padding-bottom: 48px; }
+.page {
+  background: var(--page-bg); border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04);
+  overflow: hidden;
+  page-break-after: always;
+}
+
+/* ── Cover page ── */
+.cover { min-height: 900px; display: flex; flex-direction: column; }
+.cover-header {
+  background: var(--primary); padding: 32px 48px 28px;
+  display: flex; justify-content: space-between; align-items: flex-start;
+}
+.cover-brand { font-family: var(--ff-display); font-size: 22px; color: #fff; letter-spacing: 0.02em; }
+.cover-type { font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 4px; font-family: var(--ff-body); letter-spacing: 0.06em; text-transform: uppercase; }
+.cover-date-badge { background: rgba(255,255,255,0.15); color: #fff; font-size: 12px; padding: 6px 12px; border-radius: 4px; font-family: var(--ff-body); }
+.cover-body { flex: 1; padding: 48px; display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
+.cover-name-block { }
+.cover-label { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; font-family: var(--ff-body); }
+.cover-name { font-family: var(--ff-display); font-size: 52px; font-weight: 500; color: var(--text); line-height: 1.1; margin-bottom: 24px; }
+.cover-meta { display: flex; flex-direction: column; gap: 10px; }
+.meta-row { display: flex; gap: 10px; align-items: center; }
+.meta-icon { width: 28px; height: 28px; border-radius: 6px; background: var(--primary-light); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.meta-text { font-size: 14px; color: var(--text-2); }
+.meta-text strong { color: var(--text); font-weight: 500; }
+.cover-chart { position: relative; display: flex; align-items: center; justify-content: center; }
+.cover-key-placements { background: var(--primary-light); border: 1px solid var(--primary-border); border-radius: 8px; padding: 20px 24px; margin: 0 48px 32px; }
+.key-placement-title { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--primary); margin-bottom: 14px; font-family: var(--ff-body); font-weight: 500; }
+.key-placements-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+.key-placement { }
+.kp-label { font-size: 11px; color: var(--text-3); margin-bottom: 3px; }
+.kp-value { font-size: 15px; font-weight: 500; color: var(--text); font-family: var(--ff-body); }
+.cover-footer { border-top: 1px solid var(--border); padding: 20px 48px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-3); }
+.cover-page-num { font-family: var(--ff-display); font-size: 14px; color: var(--text-3); }
+
+/* ── Content pages ── */
+.page-inner { padding: 48px; }
+.page-header { display: flex; justify-content: space-between; align-items: baseline; padding: 20px 48px; border-bottom: 1px solid var(--border); margin-bottom: 0; }
+.page-header-title { font-size: 12px; color: var(--text-3); font-family: var(--ff-body); }
+.page-header-name { font-size: 12px; color: var(--text-3); font-family: var(--ff-body); }
+.section-heading { font-family: var(--ff-display); font-size: 30px; font-weight: 500; color: var(--text); margin-bottom: 6px; }
+.section-subheading { font-size: 13px; color: var(--text-3); margin-bottom: 28px; }
+.planet-section { margin-bottom: 36px; padding-bottom: 36px; border-bottom: 1px solid var(--border); }
+.planet-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.planet-header { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.planet-glyph { width: 44px; height: 44px; border-radius: 10px; background: var(--primary-light); border: 1px solid var(--primary-border); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+.planet-title-block { }
+.planet-name { font-family: var(--ff-display); font-size: 22px; font-weight: 500; color: var(--text); }
+.planet-position { font-size: 13px; color: var(--primary); margin-top: 2px; font-family: var(--ff-body); }
+.planet-desc { font-size: 14px; color: var(--text-2); line-height: 1.75; }
+.planet-desc p { margin-bottom: 10px; }
+.planet-desc p:last-child { margin-bottom: 0; }
+.insight-box { background: #FFFBE6; border: 1px solid #FFE58F; border-radius: 6px; padding: 12px 16px; margin-top: 12px; font-size: 13px; color: #614700; line-height: 1.6; }
+.insight-box strong { color: #874D00; }
+
+/* ── Summary table ── */
+.summary-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.summary-table th { text-align: left; padding: 8px 12px; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); font-weight: 500; border-bottom: 2px solid var(--border-dark); background: #FAFAFA; }
+.summary-table td { padding: 11px 12px; border-bottom: 1px solid var(--border); color: var(--text-2); vertical-align: top; }
+.summary-table tr:last-child td { border-bottom: none; }
+.summary-table td:first-child { color: var(--text); font-weight: 500; width: 160px; }
+.planet-sym { font-size: 16px; margin-right: 6px; }
+.sign-pill { display: inline-flex; align-items: center; gap: 4px; background: var(--primary-light); color: var(--primary); font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 500; }
+.retro { font-size: 10px; color: var(--danger); background: rgba(255,77,79,0.08); border: 1px solid rgba(255,77,79,0.2); padding: 1px 5px; border-radius: 3px; margin-left: 4px; }
+
+/* ── Aspects ── */
+.aspect-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.aspect-row:last-child { border-bottom: none; }
+.aspect-planets { font-size: 20px; display: flex; gap: 6px; align-items: center; width: 80px; flex-shrink: 0; }
+.aspect-type { width: 100px; flex-shrink: 0; }
+.aspect-badge-wrap { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+.aspect-trine .aspect-badge-wrap { background: rgba(82,196,26,0.1); color: #389E0D; }
+.aspect-square .aspect-badge-wrap { background: rgba(255,77,79,0.08); color: #CF1322; }
+.aspect-conj .aspect-badge-wrap { background: var(--primary-light); color: #0958D9; }
+.aspect-oppo .aspect-badge-wrap { background: rgba(255,77,79,0.08); color: #CF1322; }
+.aspect-sext .aspect-badge-wrap { background: rgba(82,196,26,0.1); color: #389E0D; }
+.aspect-orb { font-size: 12px; color: var(--text-3); width: 60px; flex-shrink: 0; }
+.aspect-meaning { font-size: 13px; color: var(--text-2); flex: 1; line-height: 1.5; }
+
+/* ── Domains grid ── */
+.houses-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.house-card { border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+.house-num { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); margin-bottom: 4px; font-family: var(--ff-body); }
+.house-title { font-family: var(--ff-display); font-size: 18px; font-weight: 500; margin-bottom: 6px; color: var(--text); }
+.house-planets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.house-planet-tag { font-size: 12px; background: var(--primary-light); color: var(--primary); padding: 2px 8px; border-radius: 4px; }
+.house-desc { font-size: 13px; color: var(--text-2); line-height: 1.6; }
+
+/* ── Transits ── */
+.transit-row { display: flex; gap: 16px; align-items: flex-start; padding: 14px 0; border-bottom: 1px solid var(--border); }
+.transit-row:last-child { border-bottom: none; }
+.transit-period { font-size: 12px; color: var(--primary); font-weight: 500; min-width: 160px; flex-shrink: 0; line-height: 1.5; }
+.transit-title { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 4px; font-family: var(--ff-body); }
+.transit-desc { font-size: 13px; color: var(--text-2); line-height: 1.6; }
+.transit-type-badge { display: inline-block; font-size: 10px; padding: 2px 6px; border-radius: 3px; margin-left: 6px; font-weight: 500; }
+.transit-growth { background: rgba(82,196,26,0.1); color: #389E0D; }
+.transit-tension { background: rgba(255,77,79,0.08); color: #CF1322; }
+.transit-change { background: rgba(250,173,20,0.1); color: #874D00; }
+
+/* ── Recommendations ── */
+.rec-area { margin-bottom: 28px; }
+.rec-area-title { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.rec-area-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--primary-light); display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.rec-area-name { font-family: var(--ff-display); font-size: 20px; font-weight: 500; }
+.rec-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.rec-list li { display: flex; gap: 10px; font-size: 14px; color: var(--text-2); line-height: 1.65; }
+.rec-list li::before { content: '→'; color: var(--primary); font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+
+/* ── Elements chart ── */
+.elements-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 28px; }
+.element-card { border: 1px solid var(--border); border-radius: 8px; padding: 14px; text-align: center; }
+.element-name { font-size: 12px; color: var(--text-3); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.06em; font-family: var(--ff-body); }
+.element-score { font-family: var(--ff-display); font-size: 32px; font-weight: 500; }
+.element-bar { height: 4px; border-radius: 2px; margin-top: 8px; background: var(--border); overflow: hidden; }
+.element-fill { height: 100%; border-radius: 2px; }
+.el-fire { color: #D4380D; } .el-fire .element-fill { background: #FF7A45; }
+.el-earth { color: #389E0D; } .el-earth .element-fill { background: #73D13D; }
+.el-air { color: #0958D9; } .el-air .element-fill { background: #4096FF; }
+.el-water { color: #0870B8; } .el-water .element-fill { background: #40A9FF; }
+
+/* ── Page footer ── */
+.page-footer { border-top: 1px solid var(--border); padding: 16px 48px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-3); }
+
+/* ── Print ── */
+@media print {
+  .top-bar { display: none; }
+  body { background: white; }
+  .doc { margin: 0; gap: 0; padding: 0; }
+  .page { box-shadow: none; border-radius: 0; page-break-after: always; }
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="top-bar-logo">
+    <div class="dot"></div>
+    Astrogen · Пример натальной карты
+  </div>
+  <div class="top-bar-actions">
+    <button class="btn-outline" onclick="window.history.back()">← Вернуться</button>
+    <button class="btn-print" onclick="window.print()">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5V1h8v4M3 10H1V6h12v4h-2M3 8h8v5H3V8z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Сохранить PDF
+    </button>
+  </div>
+</div>
+
+<div class="doc">
+
+<!-- ══════════ PAGE 1 — COVER ══════════ -->
+<div class="page cover">
+  <div class="cover-header">
+    <div>
+      <div class="cover-brand">Astrogen</div>
+      <div class="cover-type">Персональная натальная карта</div>
+    </div>
+    <div class="cover-date-badge">Рассчитано: апрель 2025</div>
+  </div>
+
+  <div class="cover-body">
+    <div class="cover-name-block">
+      <div class="cover-label">Именная карта</div>
+      <div class="cover-name">Алексей</div>
+      <div class="cover-meta">
+        <div class="meta-row">
+          <div class="meta-icon">☉</div>
+          <div class="meta-text"><strong>27 января 1992</strong> · 22:00 MSK</div>
+        </div>
+        <div class="meta-row">
+          <div class="meta-icon">⟡</div>
+          <div class="meta-text">Ростов-на-Дону, Россия</div>
+        </div>
+        <div class="meta-row">
+          <div class="meta-icon">↑</div>
+          <div class="meta-text"><strong>Асцендент Весы</strong> · 14°32'</div>
+        </div>
+        <div class="meta-row">
+          <div class="meta-icon">☽</div>
+          <div class="meta-text"><strong>Луна Близнецы</strong> · 22°14'</div>
+        </div>
+        <div class="meta-row">
+          <div class="meta-icon">★</div>
+          <div class="meta-text">Отчёт · 18 страниц · <strong>Тариф Полный+</strong></div>
+        </div>
+      </div>
+    </div>
+    <div class="cover-chart">
+      <svg width="280" height="280" viewBox="0 0 280 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Outer rings -->
+        <circle cx="140" cy="140" r="132" stroke="#1677FF" stroke-width="1" opacity="0.1"/>
+        <circle cx="140" cy="140" r="116" stroke="#1677FF" stroke-width="0.8" opacity="0.14"/>
+        <circle cx="140" cy="140" r="96" stroke="#1677FF" stroke-width="0.7" opacity="0.18"/>
+        <circle cx="140" cy="140" r="72" stroke="#1677FF" stroke-width="0.6" opacity="0.22"/>
+        <circle cx="140" cy="140" r="46" stroke="#1677FF" stroke-width="0.8" opacity="0.28"/>
+        <circle cx="140" cy="140" r="20" stroke="#1677FF" stroke-width="1" opacity="0.35"/>
+        <!-- Axes -->
+        <line x1="140" y1="8" x2="140" y2="272" stroke="#E8E8E8" stroke-width="0.6"/>
+        <line x1="8" y1="140" x2="272" y2="140" stroke="#E8E8E8" stroke-width="0.6"/>
+        <line x1="47" y1="47" x2="233" y2="233" stroke="#E8E8E8" stroke-width="0.5" opacity="0.7"/>
+        <line x1="233" y1="47" x2="47" y2="233" stroke="#E8E8E8" stroke-width="0.5" opacity="0.7"/>
+        <!-- House tick marks -->
+        <g stroke="#1677FF" stroke-width="0.7" opacity="0.25">
+          <line x1="140" y1="8" x2="140" y2="24"/>
+          <line x1="207" y1="24" x2="199" y2="37"/>
+          <line x1="248" y1="73" x2="236" y2="81"/>
+          <line x1="272" y1="140" x2="256" y2="140"/>
+          <line x1="248" y1="207" x2="236" y2="199"/>
+          <line x1="207" y1="248" x2="199" y2="236"/>
+          <line x1="140" y1="272" x2="140" y2="256"/>
+          <line x1="73" y1="248" x2="81" y2="236"/>
+          <line x1="32" y1="207" x2="44" y2="199"/>
+          <line x1="8" y1="140" x2="24" y2="140"/>
+          <line x1="32" y1="73" x2="44" y2="81"/>
+          <line x1="73" y1="32" x2="81" y2="44"/>
+        </g>
+        <!-- Stellium labels -->
+        <text x="147" y="14" font-size="9" fill="#1677FF" opacity="0.5" font-family="sans-serif">X</text>
+        <text x="258" y="113" font-size="9" fill="#1677FF" opacity="0.5" font-family="sans-serif">I</text>
+        <text x="258" y="170" font-size="9" fill="#1677FF" opacity="0.5" font-family="sans-serif">II</text>
+        <text x="147" y="276" font-size="9" fill="#1677FF" opacity="0.5" font-family="sans-serif">IV</text>
+        <text x="12" y="143" font-size="9" fill="#1677FF" opacity="0.5" font-family="sans-serif">VII</text>
+        <!-- Planets: Capricorn stellium in house IV (bottom area) -->
+        <!-- Sun: Aquarius, House V -->
+        <circle cx="210" cy="100" r="5" fill="#1677FF"/>
+        <text x="218" y="100" font-size="13" fill="#1677FF" font-family="serif" dominant-baseline="central">☉</text>
+        <!-- Moon: Gemini, House IX -->
+        <circle cx="60" cy="70" r="4.5" fill="#1677FF" opacity="0.85"/>
+        <text x="50" y="66" font-size="13" fill="#1677FF" font-family="serif">☽</text>
+        <!-- Mercury Rx: Capricorn, House IV -->
+        <circle cx="120" cy="240" r="4" fill="#1677FF" opacity="0.8"/>
+        <text x="127" y="244" font-size="11" fill="#1677FF" font-family="serif">☿</text>
+        <!-- Venus: Aquarius House V -->
+        <circle cx="228" cy="115" r="4.5" fill="#1677FF" opacity="0.82"/>
+        <text x="236" y="119" font-size="11" fill="#1677FF" font-family="serif">♀</text>
+        <!-- Mars: Capricorn House IV -->
+        <circle cx="102" cy="250" r="4" fill="#1677FF" opacity="0.78"/>
+        <text x="110" y="254" font-size="11" fill="#1677FF" font-family="serif">♂</text>
+        <!-- Jupiter: Virgo House XII -->
+        <circle cx="70" cy="115" r="4.5" fill="#1677FF" opacity="0.75"/>
+        <text x="60" y="110" font-size="11" fill="#1677FF" font-family="serif">♃</text>
+        <!-- Saturn: Aquarius House V -->
+        <circle cx="220" cy="80" r="4" fill="#1677FF" opacity="0.78"/>
+        <text x="228" y="84" font-size="11" fill="#1677FF" font-family="serif">♄</text>
+        <!-- Uranus: Capricorn House IV -->
+        <circle cx="148" cy="248" r="4" fill="#1677FF" opacity="0.72"/>
+        <text x="156" y="252" font-size="11" fill="#1677FF" font-family="serif">♅</text>
+        <!-- Neptune: Capricorn House IV -->
+        <circle cx="166" cy="244" r="4" fill="#1677FF" opacity="0.7"/>
+        <text x="174" y="248" font-size="11" fill="#1677FF" font-family="serif">♆</text>
+        <!-- Pluto: Scorpio House II -->
+        <circle cx="240" cy="195" r="3.5" fill="#1677FF" opacity="0.68"/>
+        <text x="248" y="199" font-size="11" fill="#1677FF" font-family="serif">♇</text>
+        <!-- ASC: Libra (right horizon) -->
+        <circle cx="262" cy="140" r="5" fill="#FF4D4F"/>
+        <text x="250" y="133" font-size="9" fill="#FF4D4F" font-family="sans-serif" font-weight="bold">ASC</text>
+        <!-- Aspect lines -->
+        <line x1="210" y1="100" x2="228" y2="115" stroke="#1677FF" stroke-width="1.2" opacity="0.35"/>
+        <line x1="210" y1="100" x2="220" y2="80" stroke="#1677FF" stroke-width="1" opacity="0.3"/>
+        <line x1="60" y1="70" x2="210" y2="100" stroke="#52C41A" stroke-width="0.8" opacity="0.28"/>
+        <line x1="60" y1="70" x2="240" y2="195" stroke="#52C41A" stroke-width="0.7" opacity="0.22"/>
+        <line x1="120" y1="240" x2="240" y2="195" stroke="#1677FF" stroke-width="0.7" opacity="0.2"/>
+        <line x1="210" y1="100" x2="148" y2="248" stroke="#FF4D4F" stroke-width="0.8" opacity="0.2"/>
+        <line x1="70" y1="115" x2="240" y2="195" stroke="#FAAD14" stroke-width="0.7" opacity="0.22"/>
+        <line x1="60" y1="70" x2="70" y2="115" stroke="#1677FF" stroke-width="0.6" opacity="0.18"/>
+        <!-- Center -->
+        <circle cx="140" cy="140" r="4" fill="#1677FF" opacity="0.15"/>
+        <circle cx="140" cy="140" r="1.5" fill="#1677FF" opacity="0.5"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="cover-key-placements">
+    <div class="key-placement-title">Ключевые позиции</div>
+    <div class="key-placements-grid">
+      <div class="key-placement">
+        <div class="kp-label">Солнечный знак</div>
+        <div class="kp-value">☉ Водолей</div>
+      </div>
+      <div class="key-placement">
+        <div class="kp-label">Лунный знак</div>
+        <div class="kp-value">☽ Близнецы</div>
+      </div>
+      <div class="key-placement">
+        <div class="kp-label">Асцендент</div>
+        <div class="kp-value">↑ Весы</div>
+      </div>
+      <div class="key-placement">
+        <div class="kp-label">Управитель</div>
+        <div class="kp-value">♅ Уран</div>
+      </div>
+      <div class="key-placement">
+        <div class="kp-label">MC (Зенит)</div>
+        <div class="kp-value">♋ Рак · 19°48'</div>
+      </div>
+      <div class="key-placement">
+        <div class="kp-label">Доминирующий элемент</div>
+        <div class="kp-value">Воздух (5 планет)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cover-footer">
+    <span>Astrogen · astrogen.ru · support@astrogen.ru</span>
+    <div class="cover-page-num">1 / 8</div>
+  </div>
+</div>
+
+<!-- ══════════ PAGE 2 — ПОЛНАЯ ТАБЛИЦА ПОЗИЦИЙ ══════════ -->
+<div class="page">
+  <div class="page-header">
+    <span class="page-header-title">Таблица позиций</span>
+    <span class="page-header-name">Алексей · 27.01.1992 · Ростов-на-Дону</span>
+  </div>
+  <div class="page-inner">
+    <h2 class="section-heading">Положение планет</h2>
+    <p class="section-subheading">Точные координаты на момент рождения · 22:00 MSK · 47°14' с.ш., 39°43' в.д.</p>
+
+    <div class="elements-row">
+      <div class="element-card el-air">
+        <div class="element-name">Воздух</div>
+        <div class="element-score">5</div>
+        <div class="element-bar"><div class="element-fill" style="width:75%"></div></div>
+      </div>
+      <div class="element-card el-earth">
+        <div class="element-name">Земля</div>
+        <div class="element-score">4</div>
+        <div class="element-bar"><div class="element-fill" style="width:55%"></div></div>
+      </div>
+      <div class="element-card el-water">
+        <div class="element-name">Вода</div>
+        <div class="element-score">1</div>
+        <div class="element-bar"><div class="element-fill" style="width:15%"></div></div>
+      </div>
+      <div class="element-card el-fire">
+        <div class="element-name">Огонь</div>
+        <div class="element-score">0</div>
+        <div class="element-bar"><div class="element-fill" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <table class="summary-table">
+      <thead>
+        <tr>
+          <th>Планета</th>
+          <th>Знак · Градус</th>
+          <th>Дом</th>
+          <th>Качество · Элемент</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="planet-sym">☉</span>Солнце</td>
+          <td><span class="sign-pill">♒ Водолей</span> 6°47'</td>
+          <td>Дом V</td>
+          <td>Фиксированный · Воздух</td>
+        </tr>
+        <tr>
+          <td><span class="planet-sym">☽</span>Луна</td>
+          <td><span class="sign-pill">♊ Близнецы</span> 22°14'</td>
+          <td>Дом IX</td>
+          <td>Переменный · Воздух</td>
+        </tr>
+        <tr>
+          <td><span class="planet-sym">☿</span>Меркурий</td>
+          <td><span class="sign-pill">♑ Козерог</span> 22°08' <span class="retro">Rx</span></td>
+          <td>Дом IV</td>
+          <td>Кардинальный · Земля</td>
+        </tr>
+        <tr>
+          <td><span class="planet-sym">♀</span>Венера</td>
+          <td><span class="sign-pill">♒ Водолей</span> 16°34'</td>
+          <td>Дом V</td>
+          <td>Фиксированный · Воздух</td>
+        </tr>
+        <tr>
+          <td><span class="planet-sym">♂</span>Марс</td>
+          <td><span class="sign-pill">♑ Козерог</span> 2°44'</td>
+          <td>Дом IV</td>
+          <td>Кардинальный · Земля</td>
+        </tr>
+        <tr>
+          <td><span class="planet-sym">♃</span>Юпитер</td>
+          <td><span class="sign-pill">♍ Дева</span> 27°14'</td>
+          <td>Дом XII</td>
+          <td>Переменный · Земля</td>
+        </tr>
+        <tr>
+          <td><span class="planet-sym">♄</span>Сатурн</td>
+          <td><span class="sign-pill">♒ Водолей</span> 11°02'</td>
+          <td>Дом V</td>
+          <td>Фиксированный · Воздух</td>
+        </tr>
+        <tr>
+          <td><span class="planet-sym">♅</span>Уран</td>
+          <td><span class="sign-pill">♑ Козерог</span> 14°52'</td>
+          <td>Дом IV</td>
+          <td>Кардинальный · Земля</td>
+        </tr>
+        <tr>
+          <td><span class="planet-sym">♆</span>Нептун</td>
+          <td><span class="sign-pill">♑ Козерог</span> 17°28'</td>
+          <td>Дом IV</td>
+          <td>Кардинальный · Земля</td>
+        </tr>
+        <tr>
+          <td><span class="planet-sym">♇</span>Плутон</td>
+          <td><span class="sign-pill">♏ Скорпион</span> 21°14'</td>
+          <td>Дом II</td>
+          <td>Фиксированный · Вода</td>
+        </tr>
+        <tr>
+          <td>↑ Асцендент</td>
+          <td><span class="sign-pill">♎ Весы</span> 14°32'</td>
+          <td>—</td>
+          <td>Кардинальный · Воздух</td>
+        </tr>
+        <tr>
+          <td>MC (Зенит)</td>
+          <td><span class="sign-pill">♋ Рак</span> 19°48'</td>
+          <td>Дом X</td>
+          <td>Кардинальный · Вода</td>
+        </tr>
+        <tr>
+          <td>☊ С. Узел</td>
+          <td><span class="sign-pill">♑ Козерог</span> 5°08'</td>
+          <td>Дом IV</td>
+          <td>Кармическая ось</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top:20px; padding:14px 16px; background:#FFF7E6; border:1px solid #FFD591; border-radius:6px; font-size:13px; color:#874D00; line-height:1.65;">
+      <strong>Ключевая конфигурация карты:</strong> Козероговый стеллиум в IV доме (Меркурий Rx, Марс, Уран, Нептун, Северный Узел) — исключительно редкое скопление. В сочетании с Водолейским стеллиумом (Солнце, Венера, Сатурн в V доме) создаёт мощный архетип <em>«реформатора, работающего изнутри»</em> — человека с глубокими корнями, который перестраивает систему новыми методами.
+    </div>
+  </div>
+  <div class="page-footer">
+    <span>© 2025 Astrogen · astrogen.ru</span>
+    <span>2 / 8</span>
+  </div>
+</div>
+
+<!-- ══════════ PAGE 3 — СОЛНЦЕ, ЛУНА, АСЦЕНДЕНТ ══════════ -->
+<div class="page">
+  <div class="page-header">
+    <span class="page-header-title">Ядро личности</span>
+    <span class="page-header-name">Алексей · 27.01.1992</span>
+  </div>
+  <div class="page-inner">
+    <h2 class="section-heading">Солнце, Луна и Асцендент</h2>
+    <p class="section-subheading">Три ключевых элемента, формирующих ядро вашей личности</p>
+
+    <div class="planet-section">
+      <div class="planet-header">
+        <div class="planet-glyph">☉</div>
+        <div class="planet-title-block">
+          <div class="planet-name">Солнце в Водолее · Дом V</div>
+          <div class="planet-position">6°47' Водолея · Трин с Луной в Близнецах</div>
+        </div>
+      </div>
+      <div class="planet-desc">
+        <p>Солнце в Водолее формирует человека с принципиально независимым мышлением — вас сложно убедить авторитетом, вам нужны аргументы. Вы интуитивно чувствуете несправедливость систем и стереотипов задолго до того, как это становится очевидным другим. Ваша сила — способность видеть картину целиком, когда другие увязают в деталях.</p>
+        <p>V дом придаёт этому Солнцу творческий и игровой оттенок: ваши идеи и самовыражение — это не абстракция, а живое, увлечённое действие. Вы не теоретик-наблюдатель, а участник. При этом вам важна свобода в творчестве: любые рамки воспринимаются как личное ограничение.</p>
+        <div class="insight-box">
+          <strong>Главный вызов Водолея в V:</strong> Независимость мышления может обернуться нежеланием принимать чью-то помощь или экспертизу. Научиться отделять «не хочу давления» от «не хочу никакого участия» — важная зрелость для этого положения.
+        </div>
+      </div>
+    </div>
+
+    <div class="planet-section">
+      <div class="planet-header">
+        <div class="planet-glyph">☽</div>
+        <div class="planet-title-block">
+          <div class="planet-name">Луна в Близнецах · Дом IX</div>
+          <div class="planet-position">22°14' Близнецов · Трин с Солнцем (орб 5°)</div>
+        </div>
+      </div>
+      <div class="planet-desc">
+        <p>Луна в Близнецах означает, что ваша эмоциональная безопасность напрямую связана с информацией и общением. Вы успокаиваетесь, когда говорите, читаете, объясняете — поток слов и идей для вас это не просто хобби, а буквально способ регулировать внутреннее состояние. Замолчать на несколько дней — значит почувствовать подлинный дискомфорт.</p>
+        <p>IX дом усиливает это: вас тянет к широким концепциям, другим культурам, философии и поиску смысла. Эмоционально вам нужна не только близость, но и горизонт — ощущение, что впереди есть что открывать. Близнецовая Луна в IX создаёт человека, который находит покой в путешествиях — физических и интеллектуальных.</p>
+        <div class="insight-box">
+          <strong>Трин Солнца и Луны:</strong> Гармония между вашим сознательным «я» (Водолей) и эмоциями (Близнецы) — оба воздушные знаки. Вы редко конфликтуете с самим собой: ваши желания и ваши ценности, как правило, указывают в одном направлении. Это большой ресурс.
+        </div>
+      </div>
+    </div>
+
+    <div class="planet-section">
+      <div class="planet-header">
+        <div class="planet-glyph">↑</div>
+        <div class="planet-title-block">
+          <div class="planet-name">Асцендент Весы · 14°32'</div>
+          <div class="planet-position">Управитель — Венера в Водолее в V доме</div>
+        </div>
+      </div>
+      <div class="planet-desc">
+        <p>Весы на Асценденте дают вам природную дипломатичность и умение создавать комфортную атмосферу. Окружающие первым делом замечают вашу уравновешенность и способность видеть несколько сторон вопроса одновременно. Вы можете казаться более осторожными и взвешенными, чем на самом деле чувствуете.</p>
+        <p>Управитель АСЦ — Венера в Водолее — вносит коррективу: за вежливой формой скрывается нестандартное содержание. Вы дипломат, который играет по своим правилам. Ваше внешнее поведение может быть конформным, но внутренние убеждения — оппозиционными большинству.</p>
+      </div>
+    </div>
+  </div>
+  <div class="page-footer">
+    <span>© 2025 Astrogen · astrogen.ru</span>
+    <span>3 / 8</span>
+  </div>
+</div>
+
+<!-- ══════════ PAGE 4 — ПЛАНЕТЫ ПО ДОМАМ ══════════ -->
+<div class="page">
+  <div class="page-header">
+    <span class="page-header-title">Планеты в домах</span>
+    <span class="page-header-name">Алексей · 27.01.1992</span>
+  </div>
+  <div class="page-inner">
+    <h2 class="section-heading">Карьера, финансы и отношения</h2>
+    <p class="section-subheading">Ключевые сферы жизни через призму домов гороскопа</p>
+
+    <div class="houses-grid">
+      <div class="house-card">
+        <div class="house-num">I Дом · Личность</div>
+        <div class="house-title">Весы пустой</div>
+        <div class="house-desc">Асцендент без планет — ваша личность формируется через взаимодействие с другими, а не в изоляции. Вам нужен партнёр или аудитория, чтобы раскрыться в полную силу.</div>
+      </div>
+      <div class="house-card">
+        <div class="house-num">II Дом · Финансы</div>
+        <div class="house-title">Плутон ♏</div>
+        <div class="house-planets"><span class="house-planet-tag">♇ Плутон</span></div>
+        <div class="house-desc">Плутон во II говорит о трансформирующих отношениях с деньгами: периоды полного контроля чередуются с кризисами и перезапуском. Финансовая власть и её потеря — важные уроки.</div>
+      </div>
+      <div class="house-card">
+        <div class="house-num">V Дом · Творчество</div>
+        <div class="house-title">Стеллиум Водолей</div>
+        <div class="house-planets"><span class="house-planet-tag">☉ Солнце</span><span class="house-planet-tag">♀ Венера</span><span class="house-planet-tag">♄ Сатурн</span></div>
+        <div class="house-desc">Три планеты в V доме — редкое сосредоточение творческой энергии. Самовыражение, романтика и игра — ключевые темы. Сатурн требует дисциплины в творчестве: талант без структуры не даст результата.</div>
+      </div>
+      <div class="house-card">
+        <div class="house-num">IV Дом · Корни и дом</div>
+        <div class="house-title">Козероговый стеллиум</div>
+        <div class="house-planets"><span class="house-planet-tag">☿ Меркурий Rx</span><span class="house-planet-tag">♂ Марс</span><span class="house-planet-tag">♅ Уран</span><span class="house-planet-tag">♆ Нептун</span></div>
+        <div class="house-desc">Четыре планеты в IV — корни имеют определяющее значение. Козерог придаёт структуру и амбиции, Уран-Нептун создают ощущение нестабильности в происхождении, которое стало источником силы.</div>
+      </div>
+      <div class="house-card">
+        <div class="house-num">VII Дом · Партнёрство</div>
+        <div class="house-title">Овен пустой</div>
+        <div class="house-desc">VII в Овне — в партнёрстве вы привлекаете энергичных, прямолинейных людей. Иногда отношения начинаются стремительно. Вам нужен партнёр, который не боится конфликта.</div>
+      </div>
+      <div class="house-card">
+        <div class="house-num">IX Дом · Мировоззрение</div>
+        <div class="house-title">Близнецы · Луна</div>
+        <div class="house-planets"><span class="house-planet-tag">☽ Луна</span></div>
+        <div class="house-desc">Луна в IX — эмоциональная связь с путешествиями, образованием, философией. Вам жизненно необходимо расширять горизонты. Дальние поездки и обучение дают психологическую перезарядку.</div>
+      </div>
+      <div class="house-card">
+        <div class="house-num">X Дом · Карьера</div>
+        <div class="house-title">Рак на MC</div>
+        <div class="house-desc">MC в Раке — призвание связано с заботой, созданием среды, работой с людьми или историей. Карьерный успех возможен там, где вы создаёте нечто устойчивое и долгосрочное.</div>
+      </div>
+      <div class="house-card">
+        <div class="house-num">XII Дом · Скрытое</div>
+        <div class="house-title">Дева · Юпитер</div>
+        <div class="house-planets"><span class="house-planet-tag">♃ Юпитер</span></div>
+        <div class="house-desc">Юпитер в XII — ваш скрытый ресурс. Интуиция, способность к анализу «за кулисами», духовная поддержка работают на вас незаметно. Медитация и уединение приносят неожиданные инсайты.</div>
+      </div>
+    </div>
+  </div>
+  <div class="page-footer">
+    <span>© 2025 Astrogen · astrogen.ru</span>
+    <span>4 / 8</span>
+  </div>
+</div>
+
+<!-- ══════════ PAGE 5 — АСПЕКТЫ ══════════ -->
+<div class="page">
+  <div class="page-header">
+    <span class="page-header-title">Аспекты</span>
+    <span class="page-header-name">Алексей · 27.01.1992</span>
+  </div>
+  <div class="page-inner">
+    <h2 class="section-heading">Таланты и внутренние конфликты</h2>
+    <p class="section-subheading">Основные аспекты карты — угловые расстояния между планетами</p>
+
+    <div class="aspect-row aspect-trine">
+      <div class="aspect-planets">☉ <span style="font-size:13px;color:#8C8C8C;">△</span> ☽</div>
+      <div class="aspect-type"><span class="aspect-badge-wrap">△ Трин</span></div>
+      <div class="aspect-orb">Орб 5°</div>
+      <div class="aspect-meaning"><strong>Солнце △ Луна:</strong> Гармония между волей и эмоциями. Вы редко разрываетесь между тем, чего хотите, и тем, что чувствуете. Внутренняя согласованность даёт устойчивость в кризисных ситуациях.</div>
+    </div>
+    <div class="aspect-row aspect-conj">
+      <div class="aspect-planets">☉ <span style="font-size:13px;color:#8C8C8C;">☌</span> ♀</div>
+      <div class="aspect-type"><span class="aspect-badge-wrap">☌ Соединение</span></div>
+      <div class="aspect-orb">Орб 10°</div>
+      <div class="aspect-meaning"><strong>Солнце ☌ Венера:</strong> Сильная харизма, способность к сотрудничеству. Ваше присутствие воспринимается как приятное и располагающее. В Водолее это принимает форму «прогрессивного шарма».</div>
+    </div>
+    <div class="aspect-row aspect-conj">
+      <div class="aspect-planets">☉ <span style="font-size:13px;color:#8C8C8C;">☌</span> ♄</div>
+      <div class="aspect-type"><span class="aspect-badge-wrap">☌ Соединение</span></div>
+      <div class="aspect-orb">Орб 4°</div>
+      <div class="aspect-meaning"><strong>Солнце ☌ Сатурн:</strong> Сила воли, терпение, серьёзность. Вы склонны брать ответственность на себя. Риск — слишком высокая самокритика и ощущение, что ничто не достаточно хорошо.</div>
+    </div>
+    <div class="aspect-row aspect-square">
+      <div class="aspect-planets">☉ <span style="font-size:13px;color:#8C8C8C;">□</span> ♇</div>
+      <div class="aspect-type"><span class="aspect-badge-wrap">□ Квадратура</span></div>
+      <div class="aspect-orb">Орб 5°</div>
+      <div class="aspect-meaning"><strong>Солнце □ Плутон:</strong> Напряжение между желанием быть собой и давлением обстоятельств/власти. Иногда борьба с контролем, стремление к трансформации через преодоление препятствий.</div>
+    </div>
+    <div class="aspect-row aspect-trine">
+      <div class="aspect-planets">☽ <span style="font-size:13px;color:#8C8C8C;">△</span> ♇</div>
+      <div class="aspect-type"><span class="aspect-badge-wrap">△ Трин</span></div>
+      <div class="aspect-orb">Орб 1°</div>
+      <div class="aspect-meaning"><strong>Луна △ Плутон:</strong> Очень точный трин. Глубокое понимание людей, способность чувствовать скрытые мотивы. Эмоциональная проницательность, которая иногда пугает самого носителя карты.</div>
+    </div>
+    <div class="aspect-row aspect-sext">
+      <div class="aspect-planets">♃ <span style="font-size:13px;color:#8C8C8C;">✱</span> ♇</div>
+      <div class="aspect-type"><span class="aspect-badge-wrap">✱ Секстиль</span></div>
+      <div class="aspect-orb">Орб 6°</div>
+      <div class="aspect-meaning"><strong>Юпитер ✱ Плутон:</strong> Потенциал крупных достижений через глубокое погружение в тему. Там, где вы работаете с полной самоотдачей, возможны трансформирующие успехи.</div>
+    </div>
+    <div class="aspect-row aspect-square">
+      <div class="aspect-planets">♂ <span style="font-size:13px;color:#8C8C8C;">□</span> ♃</div>
+      <div class="aspect-type"><span class="aspect-badge-wrap">□ Квадратура</span></div>
+      <div class="aspect-orb">Орб 6°</div>
+      <div class="aspect-meaning"><strong>Марс □ Юпитер:</strong> Энергия в избытке, но она требует укрощения. Склонность к преувеличению масштаба задач, начало большего, чем можно закончить. Урок — реалистичное планирование.</div>
+    </div>
+  </div>
+  <div class="page-footer">
+    <span>© 2025 Astrogen · astrogen.ru</span>
+    <span>5 / 8</span>
+  </div>
+</div>
+
+<!-- ══════════ PAGE 6 — ТРАНЗИТЫ ══════════ -->
+<div class="page">
+  <div class="page-header">
+    <span class="page-header-title">Транзиты 2025–2026</span>
+    <span class="page-header-name">Алексей · 27.01.1992</span>
+  </div>
+  <div class="page-inner">
+    <h2 class="section-heading">Астрологические влияния 2025–2026</h2>
+    <p class="section-subheading">Движение планет через ваши натальные позиции — ключевые периоды</p>
+
+    <div class="transit-row">
+      <div class="transit-period">Янв–Окт 2025<br><span class="transit-type-badge transit-growth">Рост</span></div>
+      <div>
+        <div class="transit-title">Юпитер транзитом через Близнецы — активация натальной Луны</div>
+        <div class="transit-desc">Юпитер проходит через IX дом и соединяется с вашей натальной Луной в Близнецах. Это время расширения кругозора, возможностей для обучения, путешествий и публичной активности. Мышление становится продуктивным, общение — плодотворным. Период благоприятен для старта образовательных проектов, переговоров и новых контактов.</div>
+      </div>
+    </div>
+
+    <div class="transit-row">
+      <div class="transit-period">Мар–Дек 2025<br><span class="transit-type-badge transit-change">Перемены</span></div>
+      <div>
+        <div class="transit-title">Сатурн в Рыбах — напряжение с натальным Асцендентом</div>
+        <div class="transit-desc">Сатурн образует квадратуру с вашим Асцендентом в Весах. Это испытательный период для самоопределения: кем вы хотите быть и как это согласуется с тем, чего хотят другие. Возможны пересмотр ролей, переосмысление партнёрств. Не лучшее время для импульсивных решений — зато идеальное для долгосрочного планирования.</div>
+      </div>
+    </div>
+
+    <div class="transit-row">
+      <div class="transit-period">Апр 2025 – Апр 2026<br><span class="transit-type-badge transit-change">Трансформация</span></div>
+      <div>
+        <div class="transit-title">Плутон в Водолее — соединение с натальным Солнцем</div>
+        <div class="transit-desc">Один из важнейших транзитов жизни. Плутон медленно движется к точному соединению с вашим Солнцем в 6–7° Водолея. Этот процесс начался в 2024 и достигнет пика в 2025. Ожидайте глубокой трансформации идентичности: устаревшие части «я» уходят, освобождая место для обновлённого самовыражения. Это не кризис — это линька.</div>
+      </div>
+    </div>
+
+    <div class="transit-row">
+      <div class="transit-period">Ноя 2025 – Авг 2026<br><span class="transit-type-badge transit-growth">Возможности</span></div>
+      <div>
+        <div class="transit-title">Юпитер в Раке — активация MC и X дома</div>
+        <div class="transit-desc">Юпитер войдёт в Рак и начнёт транзит через ваш X дом, одновременно соединяясь с MC в 19°48' Рака. Это один из лучших периодов для карьерного роста за несколько лет. Признание, новые возможности, повышение видимости в профессиональной среде. Важно: действовать активно, не ждать у моря погоды.</div>
+      </div>
+    </div>
+
+    <div class="transit-row">
+      <div class="transit-period">2025–2030<br><span class="transit-type-badge transit-change">Фон</span></div>
+      <div>
+        <div class="transit-title">Уран в Тельце — взаимодействие со стеллиумом IV дома</div>
+        <div class="transit-desc">Уран в Тельце образует напряжённые аспекты с козероговым стеллиумом вашего IV дома. Темы: смена места жительства, переосмысление «корней», возможный переезд или кардинальное изменение домашнего уклада. Перемены в этой сфере неизбежны, но могут стать освобождающими.</div>
+      </div>
+    </div>
+  </div>
+  <div class="page-footer">
+    <span>© 2025 Astrogen · astrogen.ru</span>
+    <span>6 / 8</span>
+  </div>
+</div>
+
+<!-- ══════════ PAGE 7 — НОДАЛЬНАЯ ОСЬ ══════════ -->
+<div class="page">
+  <div class="page-header">
+    <span class="page-header-title">Нодальная ось</span>
+    <span class="page-header-name">Алексей · 27.01.1992</span>
+  </div>
+  <div class="page-inner">
+    <h2 class="section-heading">Северный и Южный Узел Луны</h2>
+    <p class="section-subheading">Кармические задачи и ресурсы прошлого · Ось Козерог–Рак</p>
+
+    <div class="planet-section">
+      <div class="planet-header">
+        <div class="planet-glyph">☊</div>
+        <div class="planet-title-block">
+          <div class="planet-name">Северный Узел в Козероге · Дом IV</div>
+          <div class="planet-position">5°08' Козерога · В точном соединении с козероговым стеллиумом</div>
+        </div>
+      </div>
+      <div class="planet-desc">
+        <p>Северный Узел в Козероге — ваша кармическая задача связана с освоением дисциплины, ответственности и долгосрочного строительства. В прошлых жизнях (или в детстве, если не принимать кармическую концепцию) вы были привязаны к Раку — к зависимости от семьи, эмоциональной безопасности, избеганию ответственности.</p>
+        <p>Ваш путь — научиться опираться на себя, строить структуры, доводить начатое до конца. Козерог в IV доме делает эту задачу особенно интимной: трансформация начинается внутри, с самой глубокой части личности.</p>
+        <div class="insight-box">
+          <strong>Важно:</strong> Козероговый стеллиум (Марс, Меркурий Rx, Уран, Нептун) в IV доме усиливает этот узел — у вас буквально весь IV дом работает на освоение козероговой темы. Это и ваш главный ресурс, и главная задача одновременно.
+        </div>
+      </div>
+    </div>
+
+    <div class="planet-section">
+      <div class="planet-header">
+        <div class="planet-glyph">☋</div>
+        <div class="planet-title-block">
+          <div class="planet-name">Южный Узел в Раке · Дом X</div>
+          <div class="planet-position">5°08' Рака · Ресурс прошлого — эмпатия и интуиция</div>
+        </div>
+      </div>
+      <div class="planet-desc">
+        <p>Южный Узел в Раке на MC — ваши природные дары: глубокая интуиция, способность к эмпатии, умение чувствовать эмоциональный климат в любой ситуации. Это не нужно развивать — это уже есть. Это ресурс, который нужно перестать использовать как костыль.</p>
+        <p>Ловушка Южного Узла: зависимость от одобрения, избыточная забота о других за счёт своих задач, уход в роль «кормильца» или «психолога» вместо строительства собственной жизни.</p>
+      </div>
+    </div>
+  </div>
+  <div class="page-footer">
+    <span>© 2025 Astrogen · astrogen.ru</span>
+    <span>7 / 8</span>
+  </div>
+</div>
+
+<!-- ══════════ PAGE 8 — РЕКОМЕНДАЦИИ ══════════ -->
+<div class="page">
+  <div class="page-header">
+    <span class="page-header-title">Рекомендации</span>
+    <span class="page-header-name">Алексей · 27.01.1992</span>
+  </div>
+  <div class="page-inner">
+    <h2 class="section-heading">Практические рекомендации</h2>
+    <p class="section-subheading">Конкретные советы по ключевым сферам жизни на основе карты</p>
+
+    <div class="rec-area">
+      <div class="rec-area-title">
+        <div class="rec-area-icon">💼</div>
+        <div class="rec-area-name">Карьера и призвание</div>
+      </div>
+      <ul class="rec-list">
+        <li>Ваш MC в Раке указывает на призвание в сферах, где важна забота о людях или создание чего-то устойчивого: образование, медиа, архитектура смыслов, продуктовые команды.</li>
+        <li>V дом с Солнцем, Венерой и Сатурном — творчество должно быть частью профессии. Чисто исполнительская работа без творческой составляющей истощает.</li>
+        <li>Период Юпитер на MC (ноябрь 2025 – август 2026) — лучшее окно для заявок о себе, смены работы или запуска проекта за несколько лет.</li>
+      </ul>
+    </div>
+
+    <div class="rec-area">
+      <div class="rec-area-title">
+        <div class="rec-area-icon">🤝</div>
+        <div class="rec-area-name">Отношения и партнёрство</div>
+      </div>
+      <ul class="rec-list">
+        <li>Весы на АСЦ создают сильную потребность в партнёрстве — но Водолейское Солнце требует независимости. Вам нужен партнёр, который понимает разницу между «быть вместе» и «слиться».</li>
+        <li>VII дом в Овне говорит о притяжении к энергичным, прямолинейным людям. Конфликт в отношениях — не признак проблемы, а признак живости. Бояться его не стоит.</li>
+        <li>Луна в Близнецах в IX: партнёр должен разделять интерес к идеям, путешествиям и развитию. Интеллектуальная совместимость — обязательное условие.</li>
+      </ul>
+    </div>
+
+    <div class="rec-area">
+      <div class="rec-area-title">
+        <div class="rec-area-icon">🧠</div>
+        <div class="rec-area-name">Психология и развитие</div>
+      </div>
+      <ul class="rec-list">
+        <li>Меркурий Rx в IV доме — внутренний диалог очень активен. Ведение дневника или работа с психологом может быть исключительно продуктивной для вас.</li>
+        <li>Козероговый стеллиум + Сатурн рядом с Солнцем: вероятна высокая внутренняя планка и самокритика. Учитесь замечать достижения, а не только разрывы между текущим и идеальным.</li>
+        <li>Юпитер в XII — медитация, работа с образами, практики осознанности дают вам доступ к скрытым ресурсам, которые в обычной жизни остаются «за кадром».</li>
+      </ul>
+    </div>
+
+    <div class="rec-area">
+      <div class="rec-area-title">
+        <div class="rec-area-icon">📅</div>
+        <div class="rec-area-name">Ближайший период (2025)</div>
+      </div>
+      <ul class="rec-list">
+        <li>Первая половина 2025 — активный период коммуникации и обучения (Юпитер на Луне). Используйте для нетворкинга, публичных выступлений, обучения.</li>
+        <li>Плутон на Солнце: ожидайте трансформации самоопределения. Не сопротивляйтесь переменам в «кто я» — это запланированный процесс карты, а не кризис.</li>
+        <li>Вторая половина 2025 — накопление ресурса. Ноябрь 2025 откроет карьерный цикл роста — подготовьтесь к нему заранее.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="page-footer" style="background: var(--primary-light); border-top: 1px solid var(--primary-border);">
+    <span style="color: var(--primary);">Astrogen · astrogen.ru · support@astrogen.ru · Рассчитайте карту для близких</span>
+    <span style="color: var(--primary);">8 / 8</span>
+  </div>
+</div>
+
+</div><!-- /doc -->
+</body>
+</html>

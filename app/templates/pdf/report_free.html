@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: 'DejaVu Serif', serif; margin: 1.2cm; font-size: 11pt; }
+        h1 { color: #2c3e50; font-size: 16pt; margin-bottom: 8px; }
+        h2 { color: #34495e; font-size: 12pt; margin-top: 12px; }
+        .chart { text-align: center; margin: 12px 0; }
+        .chart img { max-height: 280px; }
+        .footer { margin-top: 16px; font-size: 0.75em; color: #7f8c8d; text-align: center; }
+    </style>
+</head>
+<body>
+    {% if locale == 'en' %}
+    <h1>Natal chart snapshot</h1>
+    <p><strong>Name:</strong> {{ full_name }}</p>
+    <p><strong>Birth:</strong> {{ birth_data }}, {{ birth_place }}</p>
+    <p><strong>Plan:</strong> {{ tariff_name }}</p>
+    {% else %}
+    <h1>Краткий разбор натальной карты</h1>
+    <p><strong>Имя:</strong> {{ full_name }}</p>
+    <p><strong>Рождение:</strong> {{ birth_data }}, {{ birth_place }}</p>
+    <p><strong>Тариф:</strong> {{ tariff_name }}</p>
+    {% endif %}
+
+    <div class="chart">
+        <img src="{{ chart_img_path }}" alt="Chart">
+    </div>
+
+    <div class="interpretation">{{ interpretation | safe }}</div>
+
+    <div class="footer">
+        {% if locale == 'en' %}
+        One-page preview. For informational purposes only.<br>
+        AstroGen © 2024.
+        {% else %}
+        Одностраничный превью-отчёт. Информация носит ознакомительный характер.<br>
+        AstroGen © 2024.
+        {% endif %}
+    </div>
+</body>
+</html>

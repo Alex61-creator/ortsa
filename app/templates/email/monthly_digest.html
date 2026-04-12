@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body>
+    <h1>Astro Pro — обновление на {{ period }}</h1>
+    <p>Здравствуйте{% if user_name %}, {{ user_name }}{% endif %}!</p>
+    {% if period_start_display %}
+    <p><small>Текущий оплаченный период начался: {{ period_start_display }}</small></p>
+    {% endif %}
+    <p>Ниже — персональный прогноз (транзиты и акценты месяца) по вашей сохранённой карте.</p>
+    <hr>
+    <pre style="white-space: pre-wrap; font-family: inherit;">{{ interpretation }}</pre>
+    <p><a href="{{ cabinet_link }}">Открыть личный кабинет</a></p>
+    <p>С уважением,<br>Команда AstroGen</p>
+</body>
+</html>

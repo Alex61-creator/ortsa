@@ -1,0 +1,259 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+.w { font-family: var(--font-sans); padding: 4px 0 16px; }
+h2.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+.score-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 20px; }
+.score-card { background: var(--color-background-secondary); border-radius: var(--border-radius-lg); padding: 14px 12px; text-align: center; }
+.score-num { font-size: 30px; font-weight: 500; line-height: 1; margin-bottom: 4px; }
+.score-lbl { font-size: 11px; color: var(--color-text-secondary); line-height: 1.3; }
+.s-good { color: var(--color-text-success); }
+.s-ok { color: var(--color-text-warning); }
+.s-bad { color: var(--color-text-danger); }
+.s-info { color: var(--color-text-info); }
+.tabs { display: flex; gap: 2px; border-bottom: 0.5px solid var(--color-border-tertiary); margin-bottom: 16px; overflow-x: auto; }
+.tab { font-size: 12px; padding: 8px 12px; cursor: pointer; border: none; background: none; color: var(--color-text-secondary); border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; transition: all 0.15s; font-family: var(--font-sans); }
+.tab.on { color: var(--color-text-primary); border-bottom-color: var(--color-text-primary); font-weight: 500; }
+.panel { display: none; }
+.panel.on { display: block; }
+.row { display: flex; gap: 10px; align-items: flex-start; padding: 12px 0; border-bottom: 0.5px solid var(--color-border-tertiary); }
+.row:last-child { border-bottom: none; }
+.pill { font-size: 10px; font-weight: 500; padding: 3px 8px; border-radius: 10px; white-space: nowrap; flex-shrink: 0; margin-top: 1px; }
+.p-green { background: var(--color-background-success); color: var(--color-text-success); }
+.p-amber { background: var(--color-background-warning); color: var(--color-text-warning); }
+.p-red { background: var(--color-background-danger); color: var(--color-text-danger); }
+.p-blue { background: var(--color-background-info); color: var(--color-text-info); }
+.p-gray { background: var(--color-background-secondary); color: var(--color-text-secondary); }
+.item-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 3px; }
+.item-desc { font-size: 12px; color: var(--color-text-secondary); line-height: 1.55; }
+.item-fix { font-size: 12px; color: var(--color-text-info); margin-top: 4px; line-height: 1.5; }
+.bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.bar-label { font-size: 12px; color: var(--color-text-secondary); width: 150px; flex-shrink: 0; }
+.bar-track { flex: 1; height: 6px; background: var(--color-background-secondary); border-radius: 3px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 3px; }
+.bg-g { background: var(--color-text-success); }
+.bg-a { background: #BA7517; }
+.bg-r { background: #E24B4A; }
+.bg-b { background: #378ADD; }
+.bar-val { font-size: 12px; font-weight: 500; width: 28px; flex-shrink: 0; }
+.verdict { background: var(--color-background-secondary); border-radius: var(--border-radius-lg); padding: 16px; margin-top: 16px; }
+.verdict-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 8px; }
+.verdict-text { font-size: 12px; color: var(--color-text-secondary); line-height: 1.65; }
+.comp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.comp-card { border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 12px; }
+.comp-name { font-size: 12px; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 8px; }
+.comp-feat { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 4px; display: flex; gap: 6px; }
+.comp-feat.has { color: var(--color-text-success); }
+.comp-feat.miss { color: var(--color-text-danger); }
+.comp-feat.part { color: var(--color-text-warning); }
+</style>
+
+<div class="w">
+<h2 class="sr">Оценка лендинга Astrogen по современным стандартам 2025</h2>
+
+<div class="score-row">
+  <div class="score-card"><div class="score-num s-good">7.2</div><div class="score-lbl">Дизайн<br>и визуал</div></div>
+  <div class="score-card"><div class="score-num s-ok">5.8</div><div class="score-lbl">Перфоманс<br>и техника</div></div>
+  <div class="score-card"><div class="score-num s-ok">6.5</div><div class="score-lbl">Конверсия<br>и UX</div></div>
+  <div class="score-card"><div class="score-num s-ok">6.0</div><div class="score-lbl">Итого<br>из 10</div></div>
+</div>
+
+<div class="tabs">
+  <button class="tab on" onclick="show('design',this)">Дизайн</button>
+  <button class="tab" onclick="show('perf',this)">Перфоманс</button>
+  <button class="tab" onclick="show('conv',this)">Конверсия</button>
+  <button class="tab" onclick="show('comp',this)">Конкуренты</button>
+  <button class="tab" onclick="show('verdict',this)">Итог</button>
+</div>
+
+<!-- DESIGN -->
+<div class="panel on" id="p-design">
+  <div class="bar-row"><div class="bar-label">Типографика</div><div class="bar-track"><div class="bar-fill bg-g" style="width:82%"></div></div><div class="bar-val s-good">8.2</div></div>
+  <div class="bar-row"><div class="bar-label">Цветовая система</div><div class="bar-track"><div class="bar-fill bg-g" style="width:80%"></div></div><div class="bar-val s-good">8.0</div></div>
+  <div class="bar-row"><div class="bar-label">Иллюстрации / графика</div><div class="bar-track"><div class="bar-fill bg-a" style="width:62%"></div></div><div class="bar-val s-ok">6.2</div></div>
+  <div class="bar-row"><div class="bar-label">Анимации</div><div class="bar-track"><div class="bar-fill bg-r" style="width:30%"></div></div><div class="bar-val s-bad">3.0</div></div>
+  <div class="bar-row"><div class="bar-label">Мобильная версия</div><div class="bar-track"><div class="bar-fill bg-a" style="width:60%"></div></div><div class="bar-val s-ok">6.0</div></div>
+  <div class="bar-row"><div class="bar-label">Dark mode</div><div class="bar-track"><div class="bar-fill bg-g" style="width:85%"></div></div><div class="bar-val s-good">8.5</div></div>
+  <div class="bar-row"><div class="bar-label">Hero-экран</div><div class="bar-track"><div class="bar-fill bg-a" style="width:65%"></div></div><div class="bar-val s-ok">6.5</div></div>
+
+  <div style="height:12px;"></div>
+
+  <div class="row">
+    <div class="pill p-green">Сильно</div>
+    <div><div class="item-title">Cormorant + IBM Plex Sans — профессиональная пара</div><div class="item-desc">Сочетание сериф-дисплея с гротеском работает именно так, как надо для «Tech Astrology». Это одно из лучших типографических решений в нише.</div></div>
+  </div>
+  <div class="row">
+    <div class="pill p-green">Сильно</div>
+    <div><div class="item-title">Ant Design токены строго соблюдены</div><div class="item-desc">CSS-переменные правильно разделены, dark mode переключается без мерцания, семантика цветов не нарушена. Это хорошая основа для будущего React-компонента.</div></div>
+  </div>
+  <div class="row">
+    <div class="pill p-amber">Слабо</div>
+    <div><div class="item-title">SVG-карта — слишком схематична, нет «вау-момента»</div><div class="item-desc">Орбиты из тонких линий выглядят как техническая заглушка, а не как продукт. Конкуренты (Astro.com, Co–Star, TimePassages) делают карту визуально плотной и детальной. Первое, что должно произвести впечатление — это карта.</div><div class="item-fix">→ Добавить знаки зодиака по кругу, цветовые сектора домов, толстые аспектные линии с разными цветами для разных типов.</div></div>
+  </div>
+  <div class="row">
+    <div class="pill p-red">Критично</div>
+    <div><div class="item-title">Ноль анимаций при скролле — 2019 год</div><div class="item-desc">В 2025 любой приличный лендинг использует scroll-triggered анимации. Карточки должны появляться при скролле (fade-up), SVG-карта должна «рисоваться» при первом появлении (stroke-dashoffset), цифры в stats — считаться анимированно. Без этого страница ощущается статичной и дешёвой.</div><div class="item-fix">→ Минимум: IntersectionObserver + CSS transition. Пример: карточки features появляются с задержкой 100ms каждая.</div></div>
+  </div>
+  <div class="row">
+    <div class="pill p-amber">Слабо</div>
+    <div><div class="item-title">Hero-картинка справа — слишком маленькая и изолированная</div><div class="item-desc">SVG-карта в Hero занимает ~40% правой колонки, но не доминирует визуально. Современный тренд — карта должна быть «живой»: вращаться, иметь floating-элементы с названиями планет, создавать ощущение интерактивности.</div><div class="item-fix">→ Добавить плавающие подписи планет как абсолютно позиционированные элементы с CSS-анимацией float.</div></div>
+  </div>
+</div>
+
+<!-- PERFORMANCE -->
+<div class="panel" id="p-perf">
+  <div class="bar-row"><div class="bar-label">LCP (First paint)</div><div class="bar-track"><div class="bar-fill bg-r" style="width:40%"></div></div><div class="bar-val s-bad">~3s</div></div>
+  <div class="bar-row"><div class="bar-label">Google Fonts блокировка</div><div class="bar-track"><div class="bar-fill bg-r" style="width:35%"></div></div><div class="bar-val s-bad">блок</div></div>
+  <div class="bar-row"><div class="bar-label">JS размер</div><div class="bar-track"><div class="bar-fill bg-g" style="width:90%"></div></div><div class="bar-val s-good">мало</div></div>
+  <div class="bar-row"><div class="bar-label">CSS чистота</div><div class="bar-track"><div class="bar-fill bg-a" style="width:55%"></div></div><div class="bar-val s-ok">5.5</div></div>
+  <div class="bar-row"><div class="bar-label">Мобильный FCP</div><div class="bar-track"><div class="bar-fill bg-r" style="width:38%"></div></div><div class="bar-val s-bad">~4s</div></div>
+  <div class="bar-row"><div class="bar-label">SEO-метатеги</div><div class="bar-track"><div class="bar-fill bg-a" style="width:68%"></div></div><div class="bar-val s-ok">6.8</div></div>
+
+  <div style="height:12px;"></div>
+
+  <div class="row">
+    <div class="pill p-red">Критично</div>
+    <div><div class="item-title">Google Fonts — блокирующий запрос к googleapis.com</div><div class="item-desc">Два шрифта грузятся с внешнего CDN синхронно. В России googleapis нестабилен. LCP при медленном соединении может быть 4–6 секунд — это смерть для конверсии (каждая секунда задержки = -7% конверсии по данным Google).</div><div class="item-fix">→ Скачать woff2-файлы, положить на свой сервер, подключить через @font-face с font-display: swap. Размер двух шрифтов ~80kb суммарно.</div></div>
+  </div>
+  <div class="row">
+    <div class="pill p-red">Критично</div>
+    <div><div class="item-title">Один огромный CSS-файл — 500+ строк, всё в &lt;style&gt;</div><div class="item-desc">Весь CSS в head-теге одним блоком — это нормально для прототипа, но не для production. Браузер парсит все 500 строк перед первым рендером. При переходе на React нужно CSS Modules или разбивка на critical/non-critical.</div><div class="item-fix">→ На текущем этапе: выделить above-the-fold CSS (navbar + hero) в &lt;style&gt;, остальное загрузить асинхронно через &lt;link rel="preload"&gt;.</div></div>
+  </div>
+  <div class="row">
+    <div class="pill p-amber">Важно</div>
+    <div><div class="item-title">Нет og:image — Telegram покажет пустой превью</div><div class="item-desc">og:image отсутствует. Когда пользователь пошарит ссылку в Telegram-чат, карточка будет без картинки. Для астрологического сервиса, где шеринг — ключевой канал роста, это серьёзный пропуск.</div><div class="item-fix">→ Создать статичную og:image 1200×630px с логотипом, названием и SVG-картой. Добавить &lt;meta property="og:image" content="..."&gt;.</div></div>
+  </div>
+  <div class="row">
+    <div class="pill p-amber">Важно</div>
+    <div><div class="item-title">Нет Schema.org — потеря расширенных сниппетов</div><div class="item-desc">FAQPage и Product с AggregateRating упоминались в концепции, но в коде отсутствуют. Конкуренты с этой разметкой занимают больше места в выдаче Google и получают звёзды рейтинга прямо в сниппете.</div><div class="item-fix">→ 20 строк JSON-LD в &lt;head&gt;. FAQPage даёт раскрывающиеся вопросы прямо в поиске.</div></div>
+  </div>
+  <div class="row">
+    <div class="pill p-green">Хорошо</div>
+    <div><div class="item-title">Минимум JavaScript — без тяжёлых библиотек</div><div class="item-desc">Весь интерактив написан на vanilla JS. Без jQuery, без Bootstrap, без лишних зависимостей. Это правильное решение для прототипа — размер скрипта меньше 5kb.</div></div>
+  </div>
+</div>
+
+<!-- CONVERSION -->
+<div class="panel" id="p-conv">
+  <div class="bar-row"><div class="bar-label">Ясность ценностного предл.</div><div class="bar-track"><div class="bar-fill bg-a" style="width:65%"></div></div><div class="bar-val s-ok">6.5</div></div>
+  <div class="bar-row"><div class="bar-label">CTA-кнопки</div><div class="bar-track"><div class="bar-fill bg-g" style="width:75%"></div></div><div class="bar-val s-good">7.5</div></div>
+  <div class="bar-row"><div class="bar-label">Форма / Wizard</div><div class="bar-track"><div class="bar-fill bg-g" style="width:78%"></div></div><div class="bar-val s-good">7.8</div></div>
+  <div class="bar-row"><div class="bar-label">Снятие возражений</div><div class="bar-track"><div class="bar-fill bg-a" style="width:58%"></div></div><div class="bar-val s-ok">5.8</div></div>
+  <div class="bar-row"><div class="bar-label">Социальное доказательство</div><div class="bar-track"><div class="bar-fill bg-a" style="width:55%"></div></div><div class="bar-val s-ok">5.5</div></div>
+  <div class="bar-row"><div class="bar-label">Мобильная конверсия</div><div class="bar-track"><div class="bar-fill bg-a" style="width:60%"></div></div><div class="bar-val s-ok">6.0</div></div>
+
+  <div style="height:12px;"></div>
+
+  <div class="row">
+    <div class="pill p-green">Сильно</div>
+    <div><div class="item-title">Трёхшаговый wizard — правильное решение</div><div class="item-desc">Разбивка на шаги с сохранением в localStorage соответствует лучшим практикам 2024–2025. Прогресс-индикатор и персонализация на шаге 2 («Алексей, выберите тариф») работают на конверсию.</div></div>
+  </div>
+  <div class="row">
+    <div class="pill p-red">Критично</div>
+    <div><div class="item-title">Hero не отвечает на «зачем мне это» — только «что это»</div><div class="item-desc">Текущий Hero описывает продукт: «Детальный разбор характера, талантов и жизненных циклов». Но покупатель думает не про функции — он думает про себя: «Почему у меня не идёт карьера?», «Почему я снова в тех же отношениях?». Разрыв между тем что предлагается и тем что ищут — основная причина отказов.</div><div class="item-fix">→ Подзаголовок Hero переписать в jobs-to-be-done формате: «Поймите, почему повторяются одни сценарии. Узнайте, когда подходящее время для важных решений. Получите ответы за 60 секунд.»</div></div>
+  </div>
+  <div class="row">
+    <div class="pill p-red">Критично</div>
+    <div><div class="item-title">Отзывы — нет фото и нет конкретики, выглядят как заглушки</div><div class="item-desc">«Описание личности совпало на 90%» — это шаблонный отзыв, который пользователи идентифицируют как сгенерированный ИИ. В 2025 году отзывы без фото, должности и конкретной детали воспринимаются как фейк. Это подрывает доверие.</div><div class="item-fix">→ Добавить реальные фото (или нарисованные аватары с характером), конкретную деталь: «Меркурий ретроградный в IV доме — это точно про мои сложности с переездами».</div></div>
+  </div>
+  <div class="row">
+    <div class="pill p-amber">Важно</div>
+    <div><div class="item-title">Блок «Для кого это» отсутствует</div><div class="item-desc">Нет сегментации аудитории. Пользователь должен узнать себя в одном из 3–4 персонажей ещё до скролла до тарифов. «Для тех, кто застрял на карьерном плато», «Для пар, которые хотят понять друг друга», «Для тех, кто переживает перемены».</div></div>
+  </div>
+  <div class="row">
+    <div class="pill p-amber">Важно</div>
+    <div><div class="item-title">12 000 карт — цифра без подтверждения</div><div class="item-desc">У сервиса ещё нет 12 000 карт. Это число заложено как «желаемое», но при запуске оно будет ложью. Пользователи проверяют дату регистрации домена через whois, смотрят на активность в соцсетях. Несоответствие разрушает доверие моментально.</div><div class="item-fix">→ До 1000 карт честнее написать «Первые карты уже рассчитаны · Оцените сами». После — показывать реальное число.</div></div>
+  </div>
+  <div class="row">
+    <div class="pill p-green">Хорошо</div>
+    <div><div class="item-title">Многошаговая форма правильно откладывает авторизацию</div><div class="item-desc">Авторизация только на шаге 3 — это соответствует флоу из документа и снижает барьер входа. Правильное UX-решение.</div></div>
+  </div>
+</div>
+
+<!-- COMPETITORS -->
+<div class="panel" id="p-comp">
+  <div style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 14px;">Сравнение с актуальными конкурентами в нише персональной астрологии</div>
+  <div class="comp-grid">
+    <div class="comp-card">
+      <div class="comp-name">Co–Star (США) · Бенчмарк</div>
+      <div class="comp-feat has">✓ Живая анимация карты</div>
+      <div class="comp-feat has">✓ Персональный нарратив на каждый день</div>
+      <div class="comp-feat has">✓ Совместимость с друзьями</div>
+      <div class="comp-feat has">✓ Real-time NASA данные в описании</div>
+      <div class="comp-feat has">✓ Минималистичный dark UI</div>
+      <div class="comp-feat miss">✗ Нет PDF-отчёта</div>
+      <div class="comp-feat miss">✗ Только английский</div>
+    </div>
+    <div class="comp-card">
+      <div class="comp-name">Astro.com · Профессиональный</div>
+      <div class="comp-feat has">✓ Наиболее точные расчёты</div>
+      <div class="comp-feat has">✓ Бесплатные детальные карты</div>
+      <div class="comp-feat has">✓ Огромная база интерпретаций</div>
+      <div class="comp-feat miss">✗ UI из 2005 года</div>
+      <div class="comp-feat miss">✗ Перегружен для новичков</div>
+      <div class="comp-feat miss">✗ Нет Telegram</div>
+    </div>
+    <div class="comp-card">
+      <div class="comp-name">Astrogen (текущий) · Наш</div>
+      <div class="comp-feat has">✓ Telegram Mini App</div>
+      <div class="comp-feat has">✓ Русский язык</div>
+      <div class="comp-feat has">✓ PDF-отчёт</div>
+      <div class="comp-feat has">✓ Современный дизайн</div>
+      <div class="comp-feat part">~ Анимации: частично</div>
+      <div class="comp-feat miss">✗ Нет ежедневного контента</div>
+      <div class="comp-feat miss">✗ Нет совместимости</div>
+    </div>
+    <div class="comp-card">
+      <div class="comp-name">TimePassages · Ближайший</div>
+      <div class="comp-feat has">✓ Детальные интерпретации</div>
+      <div class="comp-feat has">✓ Транзиты в реальном времени</div>
+      <div class="comp-feat has">✓ Мобильное приложение</div>
+      <div class="comp-feat miss">✗ Только English/iOS</div>
+      <div class="comp-feat miss">✗ Нет Telegram</div>
+      <div class="comp-feat miss">✗ Дорогой (subscription)</div>
+    </div>
+  </div>
+  <div class="verdict" style="margin-top:14px;">
+    <div class="verdict-title">Где реальное конкурентное окно</div>
+    <div class="verdict-text">Русскоязычный рынок — недообслуженный. Astro.com перегружен, Co–Star без русского языка, местные конкуренты (Астрологи в Telegram) работают без продуктового подхода. Telegram-интеграция как нативный канал — это подлинное преимущество, которого нет ни у кого из топ-игроков. Основная угроза: ИИ-боты в Telegram (GPT-обёртки над астрологическими данными), которые уже появляются. Нужно занять позицию «точность + дизайн» до их масштабирования.</div>
+  </div>
+</div>
+
+<!-- VERDICT -->
+<div class="panel" id="p-verdict">
+  <div class="row">
+    <div class="pill p-green">Честно</div>
+    <div><div class="item-title">Это хороший прототип, но ещё не продукт</div><div class="item-desc">Текущая реализация — сильная база для согласования структуры и логики. Типографика, цветовая система, wizard-форма и dark mode на уровне 2024–2025. Для разработчика или инвестора — убедительно. Для холодного трафика из рекламы — пока нет.</div></div>
+  </div>
+  <div class="row">
+    <div class="pill p-red">Главный gap</div>
+    <div><div class="item-title">Нет ни одной анимации — это самый болезненный пробел</div><div class="item-desc">В 2025 году отсутствие scroll-анимаций на лендинге — это то же самое, что в 2015 году сайт без адаптивности. Пользователь подсознательно считывает «устаревший» или «дешёвый» продукт ещё до того, как прочитал хоть слово.</div></div>
+  </div>
+  <div class="row">
+    <div class="pill p-amber">Приоритет 1</div>
+    <div><div class="item-title">Анимации: 3 вещи дадут 80% визуального эффекта</div><div class="item-desc">SVG-карта рисуется при загрузке (stroke-dashoffset 2 секунды). Карточки features появляются при скролле с задержкой. Цифры в stats считаются от 0. Это ~50 строк JavaScript, но визуально преображает страницу.</div></div>
+  </div>
+  <div class="row">
+    <div class="pill p-amber">Приоритет 2</div>
+    <div><div class="item-title">Шрифты локально + og:image — перед запуском обязательно</div><div class="item-desc">Без этих двух вещей нельзя запускать рекламу. Шрифты с googleapis дадут плохой Lighthouse score и медленный старт в России. Отсутствие og:image убьёт шеринг в Telegram — ключевой канал роста.</div></div>
+  </div>
+  <div class="row">
+    <div class="pill p-amber">Приоритет 3</div>
+    <div><div class="item-title">Hero переписать в jobs-to-be-done до первого трафика</div><div class="item-desc">Текущий Hero описывает продукт. Нужно описывать боль и результат. Это единственное изменение, которое можно сделать за 20 минут и получить значимый прирост конверсии.</div></div>
+  </div>
+  <div class="row">
+    <div class="pill p-blue">Потом</div>
+    <div><div class="item-title">Реальные отзывы, реальные цифры, Schema.org</div><div class="item-desc">До получения первых 50–100 пользователей всё равно не будет реальных отзывов. После запуска собрать скриншоты из Telegram, попросить первых пользователей написать пару слов — и заменить заглушки. Тогда конверсия вырастет заметно.</div></div>
+  </div>
+</div>
+
+</div>
+
+<script>
+function show(id, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  document.getElementById('p-' + id).classList.add('on');
+  btn.classList.add('on');
+}
+</script>

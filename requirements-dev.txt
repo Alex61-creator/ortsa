@@ -1,0 +1,8 @@
+# Зависимости для pytest и локального CI; ставить вместе с requirements.txt:
+#   pip install -r requirements.txt -r requirements-dev.txt
+pytest==8.3.4
+pytest-asyncio==0.25.2
+httpx==0.28.1
+aiosqlite==0.20.0
+fakeredis==2.26.2
+Pillow==11.1.0

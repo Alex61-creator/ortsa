@@ -1,0 +1,40 @@
+# Интерпретатор: Python 3.11.x (ветка зафиксирована; устанавливайте зависимости через python3.11 -m pip).
+# Совместимость: python_requires ~=3.11.0 (>=3.11,<3.12).
+# Версии пакетов ниже подобраны под 2026-01.
+fastapi==0.115.12
+uvicorn[standard]==0.34.0
+pydantic==2.10.6
+pydantic-settings==2.7.1
+sqlalchemy==2.0.36
+greenlet==3.1.1
+asyncpg==0.30.0
+alembic==1.14.0
+redis==5.2.1
+celery==5.4.0
+httpx==0.28.1
+httpx-oauth==0.16.1
+python-jose[cryptography]==3.3.0
+PyJWT[crypto]==2.10.1
+cryptography==44.0.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.2.1
+python-multipart==0.0.20
+itsdangerous==2.2.0
+yookassa==3.3.0
+kerykeion==4.26.3
+cairosvg==2.7.1
+weasyprint==63.1
+markdown==3.7
+jinja2==3.1.5
+fastapi-mail==1.4.1
+sqladmin==0.20.1
+slowapi==0.1.9
+openai==1.59.7
+structlog==25.1.0
+sentry-sdk[fastapi]==2.20.0
+tenacity==9.0.0
+email-validator==2.2.0
+pytz==2024.2
+aiofiles==24.1.0
+aiosqlite==0.20.0
+timezonefinder==6.5.9

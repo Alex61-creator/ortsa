@@ -1,0 +1,147 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* Ant Design palette: primary #1677FF; до гидрации — тёмная тема */
+:root,
+:root[data-theme='dark'] {
+  --ag-primary: #1677ff;
+  --ag-primary-bg: rgba(22, 119, 255, 0.15);
+  --ag-error: #ff4d4f;
+  --ag-bg: #141414;
+  --ag-bg-container: #1f1f1f;
+  --ag-text: rgba(255, 255, 255, 0.85);
+  --ag-text-secondary: rgba(255, 255, 255, 0.65);
+  --ag-border: #303030;
+  --ag-hero-text: #ffffff;
+  --ag-hero-muted: rgba(255, 255, 255, 0.85);
+  --ag-hero-glow: rgba(22, 119, 255, 0.28);
+  --ag-hero-edge: #141414;
+  --ag-header-border: rgba(255, 255, 255, 0.06);
+  --ag-footer-border: rgba(255, 255, 255, 0.06);
+  --ag-preview-border: rgba(22, 119, 255, 0.45);
+}
+
+:root[data-theme='light'] {
+  --ag-primary: #1677ff;
+  --ag-primary-bg: #e6f4ff;
+  --ag-error: #ff4d4f;
+  --ag-bg: #f5f5f5;
+  --ag-bg-container: #ffffff;
+  --ag-text: rgba(0, 0, 0, 0.88);
+  --ag-text-secondary: #595959;
+  --ag-border: #d9d9d9;
+  --ag-hero-text: rgba(0, 0, 0, 0.88);
+  --ag-hero-muted: #595959;
+  --ag-hero-glow: rgba(22, 119, 255, 0.14);
+  --ag-hero-edge: #f5f5f5;
+  --ag-header-border: #f0f0f0;
+  --ag-footer-border: #f0f0f0;
+  --ag-preview-border: rgba(22, 119, 255, 0.35);
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--ag-bg);
+  color: var(--ag-text);
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.app-root {
+  min-height: 100vh;
+  background: var(--ag-bg);
+}
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid var(--ag-header-border);
+  background: var(--ag-bg-container) !important;
+}
+
+.app-header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+}
+
+.app-footer-minimal {
+  text-align: center;
+  border-top: 1px solid var(--ag-footer-border);
+  background: var(--ag-bg) !important;
+}
+
+.landing-section {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 64px 16px;
+}
+
+.landing-hero {
+  position: relative;
+  overflow: hidden;
+  min-height: 72vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 80px 16px;
+  background: var(--ag-bg);
+}
+
+:root[data-theme='light'] .landing-hero {
+  background: linear-gradient(180deg, var(--ag-primary-bg) 0%, var(--ag-bg) 42%, var(--ag-bg) 100%);
+}
+
+.hero-glow {
+  position: absolute;
+  inset: -40%;
+  background: radial-gradient(circle at 50% 28%, var(--ag-hero-glow), transparent 58%);
+  pointer-events: none;
+}
+
+.starfield {
+  position: absolute;
+  inset: 0;
+  opacity: 0.32;
+  background-image: radial-gradient(1px 1px at 20px 30px, #fff, transparent),
+    radial-gradient(1px 1px at 40px 70px, rgba(255, 255, 255, 0.85), transparent),
+    radial-gradient(1px 1px at 90px 40px, #fff, transparent),
+    radial-gradient(1px 1px at 130px 80px, rgba(255, 255, 255, 0.75), transparent);
+  background-size: 200px 200px;
+  animation: drift 120s linear infinite;
+}
+
+:root[data-theme='light'] .starfield {
+  opacity: 0.12;
+  background-image: radial-gradient(1px 1px at 20px 30px, rgba(0, 0, 0, 0.35), transparent),
+    radial-gradient(1px 1px at 40px 70px, rgba(0, 0, 0, 0.2), transparent),
+    radial-gradient(1px 1px at 90px 40px, rgba(22, 119, 255, 0.4), transparent),
+    radial-gradient(1px 1px at 130px 80px, rgba(0, 0, 0, 0.15), transparent);
+}
+
+@keyframes drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-80px, -40px, 0);
+  }
+}

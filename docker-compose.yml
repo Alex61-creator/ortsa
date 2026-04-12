@@ -1,0 +1,143 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: astro_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - astro_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: astro_redis
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    environment:
+      # Нужно для healthcheck: иначе $REDIS_PASSWORD внутри контейнера пустой → unhealthy
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      start_period: 10s
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - astro_network
+
+  fastapi:
+    build: .
+    container_name: astro_fastapi
+    command:
+      - sh
+      - -c
+      - |
+          set -e
+          alembic upgrade head
+          if [ "$$ENVIRONMENT" = "development" ]; then
+            exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+          else
+            exec uvicorn app.main:app --host 0.0.0.0 --port 8000
+          fi
+    volumes:
+      - ./storage:/app/storage
+      - ./app:/app/app
+      # Лендинг (HTML/CSS/JS): совпадает с LANDING_STATIC_DIR → /app/static, правки без пересборки образа
+      - ./static:/app/static
+      - ./alembic:/app/alembic
+      - ./alembic.ini:/app/alembic.ini
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/2
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+    networks:
+      - astro_network
+
+  celery-worker:
+    build: .
+    container_name: astro_celery_worker
+    command: celery -A app.tasks.worker.celery_app worker --loglevel=info --concurrency=2
+    volumes:
+      - ./storage:/app/storage
+      - ./app:/app/app
+    depends_on:
+      - redis
+      - postgres
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/2
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+    networks:
+      - astro_network
+
+  celery-beat:
+    build: .
+    container_name: astro_celery_beat
+    command: celery -A app.tasks.worker.celery_app beat --loglevel=info
+    volumes:
+      - ./app:/app/app
+    depends_on:
+      - redis
+      - postgres
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/2
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+    networks:
+      - astro_network
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: astro_caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+      - ./frontend-dist:/srv/frontend:ro
+    depends_on:
+      - fastapi
+    networks:
+      - astro_network
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  astro_network:
+    driver: bridge
