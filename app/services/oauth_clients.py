@@ -43,6 +43,7 @@ class YandexOAuth2(BaseOAuth2[dict]):
         )
 
     async def get_id_email(self, token: str) -> Tuple[str, Optional[str]]:
+        # GET https://login.yandex.ru/info + Authorization: OAuth <токен> — см. yandex.ru/dev/id/doc/ru/user-information
         async with self.get_httpx_client() as client:
             response = await client.get(
                 _YANDEX_LOGIN_INFO,
@@ -52,7 +53,15 @@ class YandexOAuth2(BaseOAuth2[dict]):
                 raise GetIdEmailError(response=response)
             data = cast(dict, response.json())
         uid = str(data.get("id", ""))
-        email = data.get("default_email") or data.get("login")
+        email = data.get("default_email")
+        if not email:
+            emails = data.get("emails")
+            if isinstance(emails, list) and emails:
+                first = emails[0]
+                if isinstance(first, str):
+                    email = first
+        if not email:
+            email = data.get("login")
         if isinstance(email, str):
             return uid, email
         return uid, None

@@ -1,5 +1,7 @@
 """Эндпоинты /auth/*/authorize должны отдавать HTTP-редирект на провайдера, а не URL в теле ответа."""
 
+from urllib.parse import parse_qs, urlparse
+
 import pytest
 
 
@@ -16,6 +18,9 @@ async def test_oauth_authorize_redirects_to_provider(client, path, expected_pref
     loc = r.headers.get("location") or ""
     assert loc.startswith(expected_prefix)
     assert "state=" in loc
+    q = parse_qs(urlparse(loc).query)
+    ru = (q.get("redirect_uri") or [""])[0]
+    assert ru.startswith("http://test/"), "redirect_uri из PUBLIC_APP_URL (в тестах http://test)"
 
 
 async def test_google_authorize_admin_redirects(client):

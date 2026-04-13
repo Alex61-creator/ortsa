@@ -1,4 +1,5 @@
 from typing import Optional
+from urllib.parse import urlparse, urlunparse
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
@@ -18,6 +19,13 @@ from app.utils.email_policy import is_placeholder_account_email
 from app.schemas.auth import TokenResponse, TwaAuthRequest
 
 router = APIRouter()
+
+
+def _oauth_redirect_uri(request: Request, route_name: str) -> str:
+    """Callback URL для провайдера: схема и host из PUBLIC_APP_URL (или SITE через fallback в settings), путь из маршрута."""
+    callback = urlparse(str(request.url_for(route_name)))
+    base = urlparse(settings.public_app_base_url)
+    return urlunparse((base.scheme, base.netloc, callback.path, "", "", ""))
 
 
 @router.post(
@@ -87,7 +95,7 @@ async def oauth_callback(
 )
 @limiter.limit(f"{settings.RATE_LIMIT_AUTH_PER_MINUTE}/minute")
 async def google_authorize(request: Request):
-    redirect_uri = str(request.url_for("google_callback"))
+    redirect_uri = _oauth_redirect_uri(request, "google_callback")
     state = await create_state(OAuthProvider.GOOGLE)
     url = await google_oauth_client.get_authorization_url(redirect_uri, state=state)
     return RedirectResponse(url, status_code=status.HTTP_302_FOUND)
@@ -95,6 +103,7 @@ async def google_authorize(request: Request):
 
 @router.get(
     "/google/callback",
+    name="google_callback",
     summary="OAuth Google: callback",
     description="Обмен code на токен, создание пользователя, редирект на фронт с JWT в query.",
 )
@@ -110,7 +119,7 @@ async def google_callback(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired OAuth state",
         )
-    redirect_uri = str(request.url_for("google_callback"))
+    redirect_uri = _oauth_redirect_uri(request, "google_callback")
     token = await google_oauth_client.get_access_token(code, redirect_uri)
     ext_id, mail = await google_oauth_client.get_id_email(token["access_token"])
     user_info = _user_payload(ext_id, mail, OAuthProvider.GOOGLE)
@@ -124,7 +133,7 @@ async def google_callback(
 )
 @limiter.limit(f"{settings.RATE_LIMIT_AUTH_PER_MINUTE}/minute")
 async def google_authorize_admin(request: Request):
-    redirect_uri = str(request.url_for("google_callback_admin"))
+    redirect_uri = _oauth_redirect_uri(request, "google_callback_admin")
     state = await create_state(OAuthProvider.GOOGLE, flow="admin")
     url = await google_oauth_client.get_authorization_url(redirect_uri, state=state)
     return RedirectResponse(url, status_code=status.HTTP_302_FOUND)
@@ -148,7 +157,7 @@ async def google_callback_admin(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired OAuth state",
         )
-    redirect_uri = str(request.url_for("google_callback_admin"))
+    redirect_uri = _oauth_redirect_uri(request, "google_callback_admin")
     token = await google_oauth_client.get_access_token(code, redirect_uri)
     ext_id, mail = await google_oauth_client.get_id_email(token["access_token"])
     user_info = _user_payload(ext_id, mail, OAuthProvider.GOOGLE)
@@ -166,7 +175,7 @@ async def google_callback_admin(
 )
 @limiter.limit(f"{settings.RATE_LIMIT_AUTH_PER_MINUTE}/minute")
 async def yandex_authorize(request: Request):
-    redirect_uri = str(request.url_for("yandex_callback"))
+    redirect_uri = _oauth_redirect_uri(request, "yandex_callback")
     state = await create_state(OAuthProvider.YANDEX)
     url = await yandex_oauth_client.get_authorization_url(redirect_uri, state=state)
     return RedirectResponse(url, status_code=status.HTTP_302_FOUND)
@@ -174,6 +183,7 @@ async def yandex_authorize(request: Request):
 
 @router.get(
     "/yandex/callback",
+    name="yandex_callback",
     summary="OAuth Yandex: callback",
     description="Обмен code на токен, создание пользователя, редирект на фронт с JWT в query.",
 )
@@ -189,7 +199,7 @@ async def yandex_callback(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired OAuth state",
         )
-    redirect_uri = str(request.url_for("yandex_callback"))
+    redirect_uri = _oauth_redirect_uri(request, "yandex_callback")
     token = await yandex_oauth_client.get_access_token(code, redirect_uri)
     ext_id, mail = await yandex_oauth_client.get_id_email(token["access_token"])
     user_info = _user_payload(ext_id, mail, OAuthProvider.YANDEX)
@@ -202,7 +212,7 @@ async def yandex_callback(
 )
 @limiter.limit(f"{settings.RATE_LIMIT_AUTH_PER_MINUTE}/minute")
 async def apple_authorize(request: Request):
-    redirect_uri = str(request.url_for("apple_callback"))
+    redirect_uri = _oauth_redirect_uri(request, "apple_callback")
     state = await create_state(OAuthProvider.APPLE)
     url = await apple_oauth_client.get_authorization_url(redirect_uri, state=state)
     return RedirectResponse(url, status_code=status.HTTP_302_FOUND)
@@ -219,7 +229,7 @@ async def _apple_oauth_callback(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired OAuth state",
         )
-    redirect_uri = str(request.url_for("apple_callback"))
+    redirect_uri = _oauth_redirect_uri(request, "apple_callback")
     token = await apple_oauth_client.get_access_token(code, redirect_uri)
     ext_id, mail = await apple_oauth_client.get_id_email(token.get("id_token"))
     user_info = _user_payload(ext_id, mail, OAuthProvider.APPLE)
