@@ -12,7 +12,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          # Должно совпадать с Dockerfile и .python-version (см. README / CONTRIBUTING).
+          python-version: "3.12"
           cache: pip
           cache-dependency-path: |
             requirements.txt

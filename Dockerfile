@@ -1,4 +1,5 @@
-FROM python:3.11-slim
+# Согласовано с CI (.github/workflows/tests.yml) и requirements.txt — одна минорная ветка Python.
+FROM python:3.12-slim
 
 WORKDIR /app
 

@@ -16,6 +16,8 @@ class OrderCreate(BaseModel):
 class TariffSummary(BaseModel):
     code: str
     name: str
+    billing_type: str = "one_time"
+    subscription_interval: str | None = None
 
     class Config:
         from_attributes = True

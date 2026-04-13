@@ -10,7 +10,7 @@ export interface OrdersListParams {
 }
 
 export async function fetchOrders(params: OrdersListParams): Promise<AdminOrderRow[]> {
-  const { data } = await api.get<AdminOrderRow[]>('/api/v1/admin/orders', { params })
+  const { data } = await api.get<AdminOrderRow[]>('/api/v1/admin/orders/', { params })
   return data
 }
 

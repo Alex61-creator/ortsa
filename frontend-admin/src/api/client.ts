@@ -1,3 +1,7 @@
+/**
+ * Список коллекций в админ API объявлен как `GET /` под prefix → канонический путь **со слэшем**
+ * (`/api/v1/admin/orders/`). Запрос без слэша даёт редирект; держим один стиль в orders/tariffs/users.
+ */
 import axios from 'axios'
 import { useAuthStore } from '@/stores/authStore'
 

@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
-  Table,
   Button,
   Modal,
   Form,
@@ -15,6 +15,8 @@ import {
 } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
+import 'dayjs/locale/ru'
+import 'dayjs/locale/en'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
@@ -41,8 +43,36 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 
+function DateIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden>
+      <circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" strokeWidth="1" />
+      <line x1="6.5" y1="4" x2="6.5" y2="7" stroke="currentColor" strokeWidth="1.2" />
+      <circle cx="6.5" cy="9" r="0.6" fill="currentColor" />
+    </svg>
+  )
+}
+
+function PlaceIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden>
+      <circle cx="6.5" cy="5.5" r="2.5" stroke="currentColor" strokeWidth="1" />
+      <path d="M2 11.5c0-2.49 2.01-4.5 4.5-4.5s4.5 2.01 4.5 4.5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function ClockIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden>
+      <circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" strokeWidth="1" />
+      <path d="M6.5 3.5v3.5l2 1.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 export function NatalDataPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const qc = useQueryClient()
   const tariffCode = useOrderWizardStore((s) => s.tariffCode)
   const [open, setOpen] = useState(false)
@@ -50,7 +80,12 @@ export function NatalDataPage() {
   const [geoHits, setGeoHits] = useState<GeocodeHit[]>([])
   const [geoOpen, setGeoOpen] = useState(false)
 
+  const locale = i18n.language?.startsWith('en') ? 'en' : 'ru'
+
   const { data, isLoading } = useQuery({ queryKey: ['natal-data'], queryFn: listNatalData })
+
+  const sorted = useMemo(() => [...(data ?? [])].sort((a, b) => a.id - b.id), [data])
+  const primaryId = sorted[0]?.id
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -69,7 +104,7 @@ export function NatalDataPage() {
 
   const save = useMutation({
     mutationFn: async (values: FormValues) => {
-      if (!values.birth_date || !values.birth_time) throw new Error('Дата и время обязательны')
+      if (!values.birth_date || !values.birth_time) throw new Error('date')
       const d = values.birth_date
       const tm = values.birth_time
       const birth_date = d.startOf('day').format('YYYY-MM-DDTHH:mm:ss')
@@ -143,6 +178,17 @@ export function NatalDataPage() {
     setOpen(true)
   }
 
+  const confirmDelete = (row: NatalDataOut) => {
+    Modal.confirm({
+      title: t('natal.deleteConfirmTitle'),
+      content: t('natal.deleteConfirmBody'),
+      okText: t('common.delete'),
+      cancelText: t('common.cancel'),
+      okButtonProps: { danger: true },
+      onOk: () => remove.mutateAsync(row.id),
+    })
+  }
+
   const searchGeo = async () => {
     const q = form.getValues('birth_place')
     const hits = await nominatimSearch(q)
@@ -157,39 +203,88 @@ export function NatalDataPage() {
     setGeoOpen(false)
   }
 
+  const formatBirthDate = (row: NatalDataOut) =>
+    dayjs(row.birth_date)
+      .locale(locale)
+      .format(locale === 'ru' ? 'D MMMM YYYY' : 'MMMM D, YYYY')
+
+  const formatTime = (row: NatalDataOut) => {
+    const tm = dayjs(row.birth_time).format('HH:mm')
+    const tzShort = row.timezone.includes('/') ? row.timezone.split('/').slice(-2).join('/') : row.timezone
+    return `${tm} (${tzShort})`
+  }
+
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-          Добавить
-        </Button>
-      </div>
-      <Table<NatalDataOut>
-        loading={isLoading}
-        rowKey="id"
-        dataSource={data ?? []}
-        columns={[
-          { title: 'Имя', dataIndex: 'full_name' },
-          { title: 'Место', dataIndex: 'birth_place' },
-          { title: 'Дата', render: (_, r) => dayjs(r.birth_date).format('YYYY-MM-DD') },
-          {
-            title: '',
-            render: (_, row) => (
-              <Space>
-                <Button size="small" onClick={() => openEdit(row)}>
+      <div style={{ marginBottom: 16, fontSize: 14, color: 'var(--text-2)' }}>{t('natal.intro')}</div>
+
+      <div className="natal-grid">
+        {sorted.map((row) => {
+          const isPrimary = row.id === primaryId
+          return (
+            <div
+              key={row.id}
+              className={`natal-card${isPrimary ? ' active-card' : ''}`}
+              style={{ cursor: 'default' }}
+            >
+              <div className="natal-card-name">
+                {row.full_name}
+                {isPrimary && (
+                  <span className="tag tag-blue" style={{ fontSize: 11 }}>
+                    {t('natal.badgeMe')}
+                  </span>
+                )}
+              </div>
+              <div className="natal-card-row">
+                <DateIcon />
+                {formatBirthDate(row)}
+              </div>
+              <div className="natal-card-row">
+                <PlaceIcon />
+                {row.birth_place}
+              </div>
+              <div className="natal-card-row">
+                <ClockIcon />
+                {formatTime(row)}
+              </div>
+              <div className="natal-card-actions">
+                <button type="button" className="btn btn-default btn-sm" onClick={() => openEdit(row)}>
                   {t('common.edit')}
-                </Button>
-                <Button size="small" danger onClick={() => remove.mutate(row.id)}>
-                  {t('common.delete')}
-                </Button>
-              </Space>
-            ),
-          },
-        ]}
-      />
+                </button>
+                {isPrimary ? (
+                  <Link to="/dashboard/reports" className="btn btn-ghost btn-sm" style={{ textDecoration: 'none' }}>
+                    {t('natal.reports')}
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    style={{ color: 'var(--danger)' }}
+                    onClick={() => confirmDelete(row)}
+                  >
+                    {t('common.delete')}
+                  </button>
+                )}
+              </div>
+            </div>
+          )
+        })}
+
+        <button
+          type="button"
+          className="add-natal-card"
+          onClick={openCreate}
+          disabled={isLoading}
+          style={{ border: 'none', font: 'inherit' }}
+        >
+          <PlusOutlined style={{ fontSize: 28, color: 'inherit' }} />
+          <div style={{ fontSize: 14, fontWeight: 500 }}>{t('natal.addCard')}</div>
+          <div style={{ fontSize: 12 }}>{t('natal.addCardHint')}</div>
+        </button>
+      </div>
 
       <Modal
-        title={editing ? 'Редактировать' : 'Новые данные'}
+        title={editing ? t('natal.modalEdit') : t('natal.modalNew')}
         open={open}
         onCancel={() => setOpen(false)}
         onOk={() => void form.handleSubmit((v) => save.mutate(v))()}
@@ -197,10 +292,10 @@ export function NatalDataPage() {
         width={560}
       >
         <Form layout="vertical">
-          <Form.Item label="ФИО" required>
+          <Form.Item label={t('natal.labelFullName')} required>
             <Controller name="full_name" control={form.control} render={({ field }) => <Input {...field} />} />
           </Form.Item>
-          <Form.Item label="Дата рождения" required={!editing}>
+          <Form.Item label={t('natal.labelBirthDate')} required={!editing}>
             <Controller
               name="birth_date"
               control={form.control}
@@ -209,7 +304,7 @@ export function NatalDataPage() {
               )}
             />
           </Form.Item>
-          <Form.Item label="Время рождения" required={!editing}>
+          <Form.Item label={t('natal.labelBirthTime')} required={!editing}>
             <Controller
               name="birth_time"
               control={form.control}
@@ -218,23 +313,23 @@ export function NatalDataPage() {
               )}
             />
           </Form.Item>
-          <Form.Item label="Место" required>
+          <Form.Item label={t('natal.labelPlace')} required>
             <Space.Compact style={{ width: '100%' }}>
               <Controller name="birth_place" control={form.control} render={({ field }) => <Input {...field} />} />
               <Button type="default" onClick={() => void searchGeo()}>
-                Найти
+                {t('natal.searchPlace')}
               </Button>
             </Space.Compact>
           </Form.Item>
           <Space wrap>
-            <Form.Item label="Широта">
+            <Form.Item label={t('natal.labelLat')}>
               <Controller
                 name="lat"
                 control={form.control}
                 render={({ field }) => <InputNumber step={0.0001} style={{ width: 160 }} {...field} />}
               />
             </Form.Item>
-            <Form.Item label="Долгота">
+            <Form.Item label={t('natal.labelLon')}>
               <Controller
                 name="lon"
                 control={form.control}
@@ -242,7 +337,7 @@ export function NatalDataPage() {
               />
             </Form.Item>
           </Space>
-          <Form.Item label="Часовой пояс">
+          <Form.Item label={t('natal.labelTz')}>
             <Controller
               name="timezone"
               control={form.control}
@@ -258,7 +353,7 @@ export function NatalDataPage() {
             />
           </Form.Item>
           {canChooseHouseSystem(tariffCode) && (
-            <Form.Item label="Система домов">
+            <Form.Item label={t('natal.labelHouse')}>
               <Controller
                 name="house_system"
                 control={form.control}
@@ -279,7 +374,7 @@ export function NatalDataPage() {
                 control={form.control}
                 render={({ field }) => (
                   <Checkbox checked={field.value} onChange={(e) => field.onChange(e.target.checked)}>
-                    Согласие с политикой обработки ПДн
+                    {t('natal.privacyConsent')}
                   </Checkbox>
                 )}
               />
@@ -288,7 +383,7 @@ export function NatalDataPage() {
         </Form>
       </Modal>
 
-      <Modal title="Выберите место" open={geoOpen} footer={null} onCancel={() => setGeoOpen(false)}>
+      <Modal title={t('natal.pickPlaceTitle')} open={geoOpen} footer={null} onCancel={() => setGeoOpen(false)}>
         <List
           dataSource={geoHits}
           renderItem={(item) => (

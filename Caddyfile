@@ -4,6 +4,13 @@
 #
 # reverse_proxy передаёт X-Forwarded-Proto (https). Uvicorn учитывает его только если IP прокси в FORWARDED_ALLOW_IPS
 # (в docker-compose задано по умолчанию); иначе redirect_uri в OAuth остаётся http:// — в консолях Google/Яндекс указывайте https://…
+#
+# www → основной хост (замените yourdomain.com на боевой домен; DNS: A/AAAA для @ и для www).
+# Если TLS терминирует Cloudflare: аналог в Rules → Redirect Rules (301, www → apex).
+www.yourdomain.com {
+    redir https://yourdomain.com{uri} permanent
+}
+
 yourdomain.com {
     encode gzip
 

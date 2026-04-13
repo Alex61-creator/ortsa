@@ -1,8 +1,14 @@
 # Скопируйте в корень репозитория как Caddyfile на сервере (или подключите volume).
-# Замените astrogen.ru на ваш боевой домен; для www настройте редирект или второй блок.
+# Замените astrogen.ru на ваш боевой домен; DNS: A/AAAA для @ и для www (для ACME на оба имени).
 # До деплоя: DNS A/AAAA на этот сервер, порты 80/443 открыты для ACME.
 # Корень / — лендинг FastAPI (static/); SPA — только на /order, /dashboard, /reports, /auth/callback; legacy /cabinet/orders → SPA.
 # reverse_proxy передаёт X-Forwarded-Proto; на бэкенде задайте FORWARDED_ALLOW_IPS (см. docker-compose.prod.yml, docs/DEPLOY_URLS.md).
+#
+# Cloudflare-only (без отдельного Caddy): Redirect Rule 301 — host www.astrogen.ru → https://astrogen.ru${uri}
+
+www.astrogen.ru {
+    redir https://astrogen.ru{uri} permanent
+}
 
 astrogen.ru {
     encode gzip

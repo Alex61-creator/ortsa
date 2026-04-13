@@ -1,3 +1,9 @@
+/**
+ * Axios baseURL = `/api/v1` (или VITE_API_URL). Пути в модулях api/* — относительно base.
+ * Коллекции (роуты FastAPI с `@router.get("/")` / `post("/")` под prefix) запрашиваем **со слэшем**
+ * (`/orders/`, `/tariffs/`, `/natal-data/`), чтобы совпадать с каноническим URL и не ловить 307.
+ * Ресурс по id — без слэша в конце (`/orders/123`).
+ */
 import axios, { type AxiosError } from 'axios'
 import { message } from 'antd'
 import { useAuthStore } from '@/stores/authStore'

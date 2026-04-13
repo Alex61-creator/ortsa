@@ -825,6 +825,22 @@ function refreshWizardStep2Copy() {
 }
 window.refreshWizardStep2Copy = refreshWizardStep2Copy;
 
+/** После применения ?tariff= из ссылки убираем параметр (и якорь #form), чтобы в адресной строке остался «чистый» URL. */
+function astrogenCleanTariffFromAddressBar() {
+  try {
+    var u = new URL(window.location.href);
+    if (!u.searchParams.has('tariff')) return;
+    u.searchParams.delete('tariff');
+    var search = u.searchParams.toString();
+    var hash = u.hash;
+    if (hash === '#form' || hash === '#') hash = '';
+    var path = u.pathname + (search ? '?' + search : '') + hash;
+    if (window.history && typeof window.history.replaceState === 'function') {
+      window.history.replaceState(null, '', path);
+    }
+  } catch (e) {}
+}
+
 function initAstrogenTariffFromUrl() {
   try {
     var params = new URLSearchParams(window.location.search);
@@ -832,6 +848,7 @@ function initAstrogenTariffFromUrl() {
     if (!astrogenValidTariffCode(raw)) return;
     window.__astrogenTariffFromPricing = true;
     applyWizardTariffSelection(raw);
+    astrogenCleanTariffFromAddressBar();
   } catch (e) {}
 }
 window.initAstrogenTariffFromUrl = initAstrogenTariffFromUrl;

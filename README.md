@@ -4,7 +4,8 @@ Backend сервиса онлайн-натальной карты: FastAPI, Post
 
 ## Требования
 
-- **Python 3.11+** (рекомендуется 3.11; сочетание SQLAlchemy 2.0.x и Python 3.13 может требовать более новой версии SQLAlchemy)
+- **Python 3.12.x** — поддерживаемая ветка для backend, pytest и Docker-образа (файл [`.python-version`](.python-version), `Dockerfile`, [CI](.github/workflows/tests.yml)). Устанавливайте зависимости из корня: `python3.12 -m pip install -r requirements.txt` (и при тестах `-r requirements-dev.txt`).
+- **Python 3.13** в матрицу совместимости пока не входит: при прогоне `pytest` возможны ошибки импорта SQLAlchemy из‑за typing; для локальной разработки используйте **3.12** или запускайте тесты в Docker/CI.
 - Docker / Docker Compose — для инфраструктуры
 
 ## Быстрый старт (Docker)
@@ -36,10 +37,10 @@ Backend сервиса онлайн-натальной карты: FastAPI, Post
 ## Локальная разработка (без Docker)
 
 ```bash
-python -m venv .venv
+python3.12 -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-# или: poetry install
+pip install -r requirements.txt -r requirements-dev.txt
+# или: poetry install  (python = ">=3.12,<3.13" в pyproject.toml)
 ```
 
 Запуск приложения (корень репозитория в `PYTHONPATH`):

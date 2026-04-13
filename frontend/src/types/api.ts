@@ -1,5 +1,6 @@
 export type OrderStatus =
   | 'pending'
+  | 'failed_to_init_payment'
   | 'paid'
   | 'processing'
   | 'completed'
@@ -13,6 +14,7 @@ export interface UserMe {
   is_admin: boolean
   created_at: string
   consent_given_at: string | null
+  oauth_provider: string | null
 }
 
 export interface TariffPublic {
@@ -74,7 +76,12 @@ export interface OrderListItem {
   natal_data_id: number | null
   created_at: string
   updated_at: string
-  tariff: { code: string; name: string }
+  tariff: {
+    code: string
+    name: string
+    billing_type: string
+    subscription_interval: string | null
+  }
   report_ready: boolean
 }
 

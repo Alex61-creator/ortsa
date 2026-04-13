@@ -36,7 +36,12 @@ def _to_admin_item(order: Order) -> AdminOrderListItem:
         natal_data_id=order.natal_data_id,
         created_at=order.created_at,
         updated_at=order.updated_at,
-        tariff=TariffSummary(code=order.tariff.code, name=order.tariff.name),
+        tariff=TariffSummary(
+            code=order.tariff.code,
+            name=order.tariff.name,
+            billing_type=order.tariff.billing_type,
+            subscription_interval=order.tariff.subscription_interval,
+        ),
         report_ready=report_ready,
     )
 

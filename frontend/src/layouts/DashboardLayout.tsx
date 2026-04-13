@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
   AppstoreOutlined,
   CalendarOutlined,
@@ -50,10 +50,21 @@ function initialsFromEmail(email: string | undefined): string {
   return (local.slice(0, 2) || '?').toUpperCase()
 }
 
+function displayNameFromEmail(email: string | undefined): string {
+  if (!email) return '—'
+  const local = email.split('@')[0] ?? ''
+  const parts = local.split(/[._-]/).filter(Boolean)
+  if (parts.length >= 2) {
+    const first = parts[0].charAt(0).toUpperCase() + parts[0].slice(1).toLowerCase()
+    const last = parts[1].charAt(0).toUpperCase()
+    return `${first} ${last}.`
+  }
+  return parts[0] ? parts[0].charAt(0).toUpperCase() + parts[0].slice(1).toLowerCase() : '—'
+}
+
 export function DashboardLayout() {
   const { t } = useTranslation()
   const location = useLocation()
-  const navigate = useNavigate()
   const logout = useAuthStore((s) => s.logout)
   const screens = Grid.useBreakpoint()
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -74,6 +85,7 @@ export function DashboardLayout() {
 
   const orderCount = orders?.length ?? 0
   const showProBadge = subscription?.status === 'active' && subscription.tariff_code?.toLowerCase().includes('pro')
+  const planIsPro = subscription?.status === 'active' && showProBadge
 
   const navClass = ({ isActive }: { isActive: boolean }) => `nav-item cabinet-nav-link${isActive ? ' active' : ''}`
 
@@ -116,7 +128,11 @@ export function DashboardLayout() {
             </NavLink>
 
             <div className="nav-section-label">{t('dashboard.sectionAccount')}</div>
-            <NavLink to="/dashboard/subscription" className={navClass} onClick={closeMobile}>
+            <NavLink
+              to="/dashboard/subscription"
+              className={({ isActive }) => `${navClass({ isActive })}${isActive ? ' nav-sub-active' : ''}`}
+              onClick={closeMobile}
+            >
               <StarOutlined />
               {t('dashboard.navSubscription')}
               {showProBadge && (
@@ -138,8 +154,10 @@ export function DashboardLayout() {
           <div className="sidebar-user">
             <div className="user-avatar">{initialsFromEmail(me?.email)}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="user-name">{me?.email?.split('@')[0] ?? '—'}</div>
-              <div className="user-plan">{subscription?.tariff_name ?? t('dashboard.planFree')}</div>
+              <div className="user-name">{displayNameFromEmail(me?.email)}</div>
+              <div className={`user-plan${planIsPro ? ' user-plan--pro' : ''}`}>
+                {subscription?.tariff_name ?? t('dashboard.planFree')}
+              </div>
             </div>
             <button
               type="button"
@@ -147,7 +165,7 @@ export function DashboardLayout() {
               title={t('dashboard.logout')}
               onClick={() => {
                 logout()
-                navigate('/')
+                window.location.assign('/')
               }}
               style={{ border: 'none', background: 'none', width: 28, height: 28 }}
             >

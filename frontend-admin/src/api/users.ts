@@ -8,7 +8,7 @@ export interface UsersListParams {
 }
 
 export async function fetchUsers(params: UsersListParams): Promise<AdminUserRow[]> {
-  const { data } = await api.get<AdminUserRow[]>('/api/v1/admin/users', { params })
+  const { data } = await api.get<AdminUserRow[]>('/api/v1/admin/users/', { params })
   return data
 }
 
