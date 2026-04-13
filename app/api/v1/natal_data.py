@@ -14,7 +14,13 @@ from app.services.natal_limits import get_effective_max_natal_profiles
 
 router = APIRouter()
 
-@router.post("/", response_model=NatalDataOut)
+
+@router.post(
+    "/",
+    response_model=NatalDataOut,
+    summary="Создать натальный профиль",
+    description="Сохраняет данные рождения для расчёта карты и заказов. При первом согласии с политикой фиксирует `consent_given_at`.",
+)
 async def create_natal_data(
     data: NatalDataCreate,
     db: AsyncSession = Depends(get_db),
@@ -60,7 +66,11 @@ async def create_natal_data(
     await db.refresh(natal)
     return natal
 
-@router.get("/", response_model=list[NatalDataOut])
+@router.get(
+    "/",
+    response_model=list[NatalDataOut],
+    summary="Список натальных профилей",
+)
 async def list_natal_data(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
@@ -69,7 +79,11 @@ async def list_natal_data(
     result = await db.execute(stmt)
     return result.scalars().all()
 
-@router.get("/{natal_id}", response_model=NatalDataOut)
+@router.get(
+    "/{natal_id}",
+    response_model=NatalDataOut,
+    summary="Профиль по id",
+)
 async def get_natal_data(
     natal_id: int,
     db: AsyncSession = Depends(get_db),
@@ -82,7 +96,11 @@ async def get_natal_data(
         raise HTTPException(status_code=404, detail="Not found")
     return natal
 
-@router.patch("/{natal_id}", response_model=NatalDataOut)
+@router.patch(
+    "/{natal_id}",
+    response_model=NatalDataOut,
+    summary="Обновить профиль",
+)
 async def update_natal_data(
     natal_id: int,
     update: NatalDataUpdate,
@@ -108,7 +126,11 @@ async def update_natal_data(
     await db.refresh(natal)
     return natal
 
-@router.delete("/{natal_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{natal_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Удалить профиль",
+)
 async def delete_natal_data(
     natal_id: int,
     db: AsyncSession = Depends(get_db),

@@ -1,4 +1,5 @@
-# Прод: TLS через ACME. HTML с FastAPI уже получает CSP из SecurityHeadersMiddleware (см. app/middleware/security_headers.py).
+# Прод: TLS через ACME. Черновик с примером домена: deploy/Caddyfile.prod.example (скопируйте и переименуйте блок домена).
+# HTML с FastAPI уже получает CSP из SecurityHeadersMiddleware (см. app/middleware/security_headers.py).
 # При отдаче статики только через Caddy без FastAPI — продублируйте политику там или проксируйте на FastAPI.
 yourdomain.com {
     encode gzip

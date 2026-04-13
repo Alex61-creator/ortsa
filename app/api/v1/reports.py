@@ -1,8 +1,10 @@
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from pathlib import Path
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from app.db.session import get_db
 from app.api.deps import get_current_active_user
@@ -13,20 +15,42 @@ from app.core.config import settings
 
 router = APIRouter()
 
-@router.get("/{order_id}/download")
+
+async def _get_user_completed_order_with_report(
+    db: AsyncSession,
+    order_id: int,
+    user_id: int,
+) -> Order | None:
+    stmt = (
+        select(Order)
+        .join(Report, Report.order_id == Order.id)
+        .where(
+            Order.id == order_id,
+            Order.user_id == user_id,
+            Order.status == OrderStatus.COMPLETED,
+            Report.status == ReportStatus.ACTIVE,
+        )
+        .options(joinedload(Order.report))
+    )
+    result = await db.execute(stmt)
+    return result.unique().scalar_one_or_none()
+
+
+@router.get(
+    "/{order_id}/download",
+    summary="Скачать PDF отчёта",
+    description="Готовый PDF по завершённому заказу с активным отчётом. Только владелец заказа.",
+    responses={
+        200: {"content": {"application/pdf": {}}},
+        404: {"description": "Отчёт не готов или заказ не найден"},
+    },
+)
 async def download_report(
     order_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
 ):
-    stmt = select(Order).join(Report).where(
-        Order.id == order_id,
-        Order.user_id == current_user.id,
-        Order.status == OrderStatus.COMPLETED,
-        Report.status == ReportStatus.ACTIVE
-    )
-    result = await db.execute(stmt)
-    order = result.scalar_one_or_none()
+    order = await _get_user_completed_order_with_report(db, order_id, current_user.id)
     if not order or not order.report:
         raise HTTPException(status_code=404, detail="Report not found or not ready")
 
@@ -38,23 +62,25 @@ async def download_report(
         path=pdf_path,
         media_type="application/pdf",
         filename=f"natal_report_{order_id}.pdf",
-        headers={"Content-Disposition": f"attachment; filename=natal_report_{order_id}.pdf"}
+        headers={"Content-Disposition": f"attachment; filename=natal_report_{order_id}.pdf"},
     )
 
-@router.get("/{order_id}/chart")
+
+@router.get(
+    "/{order_id}/chart",
+    summary="Скачать PNG натальной карты",
+    description="Изображение круга карт для завершённого заказа. Только владелец заказа.",
+    responses={
+        200: {"content": {"image/png": {}}},
+        404: {"description": "Карта не найдена или заказ не готов"},
+    },
+)
 async def download_chart(
     order_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
 ):
-    stmt = select(Order).join(Report).where(
-        Order.id == order_id,
-        Order.user_id == current_user.id,
-        Order.status == OrderStatus.COMPLETED,
-        Report.status == ReportStatus.ACTIVE
-    )
-    result = await db.execute(stmt)
-    order = result.scalar_one_or_none()
+    order = await _get_user_completed_order_with_report(db, order_id, current_user.id)
     if not order or not order.report:
         raise HTTPException(status_code=404, detail="Chart not found")
 

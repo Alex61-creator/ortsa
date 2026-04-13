@@ -15,7 +15,7 @@ Backend сервиса онлайн-натальной карты: FastAPI, Post
    cp .env.example .env
    ```
 
-   Заполните секреты (Telegram, ЮKassa, SMTP, LLM и т.д.). Для фронтенда задайте **`PUBLIC_APP_URL`** (базовый URL SPA, без завершения пути оплаты): в письмах о готовом отчёте и в OAuth используется `public_app_base_url` из конфига; если переменная не задана, подставляется `YOOKASSA_RETURN_URL`. Согласуйте с фронтом путь к заказу, например `/cabinet/orders/{id}`. Для **canonical / sitemap / Open Graph** задайте при необходимости **`SITE_URL`** (канонический origin); иначе для SEO используется тот же базовый URL, что и `public_app_base_url`.
+   Заполните секреты (Telegram, ЮKassa, SMTP, LLM и т.д.). Для фронтенда задайте **`PUBLIC_APP_URL`** (базовый URL SPA): в письмах о готовом отчёте ссылка ведёт на **`/reports/{order_id}`**; если переменная не задана, подставляется `YOOKASSA_RETURN_URL`. Для **canonical / sitemap / Open Graph** задайте **`SITE_URL`**. Таблица URL для ЮKassa и OAuth: [`docs/DEPLOY_URLS.md`](docs/DEPLOY_URLS.md). Секреты для прода генерируйте отдельно (не копируйте `.env.example`): `bash scripts/generate_production_secrets.sh`.
 
 2. Запуск:
 
@@ -30,6 +30,8 @@ Backend сервиса онлайн-натальной карты: FastAPI, Post
    ```bash
    alembic upgrade head
    ```
+
+**Продакшен (отдельный Compose):** [`docker-compose.prod.yml`](docker-compose.prod.yml) — образ приложения **без** монтирования `./app`/`./static`; том только для `storage`. Сборка SPA в каталог для Caddy: `cd frontend && npm run build:deploy` (→ `frontend-dist/`). Запуск: `docker compose -f docker-compose.prod.yml --env-file .env up -d`. Черновик Caddy с доменом: [`deploy/Caddyfile.prod.example`](deploy/Caddyfile.prod.example). Резервное копирование БД и `storage`: [`scripts/backup_all.sh`](scripts/backup_all.sh) (см. [`docs/PRODUCTION_IMPLEMENTATION.md`](docs/PRODUCTION_IMPLEMENTATION.md) §1.6).
 
 ## Локальная разработка (без Docker)
 
@@ -61,6 +63,32 @@ celery -A app.tasks.worker.celery_app beat --loglevel=info
 PYTHONPATH=. python scripts/init_db.py
 PYTHONPATH=. python scripts/create_admin.py
 ```
+
+Продакшен (stack из `docker-compose.prod.yml` должен быть запущен; артефакты по умолчанию в `./backups/`):
+
+```bash
+./scripts/backup_postgres.sh    # pg_dump → backups/astro_pg_<timestamp>.dump.gz
+./scripts/backup_storage.sh     # tar.gz тома storage
+./scripts/backup_all.sh         # оба подряд
+./scripts/verify_pg_backup.sh backups/astro_pg_<timestamp>.dump.gz
+```
+
+Расписание (cron), ротация старых файлов и учебное восстановление — в [`docs/PRODUCTION_IMPLEMENTATION.md`](docs/PRODUCTION_IMPLEMENTATION.md) §1.6.
+
+## Админ-панель (`frontend-admin`)
+
+Отдельное SPA для операторов: дашборд, заказы (перезапуск отчёта, скачивание PDF/PNG, возврат), пользователи, тарифы. REST API: `/api/v1/admin/*`. Вход через Google: `/api/v1/auth/google/authorize-admin`. Переменные окружения (`ADMIN_APP_ORIGIN`, allowlist админов) и выкладка на поддомен — в [`docs/PRODUCTION_IMPLEMENTATION.md`](docs/PRODUCTION_IMPLEMENTATION.md).
+
+```bash
+cd frontend-admin
+cp .env.example .env   # при необходимости: VITE_API_BASE_URL=http://localhost:8000
+npm install
+npm run dev            # http://localhost:5174; в vite прокси /api → localhost:8000
+```
+
+Продакшен: `npm run build` → статика в `frontend-admin/dist/`.
+
+**Ручная проверка перед запуском:** вход под админом → дашборд → заказы (фильтры, drawer) → пользователи → тарифы. Не-админ после OAuth должен попасть на страницу отказа.
 
 ## Тесты
 

@@ -10,15 +10,17 @@ router = APIRouter()
 _tz_finder = TimezoneFinder()
 
 
-@router.get("/", response_model=GeocodeResponse)
+@router.get(
+    "/",
+    response_model=GeocodeResponse,
+    summary="Геокодинг места рождения",
+    description="Поиск координат через Nominatim (OSM) и IANA timezone по точке (timezonefinder). Без авторизации.",
+)
 @limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
 async def geocode_lookup(
     request: Request,
     q: str = Query(..., min_length=2, max_length=200, description="Город, страна"),
 ):
-    """
-    Геокодинг через Nominatim (OpenStreetMap) + определение IANA timezone по координатам.
-    """
     headers = {"User-Agent": settings.NOMINATIM_USER_AGENT}
     async with httpx.AsyncClient() as client:
         resp = await client.get(

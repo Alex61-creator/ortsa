@@ -1,0 +1,2206 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Astrogen Admin v2</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --primary:#1677FF;--primary-l:#E6F4FF;--primary-b:#91CAFF;--primary-h:#0958D9;
+  --success:#52C41A;--success-l:#F6FFED;--success-b:#B7EB8F;
+  --danger:#FF4D4F;--danger-l:#FFF2F0;
+  --warning:#FAAD14;--warning-l:#FFFBE6;--warning-b:#FFE58F;
+  --purple:#722ED1;--purple-l:#F9F0FF;
+  --teal:#13C2C2;--teal-l:#E6FFFB;
+  --bg:#F0F2F5;--bg-c:#FFFFFF;--bg-s:#FAFAFA;
+  --border:#D9D9D9;
+  --text:rgba(0,0,0,.88);--text2:rgba(0,0,0,.65);--text3:rgba(0,0,0,.45);--text4:rgba(0,0,0,.25);
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.07);
+  --r:6px;--rl:10px;--font:'IBM Plex Sans',system-ui,sans-serif;
+  --sw:230px;--hh:56px;
+}
+[data-theme=dark]{
+  --bg:#141414;--bg-c:#1F1F1F;--bg-s:#1A1A1A;--border:#424242;
+  --text:rgba(255,255,255,.88);--text2:rgba(255,255,255,.65);
+  --text3:rgba(255,255,255,.45);--text4:rgba(255,255,255,.2);
+  --primary-l:rgba(22,119,255,.12);--primary-b:rgba(22,119,255,.35);
+  --success-l:rgba(82,196,26,.1);--success-b:rgba(82,196,26,.3);
+  --danger-l:rgba(255,77,79,.1);--warning-l:rgba(250,173,20,.1);--warning-b:rgba(250,173,20,.3);
+  --purple-l:rgba(114,46,209,.1);--teal-l:rgba(19,194,194,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--font);color:var(--text);background:var(--bg);font-size:13px;line-height:1.5}
+button{font-family:var(--font);cursor:pointer}
+input,select,textarea{font-family:var(--font)}
+.hidden{display:none!important}
+/* TAGS */
+.tag{display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:2px 7px;border-radius:4px;font-weight:500;white-space:nowrap}
+.tag-blue{background:var(--primary-l);color:var(--primary);border:1px solid var(--primary-b)}
+.tag-green{background:var(--success-l);color:#389E0D;border:1px solid var(--success-b)}
+.tag-amber{background:var(--warning-l);color:#874D00;border:1px solid var(--warning-b)}
+.tag-red{background:var(--danger-l);color:var(--danger);border:1px solid rgba(255,77,79,.3)}
+.tag-gray{background:var(--bg-s);color:var(--text3);border:1px solid var(--border)}
+.tag-purple{background:var(--purple-l);color:var(--purple);border:1px solid rgba(114,46,209,.25)}
+.tag-teal{background:var(--teal-l);color:var(--teal);border:1px solid rgba(19,194,194,.3)}
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:var(--r);font-size:13px;font-weight:500;border:1px solid transparent;transition:all .15s;cursor:pointer;white-space:nowrap}
+.btn-primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+.btn-primary:hover{background:var(--primary-h)}
+.btn-success{background:var(--success);color:#fff;border-color:var(--success)}
+.btn-success:hover{background:#389E0D}
+.btn-default{background:var(--bg-c);color:var(--text);border-color:var(--border)}
+.btn-default:hover{color:var(--primary);border-color:var(--primary)}
+.btn-danger{background:var(--bg-c);color:var(--danger);border-color:var(--danger)}
+.btn-danger:hover{background:var(--danger-l)}
+.btn-ghost{background:transparent;color:var(--text2);border-color:transparent;padding:6px 10px}
+.btn-ghost:hover{background:var(--bg-s)}
+.btn-warning{background:var(--warning-l);color:#874D00;border-color:var(--warning-b)}
+.btn-warning:hover{background:var(--warning-b)}
+.btn-xs{padding:3px 10px;font-size:11px}
+.btn-sm{padding:5px 12px;font-size:12px}
+.icon-btn{width:30px;height:30px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg-c);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text3);transition:all .15s;flex-shrink:0}
+.icon-btn:hover{border-color:var(--primary);color:var(--primary)}
+/* INPUTS */
+.input{width:100%;padding:7px 11px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg-c);color:var(--text);font-size:13px;outline:none;transition:all .15s}
+.input:focus{border-color:var(--primary);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+.input:disabled{background:var(--bg-s);color:var(--text3);cursor:not-allowed}
+.input-wrap{position:relative}
+.input-wrap .input{padding-left:32px}
+.input-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text4);pointer-events:none}
+select.input{cursor:pointer}
+.form-group{margin-bottom:14px}
+.form-label{font-size:12px;color:var(--text3);margin-bottom:5px;display:block;font-weight:500}
+.form-hint{font-size:11px;color:var(--text4);margin-top:3px}
+/* CARD */
+.card{background:var(--bg-c);border:1px solid var(--border);border-radius:var(--rl);box-shadow:var(--shadow)}
+.card-header{padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.card-title{font-size:14px;font-weight:500;color:var(--text)}
+.card-body{padding:18px}
+/* STATUS DOT */
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+.dot-green{background:var(--success)}
+.dot-red{background:var(--danger)}
+.dot-amber{background:var(--warning)}
+.dot-gray{background:var(--text4)}
+/* TOGGLE */
+.toggle{position:relative;width:36px;height:20px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.toggle-slider{position:absolute;inset:0;background:var(--border);border-radius:20px;transition:.2s;cursor:pointer}
+.toggle-slider::before{content:'';position:absolute;width:14px;height:14px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+.toggle input:checked+.toggle-slider{background:var(--primary)}
+.toggle input:checked+.toggle-slider::before{transform:translateX(16px)}
+/* ════ LOGIN ════ */
+#login-page{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+.login-box{width:100%;max-width:380px;background:var(--bg-c);border:1px solid var(--border);border-radius:var(--rl);box-shadow:var(--shadow);overflow:hidden}
+.login-head{padding:24px 24px 18px;text-align:center;border-bottom:1px solid var(--border)}
+.login-logo{display:flex;align-items:center;justify-content:center;gap:8px;font-size:18px;font-weight:600;color:var(--text);margin-bottom:4px}
+.logo-sq{width:30px;height:30px;border-radius:7px;background:var(--danger);display:flex;align-items:center;justify-content:center}
+.login-body{padding:20px 24px}
+.auth-btn-adm{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg-c);font-size:13px;font-weight:500;color:var(--text);cursor:pointer;transition:all .15s;width:100%;margin-bottom:8px}
+.auth-btn-adm:last-child{margin-bottom:0}
+.auth-btn-adm:hover{border-color:var(--primary-b);background:var(--primary-l);color:var(--primary)}
+.auth-notice{margin-top:16px;padding:10px 12px;background:var(--warning-l);border:1px solid var(--warning-b);border-radius:var(--r);font-size:11px;color:#874D00;line-height:1.5}
+/* ════ SHELL ════ */
+#admin-page{display:none;flex-direction:row;min-height:100vh}
+.sidebar{width:var(--sw);flex-shrink:0;background:var(--bg-c);border-right:1px solid var(--border);position:fixed;left:0;top:0;height:100vh;display:flex;flex-direction:column;z-index:50}
+.sidebar-logo{display:flex;align-items:center;gap:8px;padding:13px 16px;border-bottom:1px solid var(--border);font-size:15px;font-weight:600;color:var(--text)}
+.sidebar-nav{flex:1;padding:6px 6px;overflow-y:auto}
+.nav-sect{font-size:10px;font-weight:500;color:var(--text4);text-transform:uppercase;letter-spacing:.06em;padding:10px 10px 3px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--r);margin-bottom:1px;color:var(--text2);font-size:13px;cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left}
+.nav-item svg{flex-shrink:0;opacity:.55}
+.nav-item:hover{background:var(--bg-s);color:var(--text)}
+.nav-item.active{background:var(--primary-l);color:var(--primary);font-weight:500}
+.nav-item.active svg{opacity:1}
+.nav-badge{margin-left:auto;font-size:10px;padding:1px 6px;border-radius:8px;background:var(--primary-l);color:var(--primary);font-weight:600}
+.nav-badge-red{background:var(--danger-l);color:var(--danger)}
+.sidebar-footer{padding:10px 14px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.admin-ava{width:30px;height:30px;border-radius:50%;background:var(--danger-l);color:var(--danger);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.main-area{margin-left:var(--sw);flex:1;display:flex;flex-direction:column;min-width:0}
+.topbar{height:var(--hh);background:var(--bg-c);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40}
+.topbar-title{font-size:15px;font-weight:500;color:var(--text);display:flex;align-items:center;gap:10px}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.content{padding:18px 20px;flex:1}
+.panel{display:none}
+.panel.active{display:block}
+/* ════ METRICS GRID ════ */
+.metrics-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px}
+.metric-card{background:var(--bg-c);border:1px solid var(--border);border-radius:var(--rl);padding:14px 16px}
+.metric-label{font-size:11px;color:var(--text3);font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.metric-val{font-size:22px;font-weight:600;color:var(--text);line-height:1;margin-bottom:3px}
+.metric-delta{font-size:11px}
+.delta-up{color:var(--success)}
+.delta-dn{color:var(--danger)}
+/* ════ TWO-COL ════ */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px}
+/* ════ FUNNEL ════ */
+.funnel-wrap{display:flex;flex-direction:column;gap:7px}
+.funnel-step{display:flex;align-items:center;gap:10px}
+.funnel-bar-wrap{flex:1;background:var(--bg-s);border-radius:4px;height:30px;overflow:hidden}
+.funnel-bar{height:100%;border-radius:4px;display:flex;align-items:center;padding:0 10px;font-size:11px;font-weight:500;color:#fff;transition:width .6s ease}
+.funnel-label{font-size:12px;color:var(--text2);width:140px;flex-shrink:0}
+.funnel-cnt{font-size:12px;color:var(--text3);width:55px;text-align:right;flex-shrink:0}
+.funnel-conv{font-size:11px;width:48px;text-align:right;flex-shrink:0}
+/* ════ SOURCES ════ */
+.source-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.source-name{font-size:12px;color:var(--text2);width:90px;flex-shrink:0}
+.source-bar-w{flex:1;background:var(--bg-s);border-radius:3px;height:8px;overflow:hidden}
+.source-bar{height:100%;border-radius:3px}
+.source-cnt{font-size:12px;color:var(--text3);width:36px;text-align:right}
+/* ════ MRR CHART ════ */
+.mrr-bars{display:flex;align-items:flex-end;gap:4px;height:80px}
+.mrr-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px}
+.mrr-bar{width:100%;border-radius:3px 3px 0 0;transition:height .4s}
+.mrr-label{font-size:9px;color:var(--text4)}
+/* ════ TABLE ════ */
+.table-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.filters-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.filter-chip{display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);background:var(--bg-c);font-size:12px;color:var(--text2);cursor:pointer;transition:all .15s}
+.filter-chip.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+.filter-chip:hover:not(.on){border-color:var(--primary);color:var(--primary)}
+.data-table{width:100%;border-collapse:collapse}
+.data-table th{text-align:left;padding:8px 11px;font-size:11px;font-weight:500;color:var(--text3);letter-spacing:.04em;text-transform:uppercase;border-bottom:2px solid var(--border);background:var(--bg-s);white-space:nowrap;cursor:pointer;user-select:none}
+.data-table th:hover{color:var(--primary)}
+.data-table th .si::after{content:'↕';opacity:.3}
+.data-table th.sa .si::after{content:'↑';opacity:1;color:var(--primary)}
+.data-table th.sd .si::after{content:'↓';opacity:1;color:var(--primary)}
+.data-table td{padding:10px 11px;border-bottom:1px solid var(--border);vertical-align:middle}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:rgba(22,119,255,.025);cursor:pointer}
+.user-cell{display:flex;align-items:center;gap:9px}
+.user-ava{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.pagination{display:flex;align-items:center;justify-content:space-between;padding:10px 0 0;flex-wrap:wrap;gap:8px}
+.page-btns{display:flex;gap:4px}
+.page-btn{width:28px;height:28px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg-c);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);transition:all .15s}
+.page-btn.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+.page-btn:hover:not(.on){border-color:var(--primary);color:var(--primary)}
+/* ════ DRAWER ════ */
+.overlay-m{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.38);backdrop-filter:blur(2px);display:none;align-items:flex-start;justify-content:flex-end}
+.overlay-m.open{display:flex}
+.drawer{width:500px;height:100vh;background:var(--bg-c);border-left:1px solid var(--border);box-shadow:-8px 0 32px rgba(0,0,0,.12);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s cubic-bezier(.4,0,.2,1)}
+.overlay-m.open .drawer{transform:translateX(0)}
+.drawer-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.drawer-title{font-size:14px;font-weight:500;color:var(--text);flex:1}
+.drawer-body{flex:1;overflow-y:auto;padding:18px}
+.drawer-footer{padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:8px;background:var(--bg-s);flex-wrap:wrap}
+.d-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:16px;margin-top:-4px}
+.d-tab{font-size:12px;padding:7px 12px;cursor:pointer;border:none;background:none;color:var(--text3);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;white-space:nowrap}
+.d-tab.on{color:var(--primary);border-bottom-color:var(--primary);font-weight:500}
+.d-pane{display:none}
+.d-pane.on{display:block}
+.d-section{margin-bottom:20px}
+.d-section-title{font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid var(--border)}
+.d-row{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid rgba(0,0,0,.04)}
+.d-row:last-child{border-bottom:none}
+.d-label{font-size:12px;color:var(--text3)}
+.d-val{font-size:13px;color:var(--text);font-weight:500;text-align:right}
+/* order card in drawer */
+.order-card-d{padding:10px 12px;border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;cursor:pointer;transition:all .15s}
+.order-card-d:hover{border-color:var(--primary-b);background:var(--primary-l)}
+.order-card-d.sel{border-color:var(--primary);border-width:2px;background:var(--primary-l)}
+/* refund */
+.refund-block{background:var(--warning-l);border:1px solid var(--warning-b);border-radius:var(--r);padding:14px;margin-top:12px}
+.refund-type-row{display:flex;gap:8px;margin-bottom:12px}
+.rtype-btn{flex:1;padding:8px;border-radius:var(--r);border:1px solid var(--warning-b);background:var(--bg-c);font-size:12px;font-weight:500;cursor:pointer;text-align:center;transition:all .15s;color:var(--text2)}
+.rtype-btn.on{background:#874D00;color:#fff;border-color:#874D00}
+/* subscription card */
+.sub-card{background:var(--purple-l);border:1px solid rgba(114,46,209,.25);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.sub-active-badge{display:inline-flex;align-items:center;gap:5px;background:var(--success-l);border:1px solid var(--success-b);border-radius:20px;padding:3px 10px;font-size:11px;color:#389E0D;font-weight:500}
+/* notes */
+.note-item{background:var(--bg-s);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;margin-bottom:8px}
+.note-meta{font-size:11px;color:var(--text4);margin-bottom:4px}
+.note-text{font-size:13px;color:var(--text2);line-height:1.5}
+/* ════ TASKS PANEL ════ */
+.task-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border)}
+.task-row:last-child{border-bottom:none}
+.task-name{flex:1;font-size:13px;color:var(--text)}
+.task-meta{font-size:11px;color:var(--text3);margin-top:2px}
+/* ════ HEALTH ════ */
+.health-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.health-card{background:var(--bg-c);border:1px solid var(--border);border-radius:var(--rl);padding:14px}
+.health-name{font-size:12px;color:var(--text3);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.health-val{font-size:20px;font-weight:600;color:var(--text)}
+.health-sub{font-size:11px;color:var(--text3);margin-top:2px}
+/* ════ PROMOS ════ */
+.promo-row{display:grid;grid-template-columns:1fr 80px 100px 80px 100px 80px;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
+.promo-row:last-child{border-bottom:none}
+/* ════ FLAGS ════ */
+.flag-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.flag-row:last-child{border-bottom:none}
+.flag-name{font-size:13px;font-weight:500;color:var(--text);flex:1}
+.flag-desc{font-size:12px;color:var(--text3);margin-top:2px}
+.flag-scope{font-size:11px;color:var(--primary)}
+/* ════ LOG ════ */
+.log-row{display:flex;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);align-items:flex-start}
+.log-row:last-child{border-bottom:none}
+.log-time{font-size:11px;color:var(--text4);white-space:nowrap;width:80px;flex-shrink:0;margin-top:1px}
+.log-who{font-size:11px;color:var(--text3);width:140px;flex-shrink:0;margin-top:1px}
+.log-action{flex:1;font-size:12px;color:var(--text2)}
+.log-badge{font-size:10px;padding:2px 7px;border-radius:4px;white-space:nowrap;flex-shrink:0;font-weight:500}
+.lb-refund{background:var(--danger-l);color:var(--danger)}
+.lb-email{background:var(--primary-l);color:var(--primary)}
+.lb-delete{background:var(--danger-l);color:var(--danger)}
+.lb-block{background:var(--warning-l);color:#874D00}
+.lb-sub{background:var(--purple-l);color:var(--purple)}
+.lb-promo{background:var(--success-l);color:#389E0D}
+.lb-grant{background:var(--teal-l);color:var(--teal)}
+/* ════ PIPELINE ════ */
+.pipe-wrap{display:flex;flex-direction:column;gap:10px}
+.pipe-order-card{border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.pipe-order-card.pipe-err{border-color:var(--danger)}
+.pipe-order-card.pipe-warn{border-color:var(--warning)}
+.pipe-order-head{padding:9px 12px;background:var(--bg-s);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap;cursor:pointer;user-select:none}
+.pipe-order-head:hover{background:var(--bg-c)}
+.pipe-order-body{padding:12px}
+.pipe-track{display:flex;align-items:flex-start;margin-bottom:10px}
+.pst{flex:1;display:flex;flex-direction:column;align-items:center;position:relative}
+.pst:not(:last-child)::after{content:'';position:absolute;top:12px;left:calc(50% + 11px);width:calc(100% - 22px);height:2px;background:var(--border);z-index:0;transition:background .3s}
+.pst.ok::after{background:var(--success)}
+.pst.fail::after{background:var(--danger)}
+.pst.warn::after{background:var(--warning)}
+.pcirc{width:24px;height:24px;border-radius:50%;z-index:1;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;border:2px solid var(--border);background:var(--bg-c);position:relative;transition:all .2s}
+.pst.ok   .pcirc{background:var(--success-l);border-color:var(--success-b);color:#389E0D}
+.pst.fail .pcirc{background:var(--danger-l);border-color:rgba(255,77,79,.5);color:var(--danger);animation:shake .4s}
+.pst.run  .pcirc{background:var(--primary-l);border-color:var(--primary-b);animation:blink 1.4s infinite}
+.pst.pend .pcirc{background:var(--bg-s);border-color:var(--border);color:var(--text4)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-2px)}75%{transform:translateX(2px)}}
+.pst-label{font-size:9px;color:var(--text3);text-align:center;margin-top:4px;line-height:1.3;max-width:52px}
+.pst.ok   .pst-label{color:#389E0D}
+.pst.fail .pst-label{color:var(--danger);font-weight:500}
+.pst.run  .pst-label{color:var(--primary)}
+/* error/warn boxes */
+.pbox{border-radius:var(--r);padding:9px 12px;display:flex;gap:9px;align-items:flex-start;margin-bottom:8px}
+.pbox-err{background:var(--danger-l);border:1px solid rgba(255,77,79,.3)}
+.pbox-warn{background:var(--warning-l);border:1px solid var(--warning-b)}
+.pbox-info{background:var(--primary-l);border:1px solid var(--primary-b)}
+.pbox-msg{flex:1;font-size:11px;line-height:1.55;font-family:monospace}
+.pbox-err  .pbox-msg{color:var(--danger)}
+.pbox-warn .pbox-msg{color:#874D00;font-family:var(--font)}
+.pbox-info .pbox-msg{color:var(--primary);font-family:var(--font)}
+.pbox-acts{display:flex;flex-direction:column;gap:5px;flex-shrink:0}
+/* llm detail */
+.llm-info{background:var(--bg-s);border:1px solid var(--border);border-radius:var(--r);padding:8px 10px;margin-bottom:8px}
+.llm-info-row{display:flex;justify-content:space-between;font-size:11px;padding:2px 0}
+.llm-info-row .k{color:var(--text3)}
+.llm-info-row .v{color:var(--text);font-weight:500;font-family:monospace}
+/* pro progress bar */
+.pro-prog{height:6px;border-radius:3px;background:var(--border);overflow:hidden;display:flex;margin-bottom:10px}
+.pro-prog-ok{background:var(--success)}
+.pro-prog-run{background:var(--primary)}
+.pro-prog-err{background:var(--danger)}
+.pro-prog-pend{background:transparent}
+/* ════ TARIFFS ════ */
+.tariff-row{padding:16px 18px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:2fr 1fr 1fr 1fr 140px;gap:12px;align-items:start}
+.tariff-row:last-child{border-bottom:none}
+.tariff-name{font-size:14px;font-weight:500;color:var(--text)}
+.tariff-desc{font-size:11px;color:var(--text3);margin-top:2px}
+.tariff-badge-row{margin-top:4px;display:flex;gap:4px;flex-wrap:wrap}
+.price-display{font-size:18px;font-weight:600;color:var(--text);line-height:1}
+.price-period{font-size:11px;color:var(--text3);margin-top:2px}
+.price-pending{font-size:11px;color:var(--warning);margin-top:4px;display:flex;align-items:center;gap:4px;line-height:1.4}
+.price-edit-wrap{display:none;margin-top:8px;flex-direction:column;gap:8px;padding:10px;background:var(--bg-s);border:1px solid var(--border);border-radius:var(--r)}
+.price-edit-wrap.open{display:flex}
+.price-input-row{display:flex;gap:6px;align-items:center}
+.tariff-history-row{display:flex;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);font-size:12px;align-items:flex-start}
+.tariff-history-row:last-child{border-bottom:none}
+.th-time{color:var(--text4);width:110px;flex-shrink:0;margin-top:1px}
+.th-body{flex:1;color:var(--text2);line-height:1.5}
+.confirm-popup{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:16px}
+.confirm-popup.open{display:flex}
+.confirm-box{background:var(--bg-c);border-radius:var(--rl);width:100%;max-width:420px;box-shadow:0 16px 48px rgba(0,0,0,.2);overflow:hidden}
+.confirm-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.confirm-title{font-size:15px;font-weight:500}
+.confirm-body{padding:16px 18px}
+.confirm-foot{padding:12px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;background:var(--bg-s)}
+/* INLINE EDIT */
+.inline-edit{display:flex;gap:6px;margin-top:6px}
+.inline-edit.hidden{display:none}
+/* TOAST */
+.toast-wrap{position:fixed;bottom:20px;right:20px;z-index:500;display:flex;flex-direction:column;gap:7px}
+.toast{padding:10px 14px;border-radius:var(--r);font-size:13px;font-weight:500;box-shadow:0 4px 16px rgba(0,0,0,.15);transform:translateX(120%);transition:transform .3s cubic-bezier(.34,1.56,.64,1);display:flex;align-items:center;gap:8px}
+.toast.show{transform:translateX(0)}
+.toast-success{background:var(--success);color:#fff}
+.toast-danger{background:var(--danger);color:#fff}
+.toast-info{background:var(--primary);color:#fff}
+.toast-warning{background:var(--warning);color:#fff}
+</style>
+</head>
+<body>
+
+<!-- ════ LOGIN ════ -->
+<div id="login-page">
+  <div class="login-box">
+    <div class="login-head">
+      <div class="login-logo">
+        <div class="logo-sq"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" fill="none" stroke="white" stroke-width="1"/><circle cx="7" cy="1.5" r="1.5" fill="white"/></svg></div>
+        Astrogen Admin
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px;">Панель управления · v2.0</div>
+      <div style="margin-top:8px;display:inline-flex;align-items:center;gap:5px;background:var(--danger-l);border:1px solid rgba(255,77,79,.3);border-radius:20px;padding:3px 10px;font-size:11px;color:var(--danger);font-weight:500;">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><rect x="1" y="4" width="8" height="6" rx="1" stroke="currentColor" stroke-width="1"/><path d="M3 4V3a2 2 0 014 0v1" stroke="currentColor" stroke-width="1"/></svg>
+        Только is_admin = true
+      </div>
+    </div>
+    <div class="login-body">
+      <button class="auth-btn-adm" onclick="adminLogin('google')">
+        <svg width="16" height="16" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Войти через Google
+      </button>
+      <button class="auth-btn-adm" onclick="adminLogin('yandex')">
+        <div style="width:16px;height:16px;background:#FC3F1D;border-radius:3px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="10" height="10" viewBox="0 0 12 12" fill="white"><text x="6" y="9" text-anchor="middle" font-size="9" font-weight="bold" font-family="serif">Я</text></svg></div>
+        Войти через Яндекс
+      </button>
+      <div class="auth-notice">⚠ Вход доступен только аккаунтам с флагом <strong>is_admin = true</strong> в базе данных.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ ADMIN CABINET ════ -->
+<div id="admin-page" style="display:none;flex-direction:row;min-height:100vh">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-sq" style="width:26px;height:26px;border-radius:6px;flex-shrink:0;"><svg width="12" height="12" viewBox="0 0 14 14" fill="white"><circle cx="7" cy="7" r="5.5" fill="none" stroke="white" stroke-width="1"/><circle cx="7" cy="1.5" r="1.5" fill="white"/></svg></div>
+      Admin v2
+      <span class="tag tag-red" style="font-size:9px;margin-left:auto;">ADMIN</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-sect">Аналитика</div>
+      <button class="nav-item active" onclick="nav('dashboard',this)">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5.5" height="5.5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="7.5" y="1" width="5.5" height="5.5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="1" y="7.5" width="5.5" height="5.5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="7.5" y="7.5" width="5.5" height="5.5" rx="1" stroke="currentColor" stroke-width="1.2"/></svg>
+        Дашборд
+      </button>
+      <button class="nav-item" onclick="nav('funnel',this)">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 2h12l-4.5 5v5l-3-1.5V7L1 2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+        Воронка
+      </button>
+      <div class="nav-sect">Пользователи</div>
+      <button class="nav-item" onclick="nav('users',this)">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M2 12c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Пользователи
+        <span class="nav-badge">247</span>
+      </button>
+      <button class="nav-item" onclick="nav('payments',this)">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="3" width="12" height="9" rx="1.5" stroke="currentColor" stroke-width="1.2"/><line x1="1" y1="6" x2="13" y2="6" stroke="currentColor" stroke-width="1"/></svg>
+        Платежи
+      </button>
+      <div class="nav-sect">Инструменты</div>
+      <button class="nav-item" onclick="nav('tasks',this)">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.2"/><path d="M4 7l2.5 2.5 4-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Задачи Celery
+        <span class="nav-badge nav-badge-red" id="tasks-badge">2</span>
+      </button>
+      <button class="nav-item" onclick="nav('promos',this)">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 4h12M4 1v13M10 1v13" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="7" cy="7" r="1.5" fill="currentColor" opacity=".5"/></svg>
+        Промокоды
+      </button>
+      <button class="nav-item" onclick="nav('tariffs',this)">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="3" width="12" height="9" rx="1.5" stroke="currentColor" stroke-width="1.2"/><line x1="4.5" y1="7" x2="9.5" y2="7" stroke="currentColor" stroke-width="1"/><line x1="4.5" y1="9.5" x2="7.5" y2="9.5" stroke="currentColor" stroke-width="1"/><path d="M4.5 1.5L4.5 4.5M9.5 1.5L9.5 4.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Тарифы
+      <button class="nav-item" onclick="nav('flags',this)">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2v11M2 2l7 2-7 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Feature flags
+      </button>
+      <div class="nav-sect">Система</div>
+      <button class="nav-item" onclick="nav('health',this)">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 7h2.5l2-4 2 8 2-4 1.5 4H13" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Мониторинг
+      </button>
+      <button class="nav-item" onclick="nav('log',this)">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="2" width="11" height="11" rx="1.5" stroke="currentColor" stroke-width="1.2"/><line x1="4" y1="5.5" x2="10" y2="5.5" stroke="currentColor" stroke-width="1"/><line x1="4" y1="8" x2="10" y2="8" stroke="currentColor" stroke-width="1"/><line x1="4" y1="10.5" x2="7" y2="10.5" stroke="currentColor" stroke-width="1"/></svg>
+        Лог действий
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="admin-ava" id="admin-ava">А</div>
+      <div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" id="admin-name">admin@astrogen.ru</div></div>
+      <button class="icon-btn" onclick="adminLogout()" title="Выйти" style="border:none;background:none;">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M9.5 4.5L12 7l-2.5 2.5M12 7H5.5M5.5 2H2.5a1 1 0 00-1 1v8a1 1 0 001 1h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <main class="main-area">
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">Дашборд</div>
+      <div class="topbar-right">
+        <button class="icon-btn" onclick="toggleTheme()">☀</button>
+        <button class="btn btn-primary btn-sm" onclick="exportCSV()">↓ CSV</button>
+      </div>
+    </div>
+    <div class="content">
+
+      <!-- ══ DASHBOARD ══ -->
+      <div class="panel active" id="panel-dashboard">
+        <!-- Row 1: Business metrics -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-label">Пользователи</div>
+            <div class="metric-val">247</div>
+            <div class="metric-delta delta-up">↑ +18 за месяц</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">MRR</div>
+            <div class="metric-val">19 110 ₽</div>
+            <div class="metric-delta delta-up">↑ +8.4%</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">New MRR</div>
+            <div class="metric-val" style="color:var(--success);">+3 920 ₽</div>
+            <div class="metric-delta" style="color:var(--text3);">8 новых Pro</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Churn MRR</div>
+            <div class="metric-val" style="color:var(--danger);">−980 ₽</div>
+            <div class="metric-delta delta-dn">Churn 4.8%</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Ср. LTV</div>
+            <div class="metric-val">1 245 ₽</div>
+            <div class="metric-delta delta-up">↑ +4%</div>
+          </div>
+        </div>
+
+        <!-- Row 2: LLM Cost + ROI -->
+        <div id="llm-metrics-row" style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px;"></div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="card-header"><div class="card-title">MRR по месяцам</div></div>
+            <div class="card-body">
+              <div class="mrr-bars" id="mrr-chart"></div>
+              <div style="display:flex;gap:14px;margin-top:10px;font-size:11px;flex-wrap:wrap;">
+                <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:2px;background:var(--primary);display:inline-block;"></span>Подписки</span>
+                <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:2px;background:var(--success);display:inline-block;"></span>Разовые</span>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Воронка (апрель)</div></div>
+            <div class="card-body"><div class="funnel-wrap" id="funnel-main"></div></div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Источники трафика</div><span class="tag tag-amber" style="font-size:10px;">UTM в разработке</span></div>
+            <div class="card-body" id="sources-chart"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Затраты LLM по месяцам</div>
+              <span style="font-size:11px;color:var(--text3);">GPT-4o · $/токен × курс</span>
+            </div>
+            <div class="card-body" id="llm-chart"></div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Статус системы</div></div>
+            <div class="card-body" style="padding:8px 18px;" id="dash-health"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">ROI по тарифам</div>
+              <span style="font-size:11px;color:var(--text3);">Выручка / затраты LLM</span>
+            </div>
+            <div class="card-body" style="padding:14px 18px;" id="roi-by-plan"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ FUNNEL ══ -->
+      <div class="panel" id="panel-funnel">
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-header"><div class="card-title">Воронка продаж — детально</div>
+            <select class="input" style="width:130px;padding:5px 8px;font-size:12px;"><option>Апрель 2025</option><option>Март 2025</option><option>Всё время</option></select>
+          </div>
+          <div class="card-body">
+            <div class="funnel-wrap" style="gap:10px;" id="funnel-detail"></div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:18px;" id="funnel-drops"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Рекомендации по улучшению конверсии</div></div>
+          <div class="card-body" style="font-size:13px;color:var(--text2);line-height:1.7;">
+            <strong style="color:var(--danger);">Форма → Тариф (52% отвала)</strong> — наибольшая потеря. Рекомендация: убрать поле времени рождения на первом шаге, сделать его опциональным.<br><br>
+            <strong style="color:var(--warning);">Тариф → Авторизация (29% отвала)</strong> — пользователи не хотят регистрироваться. Бесплатный тариф без авторизации снизит отвал.<br><br>
+            <strong style="color:var(--text3);">Авторизация → Оплата (39% отвала)</strong> — email-ремаркетинг «Вы не завершили оформление» вернёт ~15% ушедших.
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ USERS ══ -->
+      <div class="panel" id="panel-users">
+        <div class="table-toolbar">
+          <div class="input-wrap" style="width:260px;">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="currentColor" stroke-width="1.2"/><line x1="9" y1="9" x2="12" y2="12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+            <input class="input" type="text" id="user-search" placeholder="Имя, email…" oninput="renderUsers()">
+          </div>
+          <input class="input" type="date" id="filter-date" style="width:150px;" onchange="renderUsers()" title="Дата оплаты">
+          <select class="input" style="width:130px;padding:7px 8px;" id="filter-seg" onchange="renderUsers()">
+            <option value="">Все сегменты</option>
+            <option value="champion">🟢 Champion</option>
+            <option value="atrisk">🟡 At-risk</option>
+            <option value="lost">🔴 Lost</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="resetFilters()">Сбросить</button>
+          <button class="btn btn-default btn-sm" onclick="exportCSV()">↓ CSV</button>
+          <div style="margin-left:auto;font-size:12px;color:var(--text3);" id="users-count">247</div>
+        </div>
+        <div class="filters-row">
+          <button class="filter-chip on" onclick="setFilter('all',this)">Все</button>
+          <button class="filter-chip" onclick="setFilter('pro',this)">✦ Astro Pro</button>
+          <button class="filter-chip" onclick="setFilter('report',this)">Отчёт</button>
+          <button class="filter-chip" onclick="setFilter('free',this)">Бесплатный</button>
+          <button class="filter-chip" onclick="setFilter('bundle',this)">Набор «3»</button>
+          <div style="width:1px;background:var(--border);margin:0 2px;"></div>
+          <button class="filter-chip" onclick="setFilter('blocked',this)">🚫 Заблокированные</button>
+          <div style="width:1px;background:var(--border);margin:0 2px;"></div>
+          <button class="filter-chip" onclick="setFilter('google',this)">G Google</button>
+          <button class="filter-chip" onclick="setFilter('telegram',this)">✈ Telegram</button>
+          <button class="filter-chip" onclick="setFilter('yandex',this)">Я Яндекс</button>
+        </div>
+        <div class="card">
+          <div style="overflow-x:auto;">
+            <table class="data-table">
+              <thead><tr>
+                <th onclick="sortBy('name')">Пользователь <span class="si"></span></th>
+                <th onclick="sortBy('age')">Возраст <span class="si"></span></th>
+                <th onclick="sortBy('plan')">Тариф <span class="si"></span></th>
+                <th onclick="sortBy('ltv')">LTV <span class="si"></span></th>
+                <th onclick="sortBy('orders')">Заказов <span class="si"></span></th>
+                <th onclick="sortBy('last')">Последний визит <span class="si"></span></th>
+                <th onclick="sortBy('reg')">Регистрация <span class="si"></span></th>
+                <th>Сегмент</th>
+                <th>Статус</th>
+                <th>Действия</th>
+              </tr></thead>
+              <tbody id="users-tbody"></tbody>
+            </table>
+          </div>
+          <div class="card-body" style="padding:10px 12px;background:var(--bg-s);border-top:1px solid var(--border);">
+            <div class="pagination">
+              <div class="page-info" id="page-info"></div>
+              <div class="page-btns" id="page-btns"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ PAYMENTS ══ -->
+      <div class="panel" id="panel-payments">
+        <div class="table-toolbar">
+          <div class="input-wrap" style="width:260px;">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="currentColor" stroke-width="1.2"/><line x1="9" y1="9" x2="12" y2="12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+            <input class="input" type="text" id="pay-search" placeholder="ID, email, сумма…" oninput="renderPayments()">
+          </div>
+          <select class="input" style="width:130px;padding:7px 8px;" id="pay-status" onchange="renderPayments()">
+            <option value="">Все статусы</option>
+            <option value="paid">Оплачен</option>
+            <option value="refunded">Возврат</option>
+            <option value="pending">Ожидает</option>
+            <option value="failed">Ошибка</option>
+          </select>
+          <input class="input" type="date" id="pay-date" style="width:150px;" onchange="renderPayments()">
+          <button class="btn btn-default btn-sm" onclick="exportCSV()">↓ CSV</button>
+        </div>
+        <div class="card">
+          <div style="overflow-x:auto;">
+            <table class="data-table">
+              <thead><tr>
+                <th>ID заказа</th><th>Пользователь</th><th>Тариф / Сумма</th><th>Дата</th><th>Статус</th><th>Действия</th>
+              </tr></thead>
+              <tbody id="payments-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ TASKS ══ -->
+      <div class="panel" id="panel-tasks">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;">
+          <div class="metric-card"><div class="metric-label">Completed</div><div class="metric-val" style="color:var(--success);">1 847</div></div>
+          <div class="metric-card"><div class="metric-label">Pending</div><div class="metric-val" style="color:var(--warning);">3</div></div>
+          <div class="metric-card"><div class="metric-label">Failed</div><div class="metric-val" style="color:var(--danger);">2</div></div>
+          <div class="metric-card"><div class="metric-label">Avg время</div><div class="metric-val">4.2с</div></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Очередь задач</div>
+            <div style="display:flex;gap:8px;">
+              <select class="input" style="width:130px;padding:5px 8px;font-size:12px;"><option>Все типы</option><option>pdf_generate</option><option>email_send</option><option>transit_update</option></select>
+              <select class="input" style="width:120px;padding:5px 8px;font-size:12px;"><option>Все статусы</option><option>failed</option><option>pending</option><option>completed</option></select>
+            </div>
+          </div>
+          <div id="tasks-list"></div>
+        </div>
+      </div>
+
+      <!-- ══ TARIFFS ══ -->
+      <div class="panel" id="panel-tariffs">
+        <div style="margin-bottom:14px;font-size:13px;color:var(--text3);line-height:1.6;">
+          Изменение цены на подписку <strong>не применяется к текущим активным подписчикам немедленно</strong> — новая цена вступит в силу на их следующую дату списания. Новые покупатели увидят обновлённую цену сразу.
+        </div>
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-header">
+            <div class="card-title">Управление тарифами</div>
+            <span style="font-size:12px;color:var(--text3);">Изменения применяются немедленно для новых · для подписок — с следующего платежа</span>
+          </div>
+          <div class="card-body" style="padding:0;" id="tariffs-list"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">История изменений цен</div></div>
+          <div id="tariff-history" style="padding:0;"></div>
+        </div>
+      </div>
+
+      <!-- ══ PROMOS ══ -->
+      <div class="panel" id="panel-promos">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+          <button class="btn btn-primary" onclick="openPromoModal()">+ Новый промокод</button>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Активные промокоды</div></div>
+          <div class="card-body" style="padding:0">
+            <div style="padding:10px 14px;background:var(--bg-s);border-bottom:1px solid var(--border);display:grid;grid-template-columns:1fr 80px 100px 80px 100px 80px;gap:8px;font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;">
+              <span>Код</span><span>Скидка</span><span>Использовано</span><span>Лимит</span><span>До</span><span>Статус</span>
+            </div>
+            <div id="promos-list" style="padding:0 14px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ FLAGS ══ -->
+      <div class="panel" id="panel-flags">
+        <div style="margin-bottom:14px;font-size:13px;color:var(--text3);line-height:1.6;">Feature flags позволяют включать/выключать функции без деплоя. Изменения применяются сразу. Новый флаг добавляется в конфиг за 1 строку.</div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Флаги функций</div><button class="btn btn-default btn-sm">+ Добавить флаг</button></div>
+          <div class="card-body" style="padding:0 18px;" id="flags-list"></div>
+        </div>
+      </div>
+
+      <!-- ══ HEALTH ══ -->
+      <div class="panel" id="panel-health">
+        <div class="health-grid" id="health-grid"></div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Последние ошибки (Sentry)</div><button class="btn btn-ghost btn-sm">Открыть Sentry →</button></div>
+          <div class="card-body" style="padding:0;" id="errors-list"></div>
+        </div>
+      </div>
+
+      <!-- ══ LOG ══ -->
+      <div class="panel" id="panel-log">
+        <div class="table-toolbar" style="margin-bottom:12px;">
+          <div class="input-wrap" style="width:240px;">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="currentColor" stroke-width="1.2"/><line x1="9" y1="9" x2="12" y2="12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+            <input class="input" type="text" id="log-search" placeholder="Email, действие…" oninput="renderLog()">
+          </div>
+          <select class="input" style="width:140px;padding:7px 8px;" id="log-type" onchange="renderLog()">
+            <option value="">Все действия</option>
+            <option value="refund">Возврат</option>
+            <option value="email">Смена email</option>
+            <option value="block">Блокировка</option>
+            <option value="delete">Удаление</option>
+            <option value="sub">Подписка</option>
+            <option value="grant">Назначение тарифа</option>
+          </select>
+          <button class="btn btn-default btn-sm" onclick="exportCSV()">↓ CSV</button>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Лог действий администратора</div></div>
+          <div id="log-list"></div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- ════ USER DRAWER ════ -->
+<div class="overlay-m" id="drawer-overlay" onclick="closeDrawer(event)">
+  <div class="drawer" id="user-drawer">
+    <div class="drawer-header">
+      <div class="user-ava" id="d-ava" style="width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex-shrink:0;"></div>
+      <div class="drawer-title" id="d-title">Пользователь</div>
+      <div id="d-status-badge"></div>
+      <button class="icon-btn" onclick="closeDrawerBtn()">×</button>
+    </div>
+    <div class="drawer-body">
+      <div class="d-tabs">
+        <button class="d-tab on" onclick="dTab(this,'info')">Профиль</button>
+        <button class="d-tab" onclick="dTab(this,'orders')">Заказы & Возврат</button>
+        <button class="d-tab" onclick="dTab(this,'sub')">Подписка</button>
+        <button class="d-tab" onclick="dTab(this,'pipeline')">Пайплайн</button>
+        <button class="d-tab" onclick="dTab(this,'notes')">Заметки</button>
+      </div>
+
+      <!-- PROFILE -->
+      <div class="d-pane on" id="dp-info">
+        <div class="d-section">
+          <div class="d-section-title">Данные</div>
+          <div class="d-row"><span class="d-label">Имя</span><span class="d-val" id="d-name">—</span></div>
+          <div class="d-row">
+            <span class="d-label">Email</span>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span class="d-val" id="d-email">—</span>
+              <button class="btn btn-ghost btn-xs" onclick="toggleEmailEdit()" style="padding:2px 6px;font-size:11px;">✎</button>
+            </div>
+          </div>
+          <div class="inline-edit hidden" id="email-edit-row">
+            <input class="input" type="email" id="new-email-input" placeholder="Новый email" style="flex:1;">
+            <button class="btn btn-primary btn-xs" onclick="saveEmail()">OK</button>
+            <button class="btn btn-ghost btn-xs" onclick="toggleEmailEdit()">×</button>
+          </div>
+          <div class="d-row"><span class="d-label">Возраст</span><span class="d-val" id="d-age">—</span></div>
+          <div class="d-row"><span class="d-label">Провайдер</span><span class="d-val" id="d-provider">—</span></div>
+          <div class="d-row"><span class="d-label">Тариф</span><span id="d-plan">—</span></div>
+          <div class="d-row"><span class="d-label">Сегмент</span><span id="d-seg">—</span></div>
+          <div class="d-row"><span class="d-label">Регистрация</span><span class="d-val" id="d-reg">—</span></div>
+          <div class="d-row"><span class="d-label">Последний визит</span><span class="d-val" id="d-last">—</span></div>
+        </div>
+        <div class="d-section">
+          <div class="d-section-title">Финансы</div>
+          <div class="d-row"><span class="d-label">LTV</span><span class="d-val" id="d-ltv" style="color:var(--primary);font-size:16px;">—</span></div>
+          <div class="d-row"><span class="d-label">Заказов</span><span class="d-val" id="d-orders-cnt">—</span></div>
+          <div class="d-row"><span class="d-label">Возвратов</span><span class="d-val" id="d-refunds">—</span></div>
+        </div>
+        <div class="d-section">
+          <div class="d-section-title">Назначить тариф вручную</div>
+          <div style="background:var(--teal-l);border:1px solid rgba(19,194,194,.3);border-radius:var(--r);padding:12px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+              <div>
+                <div class="form-label">Тариф</div>
+                <select class="input" id="grant-plan" style="padding:6px 8px;font-size:12px;">
+                  <option value="free">Бесплатный</option>
+                  <option value="report">Отчёт</option>
+                  <option value="bundle">Набор «3»</option>
+                  <option value="pro">Astro Pro</option>
+                </select>
+              </div>
+              <div>
+                <div class="form-label">До даты</div>
+                <input class="input" type="date" id="grant-until" style="font-size:12px;">
+              </div>
+            </div>
+            <input class="input" id="grant-reason" placeholder="Причина (блогер, тест, компенсация…)" style="margin-bottom:8px;font-size:12px;">
+            <button class="btn btn-success btn-sm" onclick="grantPlan()" style="width:100%;justify-content:center;">Назначить тариф бесплатно</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ORDERS & REFUND -->
+      <div class="d-pane" id="dp-orders">
+        <div class="d-section-title">Выберите заказ для возврата</div>
+        <div id="d-orders-list"></div>
+        <div class="refund-block" id="refund-block" style="display:none;">
+          <div style="font-size:13px;font-weight:500;color:#874D00;margin-bottom:10px;">Возврат через ЮKassa</div>
+          <div class="refund-type-row">
+            <button class="rtype-btn on" id="rt-full" onclick="setRT('full')">Полный</button>
+            <button class="rtype-btn" id="rt-part" onclick="setRT('partial')">Частичный</button>
+          </div>
+          <div id="refund-amount-wrap" style="display:none;" class="form-group">
+            <div class="form-label">Сумма, ₽</div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input class="input" type="number" id="refund-amount-input" placeholder="0" min="1" style="flex:1;">
+              <span style="font-size:12px;color:var(--text3);">из <span id="refund-max">0</span> ₽</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:8px;">
+            <button class="btn btn-default btn-sm" onclick="resendPdf()">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v7M3.5 6l2.5 2 2.5-2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M1.5 10h9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+              Отправить PDF повторно
+            </button>
+          </div>
+          <button class="btn btn-danger" style="width:100%;justify-content:center;" onclick="confirmRefund()">
+            Вернуть деньги пользователю
+          </button>
+        </div>
+      </div>
+
+      <!-- SUBSCRIPTION -->
+      <div class="d-pane" id="dp-sub">
+        <div id="sub-content"></div>
+      </div>
+
+      <!-- PIPELINE -->
+      <div class="d-pane" id="dp-pipeline">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <span style="font-size:12px;color:var(--text3);">Статус обработки каждого заказа</span>
+          <button class="btn btn-ghost btn-sm" onclick="refreshPipeline()">↻ Обновить</button>
+        </div>
+        <div class="pipe-wrap" id="pipe-wrap"></div>
+      </div>
+
+      <!-- NOTES -->
+      <div class="d-pane" id="dp-notes">
+        <div style="margin-bottom:12px;">
+          <textarea class="input" id="note-input" rows="3" placeholder="Добавить заметку о пользователе (видно только администраторам)…" style="resize:vertical;"></textarea>
+          <button class="btn btn-primary btn-sm" style="margin-top:6px;" onclick="addNote()">Добавить заметку</button>
+        </div>
+        <div id="notes-list"></div>
+      </div>
+    </div>
+
+    <div class="drawer-footer">
+      <button class="btn btn-warning btn-sm" id="block-btn" onclick="toggleBlock()">🚫 Заблокировать</button>
+      <button class="btn btn-danger btn-sm" onclick="confirmDelete()">Удалить аккаунт</button>
+      <button class="btn btn-ghost btn-sm" style="margin-left:auto;" onclick="closeDrawerBtn()">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ CONFIRMS ════ -->
+<div class="confirm-popup" id="confirm-delete">
+  <div class="confirm-box">
+    <div class="confirm-head"><div class="confirm-title" style="color:var(--danger);">⚠ Удалить аккаунт</div><button style="background:none;border:none;font-size:18px;color:var(--text3);cursor:pointer;" onclick="closeConfirm('confirm-delete')">×</button></div>
+    <div class="confirm-body">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:10px;line-height:1.6;">Вы удаляете <strong id="confirm-email">—</strong>. Все данные, отчёты и история платежей удалятся безвозвратно.</p>
+      <div style="background:var(--danger-l);border:1px solid rgba(255,77,79,.3);border-radius:var(--r);padding:10px 12px;font-size:12px;color:var(--danger);">Оформите возвраты по активным заказам до удаления.</div>
+    </div>
+    <div class="confirm-foot">
+      <button class="btn btn-default btn-sm" onclick="closeConfirm('confirm-delete')">Отмена</button>
+      <button class="btn btn-danger btn-sm" onclick="doDelete()">Удалить навсегда</button>
+    </div>
+  </div>
+</div>
+
+<div class="confirm-popup" id="confirm-refund">
+  <div class="confirm-box">
+    <div class="confirm-head"><div class="confirm-title">Подтверждение возврата</div><button style="background:none;border:none;font-size:18px;color:var(--text3);cursor:pointer;" onclick="closeConfirm('confirm-refund')">×</button></div>
+    <div class="confirm-body">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:10px;line-height:1.6;" id="refund-confirm-text">—</p>
+      <div style="background:var(--warning-l);border:1px solid var(--warning-b);border-radius:var(--r);padding:10px 12px;font-size:12px;color:#874D00;">Запрос отправится в ЮKassa автоматически. Средства поступят на карту покупателя в течение 3–7 рабочих дней.</div>
+    </div>
+    <div class="confirm-foot">
+      <button class="btn btn-default btn-sm" onclick="closeConfirm('confirm-refund')">Отмена</button>
+      <button class="btn btn-danger btn-sm" onclick="doRefund()">Подтвердить возврат</button>
+    </div>
+  </div>
+</div>
+
+<div class="confirm-popup" id="confirm-block">
+  <div class="confirm-box">
+    <div class="confirm-head"><div class="confirm-title" style="color:var(--warning);">Заблокировать пользователя</div><button style="background:none;border:none;font-size:18px;color:var(--text3);cursor:pointer;" onclick="closeConfirm('confirm-block')">×</button></div>
+    <div class="confirm-body">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:10px;">Пользователь <strong id="block-email">—</strong> не сможет войти в аккаунт. Данные сохранятся. Разблокировать можно в любой момент.</p>
+      <div class="form-group">
+        <div class="form-label">Причина блокировки</div>
+        <select class="input" id="block-reason" style="font-size:13px;">
+          <option>Подозрение на фрод</option>
+          <option>Чарджбэк</option>
+          <option>Нарушение правил</option>
+          <option>Другое</option>
+        </select>
+      </div>
+    </div>
+    <div class="confirm-foot">
+      <button class="btn btn-default btn-sm" onclick="closeConfirm('confirm-block')">Отмена</button>
+      <button class="btn btn-warning btn-sm" onclick="doBlock()">Заблокировать</button>
+    </div>
+  </div>
+</div>
+
+<div class="confirm-popup" id="confirm-cancel-sub">
+  <div class="confirm-box">
+    <div class="confirm-head"><div class="confirm-title">Отменить подписку</div><button style="background:none;border:none;font-size:18px;color:var(--text3);cursor:pointer;" onclick="closeConfirm('confirm-cancel-sub')">×</button></div>
+    <div class="confirm-body">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:10px;line-height:1.6;">Отменить Astro Pro для <strong id="cancel-sub-email">—</strong>?</p>
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;padding:8px 12px;border:1px solid var(--border);border-radius:var(--r);flex:1;" id="cancel-end-period-label">
+          <input type="radio" name="cancel-when" value="end" checked onchange="document.getElementById('cancel-end-period-label').style.borderColor='var(--primary)';document.getElementById('cancel-now-label').style.borderColor='var(--border)'"> В конце периода
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;padding:8px 12px;border:1px solid var(--border);border-radius:var(--r);flex:1;" id="cancel-now-label">
+          <input type="radio" name="cancel-when" value="now" onchange="document.getElementById('cancel-now-label').style.borderColor='var(--danger)';document.getElementById('cancel-end-period-label').style.borderColor='var(--border)'"> Немедленно
+        </label>
+      </div>
+      <div style="background:var(--warning-l);border:1px solid var(--warning-b);border-radius:var(--r);padding:10px 12px;font-size:12px;color:#874D00;">ЮKassa прекратит автосписание. Запрос отправляется через API.</div>
+    </div>
+    <div class="confirm-foot">
+      <button class="btn btn-default btn-sm" onclick="closeConfirm('confirm-cancel-sub')">Отмена</button>
+      <button class="btn btn-danger btn-sm" onclick="doCancelSub()">Отменить подписку</button>
+    </div>
+  </div>
+</div>
+
+<!-- Promo modal -->
+<div class="confirm-popup" id="promo-modal">
+  <div class="confirm-box">
+    <div class="confirm-head"><div class="confirm-title">Новый промокод</div><button style="background:none;border:none;font-size:18px;color:var(--text3);cursor:pointer;" onclick="closeConfirm('promo-modal')">×</button></div>
+    <div class="confirm-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="form-group"><div class="form-label">Код</div><input class="input" id="promo-code" placeholder="ASTRO50" style="text-transform:uppercase;font-family:monospace;"></div>
+        <div class="form-group"><div class="form-label">Скидка</div>
+          <div style="display:flex;gap:4px;"><input class="input" id="promo-disc" type="number" placeholder="20" style="flex:1;"><select class="input" id="promo-type" style="width:60px;padding:7px 4px;font-size:12px;"><option value="pct">%</option><option value="rub">₽</option></select></div>
+        </div>
+        <div class="form-group"><div class="form-label">Лимит активаций</div><input class="input" id="promo-limit" type="number" placeholder="100"></div>
+        <div class="form-group"><div class="form-label">Действует до</div><input class="input" type="date" id="promo-until"></div>
+      </div>
+      <div class="form-group"><div class="form-label">Применяется к</div>
+        <select class="input" id="promo-for" style="font-size:13px;">
+          <option>Все тарифы</option><option>Только Отчёт</option><option>Только Astro Pro</option><option>Первая покупка</option>
+        </select>
+      </div>
+    </div>
+    <div class="confirm-foot">
+      <button class="btn btn-default btn-sm" onclick="closeConfirm('promo-modal')">Отмена</button>
+      <button class="btn btn-primary btn-sm" onclick="createPromo()">Создать промокод</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script>
+/* ══════════════ DATA ══════════════ */
+const COLORS=['#1677FF','#52C41A','#722ED1','#FA8C16','#13C2C2','#EB2F96'];
+const PLANS={pro:'Astro Pro',report:'Отчёт',bundle:'Набор «3»',free:'Бесплатный'};
+const PLAN_TAGS={pro:'tag-purple',report:'tag-blue',bundle:'tag-amber',free:'tag-gray'};
+const PROVS=['google','yandex','telegram','apple'];
+const NAMES=['Алексей В.','Мария К.','Дмитрий С.','Елена Р.','Иван П.','Ольга М.','Андрей Н.','Наталья Б.','Сергей Д.','Анна Ш.','Павел Л.','Ирина Ф.','Роман Г.','Светлана Ж.','Артём Ч.','Юлия Т.','Никита О.','Кристина В.','Евгений Ю.','Татьяна И.'];
+const EMAILS_B=['gmail.com','yandex.ru','mail.ru','icloud.com','outlook.com'];
+
+function rnd(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+function seeded(s){let n=s%2147483647;return()=>{n=n*16807%2147483647;return(n-1)/2147483646}}
+
+// LLM pricing constants — GPT-4o May 2025: $2.50 вход / $10 выход за 1M токенов × курс 90 ₽/$
+const IN_PRICE_RUB=0.000225, OUT_PRICE_RUB=0.0009;
+
+function genUsers(){
+  const r=seeded(42),users=[];
+  for(let i=0;i<247;i++){
+    const name=NAMES[i%NAMES.length]+(i>=20?` #${i+1}`:'');
+    const email=name.toLowerCase().replace(/[^a-zа-я ]/g,'').replace(/ /g,'.')+`${i}@`+EMAILS_B[i%5];
+    const planK=Object.keys(PLANS)[Math.floor(r()*4)];
+    const plan=PLANS[planK];
+    const ltv=planK==='pro'?rnd(490,4900):planK==='bundle'?1590:planK==='report'?rnd(790,1580):0;
+    const ordCnt=planK==='free'?1:rnd(1,5);
+    const daysAgo=rnd(1,180);
+    const lastDays=rnd(0,daysAgo);
+    const age=rnd(21,52);
+    const prov=PROVS[Math.floor(r()*4)];
+    const hasSub=planK==='pro';
+    const nextBilling=hasSub?fmtDate(-rnd(5,28)):null;
+    const orders=[];
+    let totalLlmCost=0;
+    for(let o=0;o<ordCnt;o++){
+      const oP=planK==='pro'?490:planK==='bundle'?1590:planK==='report'?790:0;
+      // Tokens: free gets 0 (no LLM), others ~4-6k in, ~8-14k out
+      const hasLlm = planK !== 'free';
+      const tokIn  = hasLlm ? rnd(3800,5800) : 0;
+      const tokOut = hasLlm ? rnd(7500,13500) : 0;
+      const llmCost = hasLlm ? parseFloat((tokIn*IN_PRICE_RUB + tokOut*OUT_PRICE_RUB).toFixed(2)) : 0;
+      totalLlmCost += llmCost;
+      orders.push({
+        id:`ORD-2025-${String(i*5+o+1).padStart(4,'0')}`,planK,price:oP,
+        date:fmtDate(daysAgo+o*10),status:'paid',
+        tokIn,tokOut,llmCost,hasLlm
+      });
+    }
+    const seg=ltv>1500?'champion':lastDays>60?'lost':ltv>500?'champion':'atrisk';
+    users.push({id:i+1,name,email,plan,planK,ltv,orders:ordCnt,refunds:0,
+      lastVisit:fmtDate(lastDays),reg:fmtDate(daysAgo),age,provider:prov,
+      ordersData:orders,blocked:false,hasSub,subStatus:hasSub?'active':null,
+      nextBilling,notes:[],seg,
+      totalLlmCost:parseFloat(totalLlmCost.toFixed(2)),
+      margin:parseFloat((ltv - totalLlmCost).toFixed(2))
+    });
+  }
+  return users;
+}
+function fmtDate(d){const dt=new Date();dt.setDate(dt.getDate()-d);return dt.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'})}
+function initials(n){return n.split(' ').map(w=>w[0]||'').join('').substring(0,2).toUpperCase()}
+function avatarColor(i){return COLORS[i%COLORS.length]}
+function planTag(plan){const k=Object.keys(PLANS).find(k=>PLANS[k]===plan)||'free';return`<span class="tag ${PLAN_TAGS[k]}">${plan}</span>`}
+function segTag(s){const m={champion:'<span class="tag tag-green">🟢 Champion</span>',atrisk:'<span class="tag tag-amber">🟡 At-risk</span>',lost:'<span class="tag tag-red">🔴 Lost</span>'};return m[s]||''}
+
+let USERS=genUsers();
+let filteredUsers=[...USERS];
+let activeFilter='all';
+let sortState={key:'reg',dir:'desc'};
+let currentPage=1;
+const PER_PAGE=25;
+let currentUser=null;
+let selectedOrder=null;
+let refundType='full';
+
+/* Admin action log */
+const ADMIN_LOG=[
+  {time:'12 апр 14:32',who:'admin@astrogen.ru',action:'Возврат 790 ₽ · пользователь user5@gmail.com · Заказ ORD-2025-0025',type:'refund'},
+  {time:'12 апр 14:29',who:'admin@astrogen.ru',action:'Смена email: old@mail.ru → new@gmail.com · пользователь Алексей В.',type:'email'},
+  {time:'12 апр 11:14',who:'admin@astrogen.ru',action:'Отмена подписки Astro Pro · пользователь user12@yandex.ru · по запросу',type:'sub'},
+  {time:'11 апр 18:55',who:'admin@astrogen.ru',action:'Назначен тариф Astro Pro до 01.06 · пользователь blogger@gmail.com · компенсация',type:'grant'},
+  {time:'11 апр 15:23',who:'admin@astrogen.ru',action:'Блокировка аккаунта fraud@mail.ru · причина: подозрение на фрод',type:'block'},
+  {time:'10 апр 09:41',who:'admin@astrogen.ru',action:'Частичный возврат 490 ₽ · пользователь user88@gmail.com · Заказ ORD-2025-0088',type:'refund'},
+  {time:'09 апр 20:17',who:'admin@astrogen.ru',action:'Удаление аккаунта spam@inbox.ru',type:'delete'},
+  {time:'09 апр 14:00',who:'admin@astrogen.ru',action:'Создан промокод SPRING30 · скидка 30% · лимит 50',type:'promo'},
+];
+let adminLog=[...ADMIN_LOG];
+
+/* Promos */
+let PROMOS=[
+  {code:'ASTRO50',disc:'50%',used:12,limit:100,until:'30.04.2025',active:true,for:'Все тарифы'},
+  {code:'SPRING30',disc:'30%',used:7,limit:50,until:'15.05.2025',active:true,for:'Только Отчёт'},
+  {code:'BLOGGER',disc:'100%',used:3,limit:5,until:'01.06.2025',active:true,for:'Только Astro Pro'},
+];
+
+/* ══════════════ AUTH ══════════════ */
+function adminLogin(p){
+  document.getElementById('login-page').style.display='none';
+  document.getElementById('admin-page').style.display='flex';
+  const e={google:'admin@astrogen.ru',yandex:'admin@yandex.ru'};
+  document.getElementById('admin-name').textContent=e[p];
+  document.getElementById('admin-ava').textContent=e[p][0].toUpperCase();
+  initAll();
+}
+function adminLogout(){
+  document.getElementById('admin-page').style.display='none';
+  document.getElementById('login-page').style.display='flex';
+}
+
+/* ══════════════ NAV ══════════════ */
+function nav(id,btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  const T={dashboard:'Дашборд',funnel:'Воронка продаж',users:'Пользователи',payments:'Платежи',tasks:'Задачи Celery',tariffs:'Тарифы',promos:'Промокоды',flags:'Feature flags',health:'Мониторинг',log:'Лог действий'};
+  document.getElementById('topbar-title').textContent=T[id]||id;
+  if(btn)btn.classList.add('active');
+  if(id==='funnel')renderFunnelDetail();
+  if(id==='payments')renderPayments();
+  if(id==='tasks')renderTasks();
+  if(id==='flags')renderFlags();
+  if(id==='promos')renderPromos();
+  if(id==='tariffs')renderTariffs();
+  if(id==='health')renderHealth();
+  if(id==='log')renderLog();
+}
+
+/* ══════════════ INIT ══════════════ */
+function initAll(){
+  renderMRR();renderFunnelMain();renderSources();renderDashHealth();
+  renderLlmMetrics();renderLlmChart();renderRoiByPlan();
+  renderUsers();renderPayments();renderTasks();renderFlags();renderPromos();renderHealth();renderLog();
+}
+
+/* ══════════════ MRR ══════════════ */
+const MRR_DATA=[
+  {m:'Ноя',sub:8200,one:4100},{m:'Дек',sub:9800,one:5200},{m:'Янв',sub:11200,one:6100},
+  {m:'Фев',sub:13500,one:7400},{m:'Мар',sub:16800,one:8900},{m:'Апр',sub:19110,one:9800},
+];
+function renderMRR(){
+  const el=document.getElementById('mrr-chart');if(!el)return;
+  const max=Math.max(...MRR_DATA.map(d=>d.sub+d.one));
+  el.innerHTML=MRR_DATA.map(d=>{
+    const sh=Math.round(d.sub/max*76),oh=Math.round(d.one/max*76);
+    return`<div class="mrr-bar-wrap">
+      <div style="display:flex;flex-direction:column;align-items:center;width:100%;gap:2px;">
+        <div class="mrr-bar" style="height:${sh}px;background:var(--primary);width:100%;"></div>
+        <div class="mrr-bar" style="height:${oh}px;background:var(--success);width:100%;"></div>
+      </div>
+      <div class="mrr-label">${d.m}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ══════════════ FUNNEL ══════════════ */
+const FD=[
+  {s:'Визит на сайт',n:4120,c:'#1677FF'},{s:'Заполнил форму',n:1847,c:'#4096FF'},
+  {s:'Выбрал тариф',n:892,c:'#722ED1'},{s:'Авторизовался',n:631,c:'#EB2F96'},{s:'Оплатил',n:388,c:'#52C41A'}
+];
+function renderFunnelMain(){
+  const el=document.getElementById('funnel-main');if(!el)return;
+  const mx=FD[0].n;
+  el.innerHTML=FD.map((f,i)=>{
+    const pct=Math.round(f.n/mx*100);
+    const cv=i>0?Math.round(f.n/FD[i-1].n*100)+'%':'—';
+    const col=i>0&&parseInt(cv)<50?'var(--danger)':i>0&&parseInt(cv)<70?'var(--warning)':'var(--text3)';
+    return`<div class="funnel-step">
+      <div class="funnel-label" style="font-size:11px;">${f.s}</div>
+      <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:${pct}%;background:${f.c};">${f.n.toLocaleString()}</div></div>
+      <div class="funnel-conv" style="color:${col};">${cv}</div>
+    </div>`;
+  }).join('');
+}
+function renderFunnelDetail(){
+  const el=document.getElementById('funnel-detail');if(!el)return;
+  const mx=FD[0].n;
+  el.innerHTML=FD.map((f,i)=>{
+    const pct=Math.round(f.n/mx*100);
+    const cv=i>0?Math.round(f.n/FD[i-1].n*100):100;
+    const col=cv<50?'var(--danger)':cv<70?'var(--warning)':'var(--success)';
+    return`<div class="funnel-step" style="align-items:center;gap:12px;">
+      <div style="width:22px;height:22px;border-radius:50%;background:${f.c};color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${i+1}</div>
+      <div class="funnel-label" style="width:160px;">${f.s}</div>
+      <div class="funnel-bar-wrap" style="height:36px;"><div class="funnel-bar" style="width:${pct}%;background:${f.c};font-size:12px;">${f.n.toLocaleString()} чел.</div></div>
+      <div style="width:44px;font-size:12px;color:var(--text3);text-align:right;">${pct}%</div>
+      <div style="width:70px;font-size:12px;text-align:right;color:${col};">${i>0?cv+'% прошли':'Вход'}</div>
+    </div>`;
+  }).join('');
+  const drops=document.getElementById('funnel-drops');if(!drops)return;
+  drops.innerHTML=FD.slice(1).map((f,i)=>{
+    const dr=100-Math.round(f.n/FD[i].n*100);
+    const col=dr>50?'var(--danger)':dr>30?'var(--warning)':'var(--success)';
+    return`<div style="background:var(--bg-s);border:1px solid var(--border);border-radius:var(--r);padding:12px;text-align:center;">
+      <div style="font-size:10px;color:var(--text4);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;">${FD[i].s.split(' ')[0]} → ${f.s.split(' ')[0]}</div>
+      <div style="font-size:22px;font-weight:600;color:${col};">${dr}%</div>
+      <div style="font-size:11px;color:var(--text3);">отвал</div>
+    </div>`;
+  }).join('');
+}
+
+/* ══════════════ SOURCES ══════════════ */
+const SRC=[{n:'Прямые',c:112,col:'#1677FF'},{n:'Telegram',c:74,col:'#2AABEE'},{n:'Google',c:38,col:'#34A853'},{n:'ВКонтакте',c:15,col:'#2787F5'},{n:'Прочие',c:8,col:'#D9D9D9'}];
+function renderSources(){
+  const el=document.getElementById('sources-chart');if(!el)return;
+  const mx=SRC[0].c;
+  el.innerHTML=SRC.map(s=>`<div class="source-row"><div class="source-name">${s.n}</div><div class="source-bar-w"><div class="source-bar" style="width:${Math.round(s.c/mx*100)}%;background:${s.col};"></div></div><div class="source-cnt">${s.c}</div></div>`).join('');
+  el.innerHTML+=`<div style="margin-top:10px;padding:10px 12px;background:var(--warning-l);border:1px solid var(--warning-b);border-radius:var(--r);font-size:11px;color:#874D00;line-height:1.5;">📌 После подключения UTM-меток появится разбивка по рекламным кампаниям.</div>`;
+}
+
+/* ══════════════ DASH HEALTH ══════════════ */
+const HEALTH=[
+  {n:'PostgreSQL',ok:true,ms:12},{n:'Redis',ok:true,ms:2},{n:'Celery',ok:true,ms:null},
+  {n:'ЮKassa',ok:true,ms:340},{n:'SMTP',ok:false,ms:null},
+];
+function renderDashHealth(){
+  const el=document.getElementById('dash-health');if(!el)return;
+  el.innerHTML=HEALTH.map(h=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);">
+    <span class="dot ${h.ok?'dot-green':'dot-red'}"></span>
+    <span style="flex:1;font-size:13px;color:var(--text2);">${h.n}</span>
+    <span style="font-size:12px;color:${h.ok?'var(--text3)':'var(--danger)'};">${h.ok?(h.ms?h.ms+'ms':'OK'):'НЕДОСТУПЕН'}</span>
+  </div>`).join('');
+}
+function renderHealth(){
+  const el=document.getElementById('health-grid');if(!el)return;
+  const HFULL=[...HEALTH,{n:'Kerykeion',ok:true,ms:null},{n:'PDF/WeasyPrint',ok:true,ms:null}];
+  el.innerHTML=HFULL.map(h=>`<div class="health-card">
+    <div class="health-name"><span class="dot ${h.ok?'dot-green':'dot-red'}"></span>${h.n}</div>
+    <div class="health-val" style="color:${h.ok?'var(--success)':'var(--danger)'};">${h.ok?'OK':'ERROR'}</div>
+    <div class="health-sub">${h.ms?'Отклик: '+h.ms+'ms':h.ok?'Работает нормально':'Проверьте логи'}</div>
+  </div>`).join('');
+  const er=document.getElementById('errors-list');if(!er)return;
+  const ERRS=[
+    {t:'12 апр 14:51',msg:'WeasyPrint: PDF generation failed for order ORD-2025-0091',lv:'error'},
+    {t:'12 апр 12:03',msg:'SMTP: Connection timeout to smtp.yandex.ru (user#47)',lv:'warning'},
+    {t:'11 апр 22:14',msg:'Kerykeion: Unknown location "Новый Уренгой"',lv:'warning'},
+  ];
+  er.innerHTML=ERRS.map(e=>`<div class="task-row">
+    <span style="font-size:11px;color:var(--text4);white-space:nowrap;width:110px;">${e.t}</span>
+    <span class="tag ${e.lv==='error'?'tag-red':'tag-amber'}" style="flex-shrink:0;">${e.lv}</span>
+    <span style="font-size:12px;color:var(--text2);font-family:monospace;flex:1;">${e.msg}</span>
+    <button class="btn btn-ghost btn-xs">Решено</button>
+  </div>`).join('');
+}
+
+/* ══════════════ TASKS ══════════════ */
+const TASKS_DATA=[
+  {id:'task-001',type:'pdf_generate',status:'failed',user:'user83@gmail.com',time:'12 апр 14:44',err:'WeasyPrint timeout'},
+  {id:'task-002',type:'email_send',status:'pending',user:'user91@yandex.ru',time:'12 апр 14:51',err:''},
+  {id:'task-003',type:'transit_update',status:'pending',user:'user7@gmail.com',time:'12 апр 14:49',err:''},
+  {id:'task-004',type:'pdf_generate',status:'completed',user:'user12@mail.ru',time:'12 апр 14:30',err:''},
+  {id:'task-005',type:'email_send',status:'completed',user:'user5@gmail.com',time:'12 апр 14:32',err:''},
+  {id:'task-006',type:'pdf_generate',status:'failed',user:'user44@icloud.com',time:'12 апр 13:21',err:'Kerykeion location error'},
+];
+let TASKS=[...TASKS_DATA];
+function renderTasks(){
+  const el=document.getElementById('tasks-list');if(!el)return;
+  const ST_TAG={failed:'tag-red',pending:'tag-amber',completed:'tag-green'};
+  el.innerHTML=TASKS.map(t=>`<div class="task-row">
+    <div style="flex:1;min-width:0;">
+      <div class="task-name">${t.type} <span style="font-size:11px;font-family:monospace;color:var(--text4);">#${t.id}</span></div>
+      <div class="task-meta">${t.user} · ${t.time}${t.err?` · <span style="color:var(--danger);">${t.err}</span>`:''}</div>
+    </div>
+    <span class="tag ${ST_TAG[t.status]}">${t.status}</span>
+    ${t.status==='failed'?`<button class="btn btn-default btn-xs" onclick="retryTask('${t.id}')">Перезапустить</button>`:''}
+    ${t.status!=='completed'?`<button class="btn btn-ghost btn-xs" onclick="resendTask('${t.id}')">PDF повторно</button>`:''}
+  </div>`).join('');
+  document.getElementById('tasks-badge').textContent=TASKS.filter(t=>t.status==='failed').length||'';
+}
+function retryTask(id){
+  const t=TASKS.find(t=>t.id===id);if(!t)return;
+  t.status='pending';t.err='';renderTasks();
+  setTimeout(()=>{t.status='completed';renderTasks();showToast('✓ Задача '+id+' завершена','success');},2000);
+}
+function resendTask(id){showToast('PDF отправлен повторно','success');}
+
+/* ══════════════ FLAGS ══════════════ */
+const FLAGS=[
+  {k:'daily_horoscope',name:'Ежедневный гороскоп',desc:'Раздел в ЛК с персональным гороскопом',scope:'Pro-тариф',on:false},
+  {k:'solar_return',name:'Солярный возврат',desc:'Новый тип отчёта в магазине',scope:'Все',on:false},
+  {k:'share_card',name:'Шеринг-карточка',desc:'Кнопка «Поделиться» на экране результата',scope:'Все',on:true},
+  {k:'referral',name:'Реферальная программа',desc:'Ссылка и счётчик в ЛК',scope:'Все',on:false},
+  {k:'synastry',name:'Синастрия',desc:'Совместимость с партнёром',scope:'Pro-тариф',on:false},
+];
+let flags=[...FLAGS];
+function renderFlags(){
+  const el=document.getElementById('flags-list');if(!el)return;
+  el.innerHTML=flags.map((f,i)=>`<div class="flag-row">
+    <div style="flex:1;">
+      <div class="flag-name">${f.name}</div>
+      <div class="flag-desc">${f.desc}</div>
+      <div class="flag-scope">Область: ${f.scope}</div>
+    </div>
+    <span class="tag ${f.on?'tag-green':'tag-gray'}" style="margin-right:10px;">${f.on?'Включён':'Выключен'}</span>
+    <label class="toggle"><input type="checkbox" ${f.on?'checked':''} onchange="toggleFlag(${i},this.checked)"><span class="toggle-slider"></span></label>
+  </div>`).join('');
+}
+function toggleFlag(i,v){flags[i].on=v;renderFlags();showToast(`Флаг «${flags[i].name}» ${v?'включён':'выключён'}`,v?'success':'info');}
+
+/* ══════════════ PROMOS ══════════════ */
+function renderPromos(){
+  const el=document.getElementById('promos-list');if(!el)return;
+  el.innerHTML=PROMOS.map((p,i)=>`<div class="promo-row">
+    <span style="font-family:monospace;font-size:13px;font-weight:600;color:var(--text);">${p.code}</span>
+    <span style="color:var(--primary);font-weight:500;">${p.disc}</span>
+    <span style="color:var(--text3);">${p.used} / ${p.limit}</span>
+    <span style="color:var(--text3);">${p.limit-p.used} осталось</span>
+    <span style="font-size:12px;color:var(--text3);">до ${p.until}</span>
+    <div style="display:flex;gap:4px;align-items:center;">
+      <span class="tag ${p.active?'tag-green':'tag-gray'}">${p.active?'Активен':'Завершён'}</span>
+      ${p.active?`<button class="btn btn-ghost btn-xs" onclick="deactivatePromo(${i})">×</button>`:''}
+    </div>
+  </div>`).join('');
+}
+function deactivatePromo(i){PROMOS[i].active=false;renderPromos();showToast('Промокод деактивирован','info');}
+function openPromoModal(){document.getElementById('promo-modal').classList.add('open');}
+function createPromo(){
+  const code=document.getElementById('promo-code').value.toUpperCase();
+  const disc=document.getElementById('promo-disc').value;
+  const type=document.getElementById('promo-type').value;
+  const limit=document.getElementById('promo-limit').value||100;
+  const until=document.getElementById('promo-until').value||'31.12.2025';
+  const forTariff=document.getElementById('promo-for').value;
+  if(!code||!disc){showToast('Заполните код и скидку','danger');return;}
+  PROMOS.push({code,disc:disc+(type==='pct'?'%':' ₽'),used:0,limit:parseInt(limit),until,active:true,for:forTariff});
+  closeConfirm('promo-modal');renderPromos();
+  addLog(`Создан промокод ${code} · скидка ${disc}${type==='pct'?'%':' ₽'} · лимит ${limit}`,'promo');
+  showToast('✓ Промокод создан','success');
+}
+
+/* ══════════════ LOG ══════════════ */
+const LB_MAP={refund:'lb-refund',email:'lb-email',delete:'lb-delete',block:'lb-block',sub:'lb-sub',promo:'lb-promo',grant:'lb-grant'};
+const LB_NAME={refund:'Возврат',email:'Email',delete:'Удаление',block:'Блокировка',sub:'Подписка',promo:'Промокод',grant:'Тариф'};
+function renderLog(){
+  const el=document.getElementById('log-list');if(!el)return;
+  const q=((document.getElementById('log-search')||{}).value||'').toLowerCase();
+  const t=(document.getElementById('log-type')||{}).value||'';
+  const filtered=adminLog.filter(l=>(!q||(l.action+l.who).toLowerCase().includes(q))&&(!t||l.type===t));
+  el.innerHTML=filtered.map(l=>`<div class="log-row">
+    <div class="log-time">${l.time}</div>
+    <div class="log-who">${l.who}</div>
+    <div class="log-action">${l.action}</div>
+    <span class="log-badge ${LB_MAP[l.type]||''}">${LB_NAME[l.type]||l.type}</span>
+  </div>`).join('') || '<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px;">Нет записей</div>';
+}
+function addLog(action,type){
+  const now=new Date();
+  const time=now.toLocaleDateString('ru-RU',{day:'2-digit',month:'short'})+' '+now.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+  adminLog.unshift({time,who:document.getElementById('admin-name').textContent||'admin',action,type});
+}
+
+/* ══════════════ USERS TABLE ══════════════ */
+function setFilter(f,btn){
+  activeFilter=f;
+  document.querySelectorAll('.filter-chip').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');currentPage=1;renderUsers();
+}
+function resetFilters(){
+  activeFilter='all';
+  document.getElementById('user-search').value='';
+  document.getElementById('filter-date').value='';
+  document.getElementById('filter-seg').value='';
+  document.querySelectorAll('.filter-chip').forEach(b=>b.classList.remove('on'));
+  document.querySelector('.filter-chip').classList.add('on');
+  currentPage=1;renderUsers();
+}
+function sortBy(k){
+  if(sortState.key===k)sortState.dir=sortState.dir==='asc'?'desc':'asc';
+  else{sortState.key=k;sortState.dir='desc';}
+  document.querySelectorAll('.data-table th').forEach(t=>{t.classList.remove('sa','sd');});
+  event.currentTarget.classList.add(sortState.dir==='asc'?'sa':'sd');
+  renderUsers();
+}
+function renderUsers(){
+  const q=((document.getElementById('user-search')||{}).value||'').toLowerCase();
+  const df=(document.getElementById('filter-date')||{}).value;
+  const sf=(document.getElementById('filter-seg')||{}).value;
+  filteredUsers=USERS.filter(u=>{
+    if(q&&!u.name.toLowerCase().includes(q)&&!u.email.toLowerCase().includes(q))return false;
+    if(activeFilter==='pro'&&u.plan!=='Astro Pro')return false;
+    if(activeFilter==='report'&&u.plan!=='Отчёт')return false;
+    if(activeFilter==='free'&&u.plan!=='Бесплатный')return false;
+    if(activeFilter==='bundle'&&u.plan!=='Набор «3»')return false;
+    if(activeFilter==='blocked'&&!u.blocked)return false;
+    if(activeFilter==='google'&&u.provider!=='google')return false;
+    if(activeFilter==='telegram'&&u.provider!=='telegram')return false;
+    if(activeFilter==='yandex'&&u.provider!=='yandex')return false;
+    if(sf&&u.seg!==sf)return false;
+    if(df){const has=u.ordersData.some(o=>o.date.split('.').reverse().join('-')>=df);if(!has)return false;}
+    return true;
+  });
+  filteredUsers.sort((a,b)=>{
+    const k=sortState.key;
+    let av=k==='ltv'?a.ltv:k==='orders'?a.orders:k==='age'?a.age:k==='last'?a.lastVisit.split('.').reverse().join(''):k==='reg'?a.reg.split('.').reverse().join(''):a.name;
+    let bv=k==='ltv'?b.ltv:k==='orders'?b.orders:k==='age'?b.age:k==='last'?b.lastVisit.split('.').reverse().join(''):k==='reg'?b.reg.split('.').reverse().join(''):b.name;
+    return sortState.dir==='asc'?(av>bv?1:-1):(av<bv?1:-1);
+  });
+  document.getElementById('users-count').textContent=filteredUsers.length+' пользователей';
+  const total=filteredUsers.length;
+  const pages=Math.ceil(total/PER_PAGE)||1;
+  if(currentPage>pages)currentPage=1;
+  const start=(currentPage-1)*PER_PAGE;
+  const slice=filteredUsers.slice(start,start+PER_PAGE);
+  const tbody=document.getElementById('users-tbody');
+  tbody.innerHTML=slice.map(u=>`<tr onclick="openUser(${u.id})">
+    <td><div class="user-cell">
+      <div class="user-ava" style="background:${avatarColor(u.id)}22;color:${avatarColor(u.id)}">${initials(u.name)}</div>
+      <div><div style="font-size:13px;font-weight:500;color:var(--text);">${u.name}${u.blocked?'<span class="tag tag-red" style="font-size:10px;margin-left:4px;">🚫</span>':''}</div><div style="font-size:11px;color:var(--text4);">${u.email}</div></div>
+    </div></td>
+    <td style="font-size:13px;color:var(--text2);">${u.age} л.</td>
+    <td>${planTag(u.plan)}</td>
+    <td><div style="font-size:13px;font-weight:600;color:var(--text);">${u.ltv.toLocaleString()} ₽</div><div style="font-size:11px;color:var(--text4);">${u.orders} зак.</div></td>
+    <td style="text-align:center;font-size:13px;">${u.orders}</td>
+    <td style="font-size:12px;color:var(--text3);">${u.lastVisit}</td>
+    <td style="font-size:12px;color:var(--text3);">${u.reg}</td>
+    <td>${segTag(u.seg)}</td>
+    <td>${u.blocked?'<span class="tag tag-red">Заблок.</span>':u.hasSub?'<span class="tag tag-purple">Pro ↻</span>':'<span class="tag tag-gray">Активен</span>'}</td>
+    <td><button class="btn btn-default btn-xs" onclick="event.stopPropagation();openUser(${u.id})">Открыть</button></td>
+  </tr>`).join('');
+  document.getElementById('page-info').textContent=`${start+1}–${Math.min(start+PER_PAGE,total)} из ${total}`;
+  const pb=document.getElementById('page-btns');pb.innerHTML='';
+  const mkBtn=(n,l)=>{const b=document.createElement('button');b.className='page-btn'+(n===currentPage?' on':'');b.textContent=l||n;b.onclick=()=>{currentPage=n;renderUsers();};return b;};
+  if(currentPage>1)pb.appendChild(mkBtn(currentPage-1,'‹'));
+  for(let p=Math.max(1,currentPage-2);p<=Math.min(pages,currentPage+2);p++)pb.appendChild(mkBtn(p));
+  if(currentPage<pages)pb.appendChild(mkBtn(currentPage+1,'›'));
+}
+
+/* ══════════════ PAYMENTS ══════════════ */
+const PAY_DATA=USERS.flatMap(u=>u.ordersData.map(o=>({...o,uName:u.name,uEmail:u.email,uid:u.id}))).slice(0,200);
+const ST_TAG={paid:'tag-green',refunded:'tag-red',pending:'tag-amber',failed:'tag-gray'};
+const ST_LBL={paid:'Оплачен',refunded:'Возврат',pending:'Ожидает',failed:'Ошибка'};
+function renderPayments(){
+  const q=((document.getElementById('pay-search')||{}).value||'').toLowerCase();
+  const st=(document.getElementById('pay-status')||{}).value||'';
+  const filtered=PAY_DATA.filter(p=>(!q||[p.id,p.uEmail,p.uName,String(p.price)].some(v=>v.toLowerCase().includes(q)))&&(!st||p.status===st));
+  document.getElementById('payments-tbody').innerHTML=filtered.slice(0,50).map(p=>`<tr>
+    <td><span style="font-family:monospace;font-size:11px;color:var(--text4);">${p.id}</span></td>
+    <td><div style="font-size:13px;font-weight:500;color:var(--text);">${p.uName}</div><div style="font-size:11px;color:var(--text4);">${p.uEmail}</div></td>
+    <td><strong>${p.price>0?p.price.toLocaleString()+' ₽':'Бесплатно'}</strong><br><span style="font-size:11px;color:var(--text3);">${PLANS[p.planK]||p.planK}</span></td>
+    <td style="font-size:12px;color:var(--text3);">${p.date}</td>
+    <td><span class="tag ${ST_TAG[p.status]}">${ST_LBL[p.status]}</span></td>
+    <td><div style="display:flex;gap:4px;">
+      ${p.status==='paid'&&p.price>0?`<button class="btn btn-xs btn-danger" onclick="quickRefund(${p.uid},'${p.id}')">Возврат</button>`:''}
+      <button class="btn btn-xs btn-default" onclick="openUser(${p.uid})">Юзер →</button>
+    </div></td>
+  </tr>`).join('');
+}
+function quickRefund(uid){openUser(uid);setTimeout(()=>dTab(document.querySelector('[onclick*="orders"]'),'orders'),300);}
+
+/* ══════════════ USER DRAWER ══════════════ */
+function openUser(id){
+  currentUser=USERS.find(u=>u.id===id);if(!currentUser)return;
+  const u=currentUser;
+  document.getElementById('d-ava').textContent=initials(u.name);
+  document.getElementById('d-ava').style.cssText=`width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex-shrink:0;background:${avatarColor(u.id)}22;color:${avatarColor(u.id)}`;
+  document.getElementById('d-title').textContent=u.name;
+  document.getElementById('d-status-badge').innerHTML=u.blocked?'<span class="tag tag-red">🚫 Заблокирован</span>':u.hasSub?'<span class="tag tag-purple">✦ Pro</span>':'';
+  document.getElementById('d-name').textContent=u.name;
+  document.getElementById('d-email').textContent=u.email;
+  document.getElementById('confirm-email').textContent=u.email;
+  document.getElementById('block-email').textContent=u.email;
+  document.getElementById('cancel-sub-email').textContent=u.email;
+  document.getElementById('d-age').textContent=u.age+' лет';
+  document.getElementById('d-provider').textContent={google:'Google',yandex:'Яндекс',telegram:'Telegram',apple:'Apple'}[u.provider]||u.provider;
+  document.getElementById('d-plan').innerHTML=planTag(u.plan);
+  document.getElementById('d-seg').innerHTML=segTag(u.seg);
+  document.getElementById('d-reg').textContent=u.reg;
+  document.getElementById('d-last').textContent=u.lastVisit;
+  document.getElementById('d-ltv').textContent=u.ltv.toLocaleString()+' ₽';
+  document.getElementById('d-orders-cnt').textContent=u.orders;
+  document.getElementById('d-refunds').textContent=u.refunds;
+  // Block btn
+  document.getElementById('block-btn').textContent=u.blocked?'✓ Разблокировать':'🚫 Заблокировать';
+  document.getElementById('block-btn').className='btn btn-sm '+(u.blocked?'btn-success':'btn-warning');
+  // Orders
+  selectedOrder=null;
+  document.getElementById('refund-block').style.display='none';
+  document.getElementById('d-orders-list').innerHTML=u.ordersData.length?
+    u.ordersData.map(o=>`<div class="order-card-d" data-oid="${o.id}" onclick="selectOrder('${o.id}')">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <input type="radio" name="ord-sel" style="flex-shrink:0;">
+        <div style="flex:1;"><div style="font-size:13px;font-weight:500;color:var(--text);">${PLANS[o.planK]||o.planK}</div>
+        <div style="font-size:11px;color:var(--text4);">${o.id} · ${o.date} · <span class="tag tag-green" style="font-size:10px;">${ST_LBL[o.status]}</span></div></div>
+        <div style="font-size:14px;font-weight:600;color:var(--text);">${o.price>0?o.price.toLocaleString()+' ₽':'0'}</div>
+      </div>
+    </div>`).join(''):
+    '<div style="font-size:13px;color:var(--text3);padding:8px 0;">Нет заказов</div>';
+  // Subscription
+  renderSubTab(u);
+  // Notes
+  renderNotes(u);
+  // Reset tabs
+  document.querySelectorAll('.d-tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.d-pane').forEach(p=>p.classList.remove('on'));
+  document.querySelector('.d-tab').classList.add('on');
+  document.getElementById('dp-info').classList.add('on');
+  document.getElementById('email-edit-row').classList.add('hidden');
+  document.getElementById('drawer-overlay').classList.add('open');
+}
+function renderSubTab(u){
+  const el=document.getElementById('sub-content');if(!el)return;
+  if(!u.hasSub){
+    el.innerHTML=`<div style="text-align:center;padding:32px 0;">
+      <div style="font-size:32px;margin-bottom:12px;">✦</div>
+      <div style="font-size:14px;font-weight:500;margin-bottom:8px;">Нет активной подписки</div>
+      <div style="font-size:13px;color:var(--text3);margin-bottom:16px;">Тариф: ${u.plan}</div>
+      <button class="btn btn-primary btn-sm" onclick="grantSubFromTab()">Назначить Astro Pro</button>
+    </div>`;return;
+  }
+  el.innerHTML=`<div class="sub-card">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">
+      <div><div style="font-size:14px;font-weight:600;color:var(--purple);">Astro Pro</div><div class="sub-active-badge" style="margin-top:5px;"><span class="dot dot-green"></span>${u.subStatus==='active'?'Активна':'Отменяется'}</div></div>
+      <div style="text-align:right;font-size:12px;color:var(--text3);">490 ₽/мес</div>
+    </div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:14px;">Следующее списание: <strong>${u.nextBilling||'—'}</strong></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-danger btn-sm" onclick="openConfirmCancelSub()" ${u.subStatus!=='active'?'disabled style="opacity:.5;"':''}>Отменить подписку</button>
+      <button class="btn btn-default btn-sm" onclick="showToast('PDF отправлен повторно','success')">Отправить PDF</button>
+    </div>
+    ${u.subStatus!=='active'?'<div style="margin-top:10px;font-size:12px;color:var(--danger);">Подписка будет отменена в конце периода</div>':''}
+  </div>
+  <div style="font-size:12px;color:var(--text3);line-height:1.6;">При отмене ЮKassa прекращает автосписание через API. Доступ сохраняется до конца оплаченного периода.</div>`;
+}
+function renderNotes(u){
+  const el=document.getElementById('notes-list');if(!el)return;
+  el.innerHTML=u.notes.length?u.notes.map(n=>`<div class="note-item">
+    <div class="note-meta">${n.time} · ${n.by}</div>
+    <div class="note-text">${n.text}</div>
+  </div>`).join(''):'<div style="font-size:13px;color:var(--text3);">Заметок пока нет</div>';
+}
+
+function dTab(btn,pane){
+  document.querySelectorAll('.d-tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.d-pane').forEach(p=>p.classList.remove('on'));
+  if(btn)btn.classList.add('on');
+  const el=document.getElementById('dp-'+pane);if(el)el.classList.add('on');
+  if(pane==='pipeline') renderPipeline();
+}
+
+function selectOrder(id){
+  document.querySelectorAll('.order-card-d').forEach(el=>{
+    el.classList.toggle('sel',el.dataset.oid===id);
+    el.querySelector('input[type=radio]').checked=el.dataset.oid===id;
+  });
+  selectedOrder=currentUser.ordersData.find(o=>o.id===id);
+  const rb=document.getElementById('refund-block');
+  if(selectedOrder&&selectedOrder.price>0){rb.style.display='block';document.getElementById('refund-max').textContent=selectedOrder.price;}
+  else rb.style.display='none';
+}
+function setRT(t){
+  refundType=t;
+  document.getElementById('rt-full').classList.toggle('on',t==='full');
+  document.getElementById('rt-part').classList.toggle('on',t==='partial');
+  document.getElementById('refund-amount-wrap').style.display=t==='partial'?'block':'none';
+}
+function confirmRefund(){
+  if(!selectedOrder)return showToast('Выберите заказ','danger');
+  let amount=selectedOrder.price;
+  if(refundType==='partial'){
+    amount=parseInt(document.getElementById('refund-amount-input').value)||0;
+    if(!amount||amount>selectedOrder.price)return showToast('Укажите корректную сумму','danger');
+  }
+  document.getElementById('refund-confirm-text').textContent=`Вернуть ${amount.toLocaleString()} ₽ пользователю ${currentUser.name}? Заказ: ${selectedOrder.id}`;
+  document.getElementById('confirm-refund').classList.add('open');
+}
+function doRefund(){
+  closeConfirm('confirm-refund');
+  const amount=refundType==='full'?selectedOrder.price:parseInt(document.getElementById('refund-amount-input').value);
+  currentUser.ltv=Math.max(0,currentUser.ltv-amount);currentUser.refunds++;
+  selectedOrder.status='refunded';
+  addLog(`Возврат ${amount.toLocaleString()} ₽ · ${currentUser.email} · Заказ ${selectedOrder.id}`,'refund');
+  closeDrawerBtn();renderUsers();renderPayments();showToast(`✓ Возврат ${amount.toLocaleString()} ₽ отправлен в ЮKassa`,'success');
+}
+function resendPdf(){
+  if(!selectedOrder)return showToast('Выберите заказ','danger');
+  showToast('✓ PDF отправлен повторно на '+currentUser.email,'success');
+  addLog(`Повторная отправка PDF · ${currentUser.email} · Заказ ${selectedOrder.id}`,'email');
+}
+// Cancel subscription
+function openConfirmCancelSub(){document.getElementById('confirm-cancel-sub').classList.add('open');}
+function doCancelSub(){
+  closeConfirm('confirm-cancel-sub');
+  const when=document.querySelector('input[name="cancel-when"]:checked').value;
+  if(when==='now'){currentUser.hasSub=false;currentUser.plan='Бесплатный';currentUser.planK='free';currentUser.subStatus=null;}
+  else{currentUser.subStatus='canceling';}
+  addLog(`Отмена подписки Astro Pro · ${currentUser.email} · ${when==='now'?'немедленно':'в конце периода'}`,'sub');
+  renderSubTab(currentUser);renderUsers();showToast(`Подписка отменена ${when==='now'?'немедленно':'в конце периода'}`,'info');
+}
+function grantSubFromTab(){
+  currentUser.hasSub=true;currentUser.subStatus='active';currentUser.plan='Astro Pro';currentUser.planK='pro';
+  currentUser.nextBilling=fmtDate(-28);
+  renderSubTab(currentUser);renderUsers();showToast('Astro Pro назначен','success');
+}
+// Block
+function toggleBlock(){
+  if(currentUser.blocked){currentUser.blocked=false;addLog(`Разблокировка · ${currentUser.email}`,'block');closeDrawerBtn();renderUsers();showToast('Пользователь разблокирован','success');}
+  else{document.getElementById('confirm-block').classList.add('open');}
+}
+function doBlock(){
+  closeConfirm('confirm-block');
+  currentUser.blocked=true;
+  addLog(`Блокировка · ${currentUser.email} · ${document.getElementById('block-reason').value}`,'block');
+  closeDrawerBtn();renderUsers();showToast('🚫 Пользователь заблокирован','warning');
+}
+// Delete
+function confirmDelete(){document.getElementById('confirm-delete').classList.add('open');}
+function doDelete(){
+  USERS=USERS.filter(u=>u.id!==currentUser.id);
+  addLog(`Удаление аккаунта · ${currentUser.email}`,'delete');
+  closeConfirm('confirm-delete');closeDrawerBtn();renderUsers();renderPayments();showToast(`Аккаунт удалён`,'danger');
+}
+// Email
+function toggleEmailEdit(){document.getElementById('email-edit-row').classList.toggle('hidden');}
+function saveEmail(){
+  const val=document.getElementById('new-email-input').value.trim();
+  if(!val||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val))return showToast('Некорректный email','danger');
+  const old=currentUser.email;currentUser.email=val;
+  document.getElementById('d-email').textContent=val;
+  document.getElementById('confirm-email').textContent=val;
+  addLog(`Смена email: ${old} → ${val} · ${currentUser.name}`,'email');
+  toggleEmailEdit();renderUsers();showToast('Email обновлён','success');
+}
+// Grant plan
+function grantPlan(){
+  const plan=document.getElementById('grant-plan').value;
+  const until=document.getElementById('grant-until').value;
+  const reason=document.getElementById('grant-reason').value||'—';
+  currentUser.plan=PLANS[plan];currentUser.planK=plan;
+  if(plan==='pro'){currentUser.hasSub=true;currentUser.subStatus='active';currentUser.nextBilling=until?until.split('-').reverse().join('.'):fmtDate(-30);}
+  addLog(`Назначен тариф ${PLANS[plan]}${until?' до '+until:''} · ${currentUser.email} · ${reason}`,'grant');
+  renderSubTab(currentUser);renderUsers();
+  document.getElementById('d-plan').innerHTML=planTag(currentUser.plan);
+  showToast(`✓ Тариф ${PLANS[plan]} назначен`,'success');
+}
+// Notes
+function addNote(){
+  const text=document.getElementById('note-input').value.trim();
+  if(!text)return;
+  const now=new Date();
+  const time=now.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'2-digit'})+' '+now.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+  currentUser.notes.unshift({text,time,by:document.getElementById('admin-name').textContent});
+  document.getElementById('note-input').value='';
+  renderNotes(currentUser);showToast('Заметка добавлена','success');
+}
+
+function closeDrawer(e){if(e.target===document.getElementById('drawer-overlay'))closeDrawerBtn();}
+function closeDrawerBtn(){document.getElementById('drawer-overlay').classList.remove('open');currentUser=null;selectedOrder=null;}
+function closeConfirm(id){document.getElementById(id).classList.remove('open');}
+
+/* ══════════════ PIPELINE ══════════════ */
+const PIPE_STEPS = ['Данные','Оплата','Kerykeion','LLM','PDF','Email'];
+const PIPE_KEYS  = ['data','payment','kerykeion','llm','pdf','email'];
+
+/* Simulate pipeline state per order based on order id seed */
+function genPipelineState(order, isPro, slotIdx) {
+  // Seed per-order deterministic state for demo
+  const seed = parseInt(order.id.replace(/\D/g,'')) % 7;
+  // 0-1 = all ok, 2 = llm fail, 3 = email fail, 4 = kerykeion warn, 5 = llm running, 6 = all ok
+  const scenarioMap = {
+    0: ['ok','ok','ok','ok','ok','ok'],
+    1: ['ok','ok','ok','ok','ok','ok'],
+    2: ['ok','ok','ok','fail','pend','pend'],
+    3: ['ok','ok','ok','ok','ok','fail'],
+    4: ['ok','ok','warn','pend','pend','pend'],
+    5: ['ok','ok','ok','run','pend','pend'],
+    6: ['ok','ok','ok','ok','ok','ok'],
+  };
+  // For Pro slots vary by slot index
+  const scenario = isPro
+    ? (['ok','ok','ok','ok','ok','ok','ok','ok','fail','warn','ok','run','pend','ok','ok','ok','ok','ok','ok','fail','ok','ok','ok','ok','ok'])[slotIdx] !== undefined
+      ? [['ok','ok','ok','ok','ok','ok'],['ok','ok','ok','ok','ok','ok'],['ok','ok','ok','run','pend','pend'],['ok','ok','ok','fail','pend','pend'],null][Math.min(slotIdx,4)]
+      : ['ok','ok','ok','ok','ok','ok']
+    : scenarioMap[seed] || ['ok','ok','ok','ok','ok','ok'];
+  return scenario || ['ok','ok','ok','ok','ok','ok'];
+}
+
+const STEP_ERRORS = {
+  fail_llm: `<strong>llm_generate</strong> · task-id: c7f2a901 · попытки: 3/3\nTimeoutError: OpenAI API no response after 120s\n<span style="opacity:.75">Kerykeion: OK · 47 позиций рассчитаны · запрос сформирован</span>`,
+  fail_email: `<strong>email_send</strong> · SMTP timeout (smtp.yandex.ru · 465)\nPDF сгенерирован и хранится. Пользователь не получил письмо.`,
+  warn_kerykeion: `<strong>kerykeion_calc</strong> · GeocoderError: ambiguous location\nНужно уточнить координаты или страну.`,
+};
+
+function pipeCircle(state) {
+  const icons = {ok:'✓', fail:'✗', run:'<span style="display:inline-block;width:9px;height:9px;border:1.5px solid var(--primary);border-top-color:transparent;border-radius:50%;animation:blink 1.4s infinite;"></span>', pend:'—', warn:'!'};
+  return icons[state]||'—';
+}
+
+function renderPipeline() {
+  const u = currentUser; if(!u) return;
+  const wrap = document.getElementById('pipe-wrap'); if(!wrap) return;
+
+  const isPro = u.planK === 'pro';
+  const orders = u.ordersData;
+
+  if(!orders.length){wrap.innerHTML='<div style="font-size:13px;color:var(--text3);padding:12px 0;">Нет заказов</div>';return;}
+
+  if(isPro) {
+    renderPipelinePro(u, wrap);
+  } else {
+    wrap.innerHTML = orders.map((o,i) => renderPipelineOrder(o, false, i, null)).join('');
+  }
+}
+
+function renderPipelinePro(u, wrap) {
+  const MAX_SLOTS = 5;
+  const slots = u.ordersData.slice(0, MAX_SLOTS);
+  const emptyCount = MAX_SLOTS - slots.length;
+
+  // Summary bar
+  const states = slots.map((o,i) => {
+    const ps = genPipelineState(o, true, i);
+    if(ps.includes('fail')) return 'err';
+    if(ps.includes('run'))  return 'run';
+    if(ps.includes('pend')) return 'pend';
+    return 'ok';
+  });
+  const okC   = states.filter(s=>s==='ok').length;
+  const errC  = states.filter(s=>s==='err').length;
+  const runC  = states.filter(s=>s==='run').length;
+  const pendC = states.filter(s=>s==='pend').length + emptyCount;
+
+  const total = MAX_SLOTS;
+  const progHtml = `
+    <div style="margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <span style="font-size:12px;font-weight:500;color:var(--text);">Astro Pro · ${MAX_SLOTS} слотов</span>
+        ${errC?`<span class="tag tag-red">${errC} ошибки</span>`:''}
+        ${runC?`<span class="tag tag-blue">${runC} в работе</span>`:''}
+        ${okC?`<span class="tag tag-green">${okC} готово</span>`:''}
+      </div>
+      <div class="pro-prog">
+        <div class="pro-prog-ok"  style="width:${okC/total*100}%"></div>
+        <div class="pro-prog-run" style="width:${runC/total*100}%"></div>
+        <div class="pro-prog-err" style="width:${errC/total*100}%"></div>
+      </div>
+    </div>`;
+
+  const slotsHtml = slots.map((o,i) => renderPipelineOrder(o, true, i, i)).join('');
+
+  const emptyHtml = Array.from({length:emptyCount}).map((_,i) => `
+    <div class="pipe-order-card" style="opacity:.5;">
+      <div class="pipe-order-head" style="cursor:default;">
+        <span style="width:20px;height:20px;border-radius:50%;background:var(--bg-s);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text4);flex-shrink:0;">${slots.length+i+1}</span>
+        <span style="font-size:13px;color:var(--text3);">Слот ${slots.length+i+1} — не заполнен</span>
+        <span class="tag tag-gray" style="margin-left:auto;">Пусто</span>
+      </div>
+    </div>`).join('');
+
+  wrap.innerHTML = progHtml + slotsHtml + emptyHtml;
+}
+
+function renderPipelineOrder(order, isPro, idx, slotIdx) {
+  const ps = genPipelineState(order, isPro, slotIdx !== null ? slotIdx : idx);
+  const failIdx  = ps.indexOf('fail');
+  const warnIdx  = ps.indexOf('warn');
+  const runIdx   = ps.indexOf('run');
+  const hasErr   = failIdx >= 0;
+  const hasWarn  = warnIdx >= 0;
+  const allOk    = ps.every(s => s === 'ok');
+
+  const planName = PLANS[order.planK] || order.planK;
+  const statusTag = allOk
+    ? '<span class="tag tag-green">✓ Доставлен</span>'
+    : hasErr
+      ? `<span class="tag tag-red">✗ Ошибка: ${PIPE_KEYS[failIdx]}</span>`
+      : runIdx >= 0
+        ? `<span class="tag tag-blue">⏳ ${PIPE_KEYS[runIdx]}</span>`
+        : hasWarn
+          ? `<span class="tag tag-amber">⚠ ${PIPE_KEYS[warnIdx]}</span>`
+          : '<span class="tag tag-gray">—</span>';
+
+  const cardClass = `pipe-order-card${hasErr?' pipe-err':hasWarn?' pipe-warn':''}`;
+  const slotNum = isPro ? `<span style="width:20px;height:20px;border-radius:50%;background:${hasErr?'var(--danger-l)':allOk?'var(--success-l)':'var(--primary-l)'};border:1px solid ${hasErr?'rgba(255,77,79,.4)':allOk?'var(--success-b)':'var(--primary-b)'};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:${hasErr?'var(--danger)':allOk?'#389E0D':'var(--primary)'};flex-shrink:0;">${idx+1}</span>` : '';
+
+  const stepsHtml = ps.map((s, i) => {
+    const lineClass = i < ps.length - 1 ? (ps[i+1]==='ok'?'ok':ps[i+1]==='fail'?'fail':ps[i+1]==='warn'?'warn':'') : '';
+    return `<div class="pst ${s} ${lineClass}">
+      <div class="pcirc">${pipeCircle(s)}</div>
+      <div class="pst-label">${PIPE_STEPS[i]}</div>
+    </div>`;
+  }).join('');
+
+  // Error/warn/running explanation
+  let statusBlock = '';
+  let llmBlock = '';
+  if(failIdx === 3) { // LLM failed
+    llmBlock = `<div class="llm-info">
+      <div class="llm-info-row"><span class="k">Kerykeion</span><span class="v">OK · 47 позиций</span></div>
+      <div class="llm-info-row"><span class="k">LLM-запрос</span><span class="v">Сформирован ~4 200 токенов</span></div>
+      <div class="llm-info-row"><span class="k">Ответ LLM</span><span class="v" style="color:var(--danger);">Нет ответа · timeout 120s</span></div>
+    </div>`;
+    statusBlock = `<div class="pbox pbox-err">
+      <div class="pbox-msg">llm_generate · попытки: 3/3<br>TimeoutError: OpenAI API no response after 120s<br><span style="opacity:.7;">Kerykeion OK · данные есть · LLM не ответил</span></div>
+      <div class="pbox-acts">
+        <button class="btn btn-danger btn-xs" onclick="pipeRetry(this,'${order.id}',3)">↻ Пнуть LLM</button>
+      </div>
+    </div>`;
+  } else if(failIdx === 5) { // Email failed
+    statusBlock = `<div class="pbox pbox-warn">
+      <div class="pbox-msg" style="font-family:var(--font);">email_send · SMTP timeout (smtp.yandex.ru)<br>PDF готов и хранится. Пользователь письмо не получил.</div>
+      <div class="pbox-acts">
+        <button class="btn btn-primary btn-xs" onclick="pipeRetry(this,'${order.id}',5)">↻ Пнуть</button>
+        <button class="btn btn-xs" onclick="pipeSendOther('${order.id}')">Др. адрес</button>
+      </div>
+    </div>`;
+  } else if(warnIdx === 2) { // Kerykeion warn
+    statusBlock = `<div class="pbox pbox-err">
+      <div class="pbox-msg">kerykeion_calc · GeocoderError: ambiguous location<br>Уточните координаты или страну в данных пользователя.</div>
+      <div class="pbox-acts">
+        <button class="btn btn-xs" onclick="pipeEditCoords('${order.id}')">✎ Координаты</button>
+        <button class="btn btn-danger btn-xs" onclick="pipeRetry(this,'${order.id}',2)">↻ Retry</button>
+      </div>
+    </div>`;
+  } else if(runIdx === 3) { // LLM running
+    llmBlock = `<div class="llm-info">
+      <div class="llm-info-row"><span class="k">Kerykeion</span><span class="v">OK · 47 позиций</span></div>
+      <div class="llm-info-row"><span class="k">LLM-запрос</span><span class="v">Отправлен · ожидание ответа</span></div>
+      <div class="llm-info-row"><span class="k">Ответ LLM</span><span class="v" style="color:var(--primary);">⏳ Генерируется…</span></div>
+    </div>`;
+    statusBlock = `<div class="pbox pbox-info">
+      <div class="pbox-msg">LLM генерирует текст отчёта. Обычно 15–45 секунд.</div>
+      <div class="pbox-acts">
+        <button class="btn btn-xs" onclick="pipeRetry(this,'${order.id}',3)">↻ Перезапустить</button>
+      </div>
+    </div>`;
+  }
+
+  // Token detail block (always shown for non-free completed or running)
+  let tokenBlock = '';
+  if(order.hasLlm && order.tokIn > 0) {
+    const costRub = order.llmCost||0;
+    const revRub  = order.price||0;
+    const margin  = revRub > 0 ? Math.round((revRub - costRub) / revRub * 100) : 100;
+    const roiX    = costRub > 0 ? (revRub / costRub).toFixed(1) : '∞';
+    const failStep = ps.indexOf('fail');
+    // Only show if LLM step reached (step 3 = index 3)
+    const llmReached = failStep === -1 || failStep >= 3;
+    if(llmReached) {
+      tokenBlock = `<div style="background:var(--bg-s);border:1px solid var(--border);border-radius:var(--r);padding:9px 12px;margin-bottom:8px;">
+        <div style="font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;">LLM · Токены и стоимость</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          <div style="background:var(--bg-c);border:1px solid var(--border);border-radius:var(--r);padding:7px 10px;">
+            <div style="font-size:10px;color:var(--text3);">Входящие (prompt)</div>
+            <div style="font-size:14px;font-weight:600;color:var(--text);font-family:monospace;">${order.tokIn.toLocaleString()}</div>
+            <div style="font-size:10px;color:var(--text4);">${(order.tokIn*IN_PRICE_RUB).toFixed(2)} ₽</div>
+          </div>
+          <div style="background:var(--bg-c);border:1px solid var(--border);border-radius:var(--r);padding:7px 10px;">
+            <div style="font-size:10px;color:var(--text3);">Исходящие (completion)</div>
+            <div style="font-size:14px;font-weight:600;color:var(--text);font-family:monospace;">${order.tokOut.toLocaleString()}</div>
+            <div style="font-size:10px;color:var(--text4);">${(order.tokOut*OUT_PRICE_RUB).toFixed(2)} ₽</div>
+          </div>
+          <div style="background:var(--danger-l);border:1px solid rgba(255,77,79,.2);border-radius:var(--r);padding:7px 10px;">
+            <div style="font-size:10px;color:var(--danger);">Итого LLM-затраты</div>
+            <div style="font-size:14px;font-weight:600;color:var(--danger);">${costRub.toFixed(2)} ₽</div>
+            <div style="font-size:10px;color:var(--text4);">${(order.tokIn+order.tokOut).toLocaleString()} токенов</div>
+          </div>
+          <div style="background:var(--success-l);border:1px solid var(--success-b);border-radius:var(--r);padding:7px 10px;">
+            <div style="font-size:10px;color:#389E0D;">Выручка / ROI</div>
+            <div style="font-size:14px;font-weight:600;color:#389E0D;">${revRub} ₽</div>
+            <div style="font-size:10px;color:var(--text4);">×${roiX} · маржа ${margin}%</div>
+          </div>
+        </div>
+      </div>`;
+    }
+  }
+
+  const actionsHtml = allOk
+    ? `<div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn btn-primary btn-xs" onclick="pipeDlPdf(this,'${order.id}')">↓ Скачать PDF</button>
+        <button class="btn btn-xs" onclick="pipeResend(this,'${order.id}')">✉ Отправить повторно</button>
+      </div>`
+    : failIdx === 5
+      ? `<div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="btn btn-primary btn-xs" onclick="pipeDlPdf(this,'${order.id}')">↓ Скачать PDF</button>
+          <button class="btn btn-xs" onclick="pipeSendOther('${order.id}')">✉ Другой email</button>
+        </div>`
+      : '';
+
+  return `<div class="${cardClass}" id="po-${order.id}">
+    <div class="pipe-order-head" onclick="togglePipeOrder(this)">
+      ${slotNum}
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:500;color:var(--text);">${isPro ? (currentUser.name+' · слот '+(idx+1)) : planName}</div>
+        <div style="font-size:10px;font-family:monospace;color:var(--text4);">${order.id} · ${order.date}</div>
+      </div>
+      ${statusTag}
+      <span style="font-size:11px;color:var(--text4);margin-left:4px;flex-shrink:0;">▸</span>
+    </div>
+    <div class="pipe-order-body" style="display:none;">
+      <div class="pipe-track">${stepsHtml}</div>
+      ${llmBlock}
+      ${tokenBlock}
+      ${statusBlock}
+      ${actionsHtml}
+    </div>
+  </div>`;
+}
+
+function togglePipeOrder(head) {
+  const body = head.nextElementSibling;
+  body.style.display = body.style.display === 'none' ? 'block' : 'none';
+  const arr = head.querySelector('span:last-child');
+  if(arr) arr.textContent = body.style.display === 'none' ? '▸' : '▾';
+}
+
+function pipeRetry(btn, orderId, stepIdx) {
+  const orig = btn.innerHTML;
+  btn.innerHTML = '<span style="display:inline-block;width:9px;height:9px;border:1.5px solid currentColor;border-top-color:transparent;border-radius:50%;animation:blink 1.4s infinite;"></span>';
+  btn.disabled = true;
+  setTimeout(() => {
+    const card = document.getElementById('po-'+orderId);
+    if(card) {
+      card.classList.remove('pipe-err','pipe-warn');
+      const circs = card.querySelectorAll('.pcirc');
+      const labels = card.querySelectorAll('.pst-label');
+      const steps = card.querySelectorAll('.pst');
+      steps.forEach((s,i) => {
+        s.className = 'pst ' + (i <= stepIdx ? 'ok' : i === stepIdx+1 ? 'run' : 'pend');
+        circs[i].innerHTML = i <= stepIdx ? '✓' : i === stepIdx+1 ? '<span style="display:inline-block;width:9px;height:9px;border:1.5px solid var(--primary);border-top-color:transparent;border-radius:50%;animation:blink 1.4s infinite;"></span>' : '—';
+      });
+      const pbox = card.querySelector('.pbox');
+      if(pbox) { pbox.className='pbox pbox-info'; pbox.innerHTML='<div class="pbox-msg" style="color:var(--primary);font-family:var(--font);">Задача поставлена в очередь Celery. Статус обновится автоматически.</div>'; }
+      const statusTag = card.querySelector('.tag');
+      if(statusTag) { statusTag.className='tag tag-blue'; statusTag.innerHTML='⏳ Перезапущен'; }
+    }
+    addLog(`Перезапуск шага ${PIPE_KEYS[stepIdx]} · заказ ${orderId} · ${currentUser.email}`, 'grant');
+    showToast('↻ Задача поставлена в очередь Celery', 'info');
+  }, 1600);
+}
+
+function pipeDlPdf(btn, orderId) {
+  const o = btn.innerHTML;
+  btn.innerHTML = '⏳…';
+  setTimeout(() => { btn.innerHTML = '✓ PDF скачан'; btn.className = 'btn btn-success btn-xs'; }, 1200);
+  addLog(`Скачивание PDF · заказ ${orderId} · ${currentUser.email}`, 'grant');
+}
+
+function pipeResend(btn, orderId) {
+  btn.innerHTML = '⏳ Отправляется…';
+  btn.disabled = true;
+  setTimeout(() => { btn.innerHTML = '✓ Отправлено'; btn.className = 'btn btn-success btn-xs'; showToast('✓ PDF отправлен повторно на '+currentUser.email, 'success'); }, 1400);
+  addLog(`Повторная отправка PDF · заказ ${orderId} · ${currentUser.email}`, 'email');
+}
+
+function pipeSendOther(orderId) {
+  const email = prompt('Email для отправки (или оставьте пустым для адреса аккаунта):', currentUser.email);
+  if(!email) return;
+  showToast('✓ PDF будет отправлен на '+email, 'success');
+  addLog(`Отправка PDF на др. адрес ${email} · заказ ${orderId}`, 'email');
+}
+
+function pipeEditCoords(orderId) {
+  alert(`Откроется форма редактирования:\n• Город: (текущее значение)\n• Страна: [выпадающий список]\n• Широта / Долгота: ввод вручную\n\nПосле сохранения — кнопка «Перезапустить Kerykeion»`);
+}
+
+function refreshPipeline() { renderPipeline(); showToast('Статус обновлён', 'info'); }
+/* ══════════════ TARIFFS ══════════════ */
+const TARIFFS_DATA = [
+  {
+    id:'free', name:'Бесплатный', desc:'Базовое знакомство с картой',
+    type:'once', priceLabel:'₽', priceSuffix:'',
+    currentPrice:0, pendingPrice:null, pendingDate:null,
+    activeSubs:0, activeOrders:247,
+    color:'var(--text3)', tag:'tag-gray',
+    features:['Схема карты SVG','Солнце/Луна/Асц','1-стр. PDF']
+  },
+  {
+    id:'report', name:'Отчёт', desc:'Полный разбор навсегда',
+    type:'once', priceLabel:'₽', priceSuffix:'',
+    currentPrice:790, pendingPrice:null, pendingDate:null,
+    activeSubs:0, activeOrders:134,
+    color:'var(--primary)', tag:'tag-blue',
+    features:['12–14 стр. PDF','Все планеты по домам','Аспекты + нодальная ось']
+  },
+  {
+    id:'bundle', name:'Набор «3»', desc:'3 отчёта со скидкой 33%',
+    type:'once', priceLabel:'₽', priceSuffix:'',
+    currentPrice:1590, pendingPrice:null, pendingDate:null,
+    activeSubs:0, activeOrders:31,
+    color:'#874D00', tag:'tag-amber',
+    features:['3 полных отчёта','Режим подарка','530 ₽ за штуку']
+  },
+  {
+    id:'pro', name:'Astro Pro', desc:'Подписка · живая астрология каждый месяц',
+    type:'subscription', priceLabel:'₽/мес', priceSuffix:'/мес',
+    currentPrice:490, pendingPrice:null, pendingDate:null,
+    activeSubs:38, activeOrders:38,
+    color:'var(--purple)', tag:'tag-purple',
+    features:['Транзиты + календарь','Синастрия','Прогрессии','До 5 карт']
+  },
+];
+
+let tariffHistory = [
+  {time:'01 фев 2025', who:'admin@astrogen.ru', action:'Установлена цена: Отчёт → 790 ₽ (первоначальная)'},
+  {time:'15 янв 2025', who:'admin@astrogen.ru', action:'Установлена цена: Astro Pro → 490 ₽/мес (первоначальная)'},
+  {time:'15 янв 2025', who:'admin@astrogen.ru', action:'Установлена цена: Набор «3» → 1 590 ₽ (первоначальная)'},
+];
+
+function renderTariffs() {
+  const el = document.getElementById('tariffs-list'); if(!el) return;
+  // Header
+  el.innerHTML = `<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 140px;gap:12px;padding:8px 18px;background:var(--bg-s);border-bottom:1px solid var(--border);">
+    <span style="font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;">Тариф</span>
+    <span style="font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;">Текущая цена</span>
+    <span style="font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;">Тип</span>
+    <span style="font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;">Активных</span>
+    <span style="font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;">Действие</span>
+  </div>` + TARIFFS_DATA.map((t,i) => `
+  <div class="tariff-row" id="trow-${t.id}">
+    <div>
+      <div class="tariff-name">${t.name}</div>
+      <div class="tariff-desc">${t.desc}</div>
+      <div class="tariff-badge-row">
+        ${t.features.map(f=>`<span class="tag ${t.tag}" style="font-size:10px;">${f}</span>`).join('')}
+      </div>
+    </div>
+    <div>
+      <div class="price-display" id="price-display-${t.id}">${t.currentPrice > 0 ? t.currentPrice.toLocaleString()+' ₽' : '0 ₽'}${t.priceSuffix ? '<span style="font-size:12px;color:var(--text3);">'+t.priceSuffix+'</span>' : ''}</div>
+      <div class="price-period">${t.type==='subscription'?'Ежемесячная подписка':'Разовая покупка'}</div>
+      ${t.pendingPrice !== null ? `<div class="price-pending">
+        <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="5" stroke="currentColor" stroke-width="1"/><line x1="5.5" y1="3" x2="5.5" y2="6" stroke="currentColor" stroke-width="1.2"/><circle cx="5.5" cy="7.8" r=".6" fill="currentColor"/></svg>
+        Новая цена ${t.pendingPrice} ₽ — с ${t.pendingDate||'следующего платежа'}
+      </div>` : ''}
+
+      <div class="price-edit-wrap" id="edit-${t.id}">
+        <div style="font-size:12px;font-weight:500;color:var(--text2);">Новая цена</div>
+        <div class="price-input-row">
+          <input class="input" type="number" id="new-price-${t.id}" value="${t.currentPrice}" min="0" style="width:100px;">
+          <span style="font-size:13px;color:var(--text2);">₽${t.priceSuffix}</span>
+        </div>
+        ${t.type==='subscription' ? `
+        <div style="background:var(--warning-l);border:1px solid var(--warning-b);border-radius:var(--r);padding:9px 12px;font-size:12px;color:#874D00;line-height:1.6;">
+          <strong>Подписка:</strong> ${t.activeSubs} активных подписчиков продолжат платить ${t.currentPrice} ₽/мес до конца текущего периода.
+          Новая цена ${`<span id="preview-price-${t.id}">${t.currentPrice}</span>`} ₽ начнёт действовать с их следующего списания автоматически.
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--text3);margin-bottom:4px;">Применить с (оставьте пустым = сразу для новых)</div>
+          <input class="input" type="date" id="effective-date-${t.id}" style="font-size:12px;">
+        </div>` : `
+        <div style="background:var(--primary-l);border:1px solid var(--primary-b);border-radius:var(--r);padding:8px 12px;font-size:12px;color:var(--primary);">
+          Новая цена сразу появится на лендинге и в форме оплаты.
+        </div>`}
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-primary btn-sm" onclick="saveTariffPrice('${t.id}')">Сохранить цену</button>
+          <button class="btn btn-ghost btn-sm" onclick="cancelTariffEdit('${t.id}')">Отмена</button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <span class="tag ${t.tag}">${t.type==='subscription'?'Подписка':'Разовая'}</span>
+      ${t.type==='subscription'?`<div style="font-size:11px;color:var(--text3);margin-top:4px;">Автопродление</div>`:''}
+    </div>
+    <div>
+      <div style="font-size:16px;font-weight:600;color:var(--text);">${t.type==='subscription'?t.activeSubs+' подп.':t.activeOrders+' куплено'}</div>
+      ${t.type==='subscription'?`<div style="font-size:11px;color:var(--text3);">MRR: ${(t.activeSubs*t.currentPrice).toLocaleString()} ₽</div>`:`<div style="font-size:11px;color:var(--text3);">Выручка: ${(t.activeOrders*t.currentPrice).toLocaleString()} ₽</div>`}
+    </div>
+    <div>
+      <button class="btn btn-default btn-sm" onclick="toggleTariffEdit('${t.id}')">✎ Изменить цену</button>
+    </div>
+  </div>`).join('');
+
+  renderTariffHistory();
+}
+
+function toggleTariffEdit(id) {
+  const wrap = document.getElementById('edit-'+id);
+  if(!wrap) return;
+  const isOpen = wrap.classList.contains('open');
+  // Close all
+  TARIFFS_DATA.forEach(t => {
+    const w = document.getElementById('edit-'+t.id);
+    if(w) w.classList.remove('open');
+  });
+  if(!isOpen) wrap.classList.add('open');
+  // Live preview for subscription
+  const inp = document.getElementById('new-price-'+id);
+  const prev = document.getElementById('preview-price-'+id);
+  if(inp && prev) {
+    inp.oninput = () => { prev.textContent = inp.value; };
+  }
+}
+
+function cancelTariffEdit(id) {
+  const wrap = document.getElementById('edit-'+id);
+  if(wrap) wrap.classList.remove('open');
+}
+
+function saveTariffPrice(id) {
+  const t = TARIFFS_DATA.find(t=>t.id===id); if(!t) return;
+  const newPrice = parseInt(document.getElementById('new-price-'+id).value);
+  if(isNaN(newPrice) || newPrice < 0) return showToast('Введите корректную цену','danger');
+  if(newPrice === t.currentPrice) { cancelTariffEdit(id); return showToast('Цена не изменилась','info'); }
+
+  const effectiveDate = (document.getElementById('effective-date-'+id)||{}).value || null;
+  const oldPrice = t.currentPrice;
+
+  if(t.type === 'subscription') {
+    // Store as pending — takes effect on next billing
+    t.pendingPrice = newPrice;
+    t.pendingDate = effectiveDate ? new Date(effectiveDate).toLocaleDateString('ru-RU') : null;
+    const msg = `Цена Astro Pro: ${oldPrice} → ${newPrice} ₽/мес · вступит в силу для ${t.activeSubs} подписчиков с следующего платежа`;
+    tariffHistory.unshift({time: nowTime(), who: document.getElementById('admin-name').textContent, action: msg});
+    showToast(`✓ Новая цена ${newPrice} ₽/мес сохранена · применится с следующего платежа`, 'success');
+  } else {
+    t.currentPrice = newPrice;
+    const msg = `Цена «${t.name}»: ${oldPrice} → ${newPrice} ₽ · применена немедленно`;
+    tariffHistory.unshift({time: nowTime(), who: document.getElementById('admin-name').textContent, action: msg});
+    addLog(msg, 'grant');
+    showToast(`✓ Цена обновлена: ${newPrice} ₽`, 'success');
+  }
+
+  cancelTariffEdit(id);
+  renderTariffs();
+}
+
+function renderTariffHistory() {
+  const el = document.getElementById('tariff-history'); if(!el) return;
+  el.innerHTML = tariffHistory.length ? tariffHistory.map(h=>`
+    <div class="tariff-history-row">
+      <div class="th-time">${h.time}</div>
+      <div class="th-body"><strong>${h.who}</strong> — ${h.action}</div>
+    </div>`).join('') : '<div style="padding:16px;font-size:13px;color:var(--text3);">История пуста</div>';
+}
+
+function nowTime() {
+  const d = new Date();
+  return d.toLocaleDateString('ru-RU',{day:'2-digit',month:'short',year:'numeric'}) + ' ' +
+         d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+}
+// IN_PRICE_RUB / OUT_PRICE_RUB declared at top of script
+
+function calcLlmStats(){
+  let totalCost=0,monthCost=0,totalRev=0,monthRev=0,totalTokIn=0,totalTokOut=0,llmOrders=0;
+  const now=new Date();
+  const curM=now.getMonth(),curY=now.getFullYear();
+  USERS.forEach(u=>{
+    u.ordersData.forEach(o=>{
+      totalCost+=o.llmCost||0;
+      totalRev+=o.price||0;
+      if(o.hasLlm){totalTokIn+=o.tokIn||0;totalTokOut+=o.tokOut||0;llmOrders++;}
+      if(o.date){
+        const p=o.date.split('.');
+        if(p.length===3){
+          const oM=parseInt(p[1])-1;
+          const oY=2000+parseInt(p[2].slice(-2));
+          if(oM===curM&&oY===curY){monthCost+=o.llmCost||0;monthRev+=o.price||0;}
+        }
+      }
+    });
+  });
+  const roi=totalCost>0?Math.round((totalRev-totalCost)/totalCost*100):0;
+  const monthRoi=monthCost>0?Math.round((monthRev-monthCost)/monthCost*100):0;
+  const avgCost=llmOrders>0?parseFloat((totalCost/llmOrders).toFixed(2)):0;
+  return{totalCost,monthCost,totalRev,monthRev,roi,monthRoi,totalTokIn,totalTokOut,avgCost,llmOrders};
+}
+
+function renderLlmMetrics(){
+  const s=calcLlmStats();
+  const el=document.getElementById('llm-metrics-row');if(!el)return;
+  const roiCol=s.roi>2000?'var(--success)':s.roi>500?'#389E0D':'var(--warning)';
+  const mRoiCol=s.monthRoi>2000?'var(--success)':s.monthRoi>500?'#389E0D':'var(--warning)';
+  el.innerHTML=`
+    <div class="metric-card" style="border-top:3px solid var(--danger);">
+      <div class="metric-label">LLM · всё время</div>
+      <div class="metric-val" style="font-size:18px;color:var(--danger);">${Math.round(s.totalCost).toLocaleString()} ₽</div>
+      <div class="metric-delta" style="color:var(--text3);">${(s.totalTokIn/1e6).toFixed(2)}M вх + ${(s.totalTokOut/1e6).toFixed(2)}M исх</div>
+    </div>
+    <div class="metric-card" style="border-top:3px solid var(--warning);">
+      <div class="metric-label">LLM · этот месяц</div>
+      <div class="metric-val" style="font-size:18px;color:var(--warning);">${s.monthCost.toFixed(0)} ₽</div>
+      <div class="metric-delta" style="color:var(--text3);">из ${s.monthRev.toLocaleString()} ₽ выручки</div>
+    </div>
+    <div class="metric-card" style="border-top:3px solid var(--primary);">
+      <div class="metric-label">Ср. стоимость отчёта</div>
+      <div class="metric-val" style="font-size:18px;color:var(--primary);">${s.avgCost} ₽</div>
+      <div class="metric-delta" style="color:var(--text3);">~${Math.round(s.totalTokIn/Math.max(1,s.llmOrders)/1000)}k вх / ~${Math.round(s.totalTokOut/Math.max(1,s.llmOrders)/1000)}k исх</div>
+    </div>
+    <div class="metric-card" style="border-top:3px solid ${roiCol};">
+      <div class="metric-label">ROI всё время</div>
+      <div class="metric-val" style="font-size:18px;color:${roiCol};">${s.roi.toLocaleString()}%</div>
+      <div class="metric-delta" style="color:var(--text3);">маржа ${s.totalRev>0?Math.round((s.totalRev-s.totalCost)/s.totalRev*100):0}%</div>
+    </div>
+    <div class="metric-card" style="border-top:3px solid ${mRoiCol};">
+      <div class="metric-label">ROI текущий месяц</div>
+      <div class="metric-val" style="font-size:18px;color:${mRoiCol};">${s.monthRoi.toLocaleString()}%</div>
+      <div class="metric-delta" style="color:var(--text3);">(выручка − LLM) / LLM</div>
+    </div>`;
+}
+
+function renderLlmChart(){
+  const el=document.getElementById('llm-chart');if(!el)return;
+  const D=[
+    {m:'Ноя',cost:142,rev:12300},{m:'Дек',cost:198,rev:15000},{m:'Янв',cost:267,rev:17300},
+    {m:'Фев',cost:334,rev:20900},{m:'Мар',cost:448,rev:25700},{m:'Апр',cost:521,rev:28910},
+  ];
+  const maxC=Math.max(...D.map(d=>d.cost));
+  el.innerHTML=`<div style="display:flex;align-items:flex-end;gap:6px;height:80px;margin-bottom:8px;">
+    ${D.map(d=>{
+      const h=Math.round(d.cost/maxC*72);
+      const x=Math.round(d.rev/d.cost);
+      return`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
+        <div style="font-size:9px;color:var(--danger);font-weight:500;">${d.cost}₽</div>
+        <div style="width:100%;height:${h}px;background:rgba(255,77,79,.2);border:1px solid rgba(255,77,79,.4);border-radius:3px 3px 0 0;"></div>
+        <div style="font-size:9px;color:var(--text4);">${d.m}</div>
+        <div style="font-size:9px;color:var(--success);font-weight:600;">×${x}</div>
+      </div>`;
+    }).join('')}
+  </div>
+  <div style="font-size:11px;color:var(--text3);">Столбец = затраты LLM · ×N = кратность выручки к затратам</div>`;
+}
+
+function renderRoiByPlan(){
+  const el=document.getElementById('roi-by-plan');if(!el)return;
+  const ps={};
+  USERS.forEach(u=>{
+    if(!ps[u.planK])ps[u.planK]={rev:0,cost:0,cnt:0};
+    ps[u.planK].rev+=u.ltv;
+    ps[u.planK].cost+=u.totalLlmCost||0;
+    ps[u.planK].cnt++;
+  });
+  el.innerHTML=Object.entries(ps).map(([k,s])=>{
+    const roi=s.cost>0?Math.round((s.rev-s.cost)/s.cost*100):999;
+    const margin=s.rev>0?Math.round((s.rev-s.cost)/s.rev*100):100;
+    const col=roi>2000?'var(--success)':roi>500?'#389E0D':'var(--warning)';
+    const barW=Math.min(100,roi/50);
+    return`<div style="margin-bottom:11px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px;">
+        <span style="font-size:12px;font-weight:500;">${PLANS[k]}</span>
+        <span style="font-size:12px;font-weight:600;color:${col};">ROI ${roi>9999?'>9999':roi.toLocaleString()}%</span>
+      </div>
+      <div style="height:5px;background:var(--bg-s);border-radius:3px;overflow:hidden;margin-bottom:3px;">
+        <div style="height:100%;width:${barW}%;background:${col};border-radius:3px;transition:width .5s;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);">
+        <span>${s.cnt} польз · ${s.rev.toLocaleString()} ₽ выручки</span>
+        <span>LLM: ${s.cost.toFixed(0)} ₽ · маржа ${margin}%</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleTheme(){const h=document.documentElement;h.setAttribute('data-theme',h.getAttribute('data-theme')==='dark'?'light':'dark');}
+function exportCSV(){showToast('CSV-файл формируется…','info');}
+function showToast(msg,type='info'){
+  const wrap=document.getElementById('toast-wrap');
+  const t=document.createElement('div');t.className=`toast toast-${type}`;t.textContent=msg;
+  wrap.appendChild(t);requestAnimationFrame(()=>requestAnimationFrame(()=>t.classList.add('show')));
+  setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),400);},3200);
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDrawerBtn();document.querySelectorAll('.confirm-popup.open').forEach(p=>p.classList.remove('open'));}});
+</script>
+</body>
+</html>

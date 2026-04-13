@@ -27,6 +27,16 @@ class RedisCache:
     async def exists(self, key: str) -> bool:
         return await self.redis.exists(key) > 0
 
+    async def incr(self, key: str) -> int:
+        """Атомарный INCR (счётчики лимитов; ключ без префикса cache:)."""
+        return int(await self.redis.incr(key))
+
+    async def decr(self, key: str) -> int:
+        return int(await self.redis.decr(key))
+
+    async def expire(self, key: str, seconds: int) -> None:
+        await self.redis.expire(key, seconds)
+
     def make_key(self, prefix: str, *args, **kwargs) -> str:
         parts = [prefix]
         for arg in args:

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
@@ -15,6 +15,7 @@ from app.services.payment import YookassaPaymentService
 from app.services.refund import RefundService
 from app.services.tariff import TariffService
 from app.schemas.order import OrderCreate, OrderListItem, OrderOut, TariffSummary
+from app.schemas.refund import AdminRefundResponse
 from app.core.rate_limit import limiter
 from app.core.config import settings
 from app.utils.email_policy import resolve_receipt_and_report_email
@@ -52,7 +53,12 @@ def _order_to_list_item(order: Order) -> OrderListItem:
 router = APIRouter()
 
 
-@router.get("/", response_model=list[OrderListItem])
+@router.get(
+    "/",
+    response_model=list[OrderListItem],
+    summary="Список заказов текущего пользователя",
+    description="Заказы по убыванию даты создания; признак готовности отчёта — `report_ready`.",
+)
 async def list_orders(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
@@ -68,7 +74,12 @@ async def list_orders(
     return [_order_to_list_item(o) for o in orders]
 
 
-@router.get("/{order_id}", response_model=OrderListItem)
+@router.get(
+    "/{order_id}",
+    response_model=OrderListItem,
+    summary="Заказ по id",
+    description="Только заказы текущего пользователя.",
+)
 async def get_order(
     order_id: int,
     db: AsyncSession = Depends(get_db),
@@ -86,7 +97,17 @@ async def get_order(
     return _order_to_list_item(order)
 
 
-@router.post("/", response_model=OrderOut)
+@router.post(
+    "/",
+    response_model=OrderOut,
+    summary="Создать заказ",
+    description=(
+        "Привязка тарифа к сохранённым натальным данным. Бесплатный тариф сразу переводит "
+        "заказ в оплаченный и ставит генерацию отчёта в очередь. Платный — создаёт платёж ЮKassa "
+        "и возвращает `confirmation_url`. Требуется согласие с политикой и email для чека/отчёта "
+        "(см. `report_delivery_email` при аккаунте без реальной почты)."
+    ),
+)
 @limiter.limit(f"{settings.RATE_LIMIT_ORDERS_PER_MINUTE}/minute")
 async def create_order(
     request: Request,
@@ -224,7 +245,12 @@ async def create_order(
     )
 
 
-@router.post("/{order_id}/refund")
+@router.post(
+    "/{order_id}/refund",
+    response_model=AdminRefundResponse,
+    summary="Возврат по заказу (админ)",
+    description="Инициирует возврат в ЮKassa для заказов в статусе оплачен/завершён. Только администратор API.",
+)
 async def refund_order(
     order_id: int,
     amount: Optional[Decimal] = None,
@@ -232,5 +258,10 @@ async def refund_order(
     current_user: User = Depends(get_current_admin_user),
 ):
     service = RefundService()
-    result = await service.create_refund(db, order_id, amount)
-    return result
+    try:
+        result = await service.create_refund(db, order_id, amount)
+    except ValueError as e:
+        msg = str(e)
+        code = status.HTTP_404_NOT_FOUND if "not found" in msg.lower() else status.HTTP_400_BAD_REQUEST
+        raise HTTPException(status_code=code, detail=msg) from e
+    return AdminRefundResponse(**result)

@@ -10,6 +10,7 @@ import structlog
 from app.core.config import settings
 from app.core.security import create_access_token
 from app.models.user import User, OAuthProvider
+from app.services.admin_allowlist import sync_admin_allowlist_from_env
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -84,5 +85,6 @@ async def authenticate_twa(init_data: str, db: AsyncSession) -> Dict[str, str]:
     service = TWAAuthService(settings.TELEGRAM_BOT_TOKEN)
     user_data = service.validate_init_data(init_data)
     user = await service.get_or_create_user(db, user_data)
+    await sync_admin_allowlist_from_env(db, user)
     token = service.create_jwt_for_user(user)
     return {"access_token": token, "token_type": "bearer"}

@@ -1,0 +1,144 @@
+# Продакшен-стек: образ приложения без монтирования ./app и ./static (код только из image).
+# Сборка: docker build -t astro-prod:latest .
+# Запуск:   docker compose -f docker-compose.prod.yml --env-file .env up -d
+#
+# Перед первым запуском: соберите SPA в ./frontend-dist (npm run build:deploy в frontend/)
+# и задайте DOCKER_IMAGE при необходимости (по умолчанию astro-prod:latest).
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: astro_postgres_prod
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - astro_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: astro_redis_prod
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      start_period: 10s
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - astro_network
+
+  fastapi:
+    image: ${DOCKER_IMAGE:-astro-prod:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: astro_fastapi_prod
+    command:
+      - sh
+      - -c
+      - |
+          set -e
+          alembic upgrade head
+          exec uvicorn app.main:app --host 0.0.0.0 --port 8000
+    volumes:
+      - astro_storage:/app/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/2
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+    networks:
+      - astro_network
+
+  celery-worker:
+    image: ${DOCKER_IMAGE:-astro-prod:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: astro_celery_worker_prod
+    command: celery -A app.tasks.worker.celery_app worker --loglevel=info --concurrency=2
+    stop_grace_period: 90s
+    volumes:
+      - astro_storage:/app/storage
+    depends_on:
+      - redis
+      - postgres
+    env_file:
+      - .env
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/2
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+    networks:
+      - astro_network
+
+  celery-beat:
+    image: ${DOCKER_IMAGE:-astro-prod:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: astro_celery_beat_prod
+    command: celery -A app.tasks.worker.celery_app beat --loglevel=info
+    depends_on:
+      - redis
+      - postgres
+    env_file:
+      - .env
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/2
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+    networks:
+      - astro_network
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: astro_caddy_prod
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+      - ./frontend-dist:/srv/frontend:ro
+    depends_on:
+      - fastapi
+    networks:
+      - astro_network
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:
+  astro_storage:
+
+networks:
+  astro_network:
+    driver: bridge

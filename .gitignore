@@ -4,27 +4,66 @@ __pycache__/
 *$py.class
 *.so
 .Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+pip-log.txt
+pip-delete-this-directory.txt
+.mypy_cache/
+.ruff_cache/
+.dmypy.json
+dmypy.json
+
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+.venv/
+.venv*/
+
+# Local backup dumps (scripts/backup_*.sh)
+backups/
+
+# Environment & secrets
 .env
-.venv
+.env.local
+.env.*.local
+.env.production
+*.pem
+*.p8
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*.sublime-*
 
 # Testing
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
 .tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
 
-# Storage
+# Storage & generated assets (локальная разработка)
 storage/
 *.pdf
 *.png
@@ -38,3 +77,17 @@ alembic/versions/*.pyc
 # OS
 .DS_Store
 Thumbs.db
+
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend-dist/
+frontend-admin/dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Celery
+celerybeat-schedule
+celerybeat.pid

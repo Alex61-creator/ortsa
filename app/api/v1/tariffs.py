@@ -9,9 +9,13 @@ from app.utils.tariff_features import max_natal_profiles_from_tariff
 router = APIRouter()
 
 
-@router.get("/", response_model=list[TariffPublicOut])
+@router.get(
+    "/",
+    response_model=list[TariffPublicOut],
+    summary="Каталог тарифов",
+    description="Публичные цены и свойства тарифов из БД (экран выбора, лендинг).",
+)
 async def list_tariffs(db: AsyncSession = Depends(get_db)):
-    """Публичный каталог тарифов (цены и описание из БД / админки)."""
     tariffs = await TariffService.get_all(db)
     out: list[TariffPublicOut] = []
     for t in sorted(tariffs, key=lambda x: (-x.priority, x.id)):

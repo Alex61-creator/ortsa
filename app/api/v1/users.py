@@ -20,12 +20,22 @@ logger = structlog.get_logger(__name__)
 
 router = APIRouter()
 
-@router.get("/me", response_model=UserOut)
+@router.get(
+    "/me",
+    response_model=UserOut,
+    summary="Текущий пользователь",
+    description="Профиль по JWT: email, согласие, провайдер OAuth/Telegram.",
+)
 async def get_me(current_user: User = Depends(get_current_active_user)):
     return current_user
 
 
-@router.patch("/me", response_model=UserOut)
+@router.patch(
+    "/me",
+    response_model=UserOut,
+    summary="Обновить профиль",
+    description="В т.ч. фиксация согласия с политикой без создания натальных данных.",
+)
 async def patch_me(
     body: UserConsentPatch,
     db: AsyncSession = Depends(get_db),
@@ -38,7 +48,11 @@ async def patch_me(
     return current_user
 
 
-@router.get("/me/export")
+@router.get(
+    "/me/export",
+    summary="Экспорт персональных данных (JSON)",
+    description="Выгрузка профиля, натальных данных, заказов и метаданных отчётов (152-ФЗ / прозрачность).",
+)
 async def export_user_data(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
@@ -105,7 +119,12 @@ async def export_user_data(
         headers={"Content-Disposition": "attachment; filename=user_data_export.json"}
     )
 
-@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/me",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Удаление / анонимизация аккаунта",
+    description="Инвалидирует сессии (token_version), обезличивает email и отвязывает OAuth.",
+)
 async def delete_user_account(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)

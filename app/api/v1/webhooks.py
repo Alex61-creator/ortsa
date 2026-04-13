@@ -14,22 +14,26 @@ from app.core.config import settings
 from app.core.cache import cache
 from app.utils.client_ip import get_client_ip
 from app.utils.yookassa_ip import is_yookassa_notification_ip
+from app.schemas.common import StatusOk
 
 router = APIRouter()
 logger = structlog.get_logger(__name__)
 
 
-@router.post("/yookassa")
+@router.post(
+    "/yookassa",
+    response_model=StatusOk,
+    summary="Вебхук ЮKassa",
+    description=(
+        "HTTP-уведомления ЮKassa: платежи и возвраты. Проверка IP отправителя (опционально) "
+        "и сверка объекта через API («Object status authentication»). Дубликаты отбрасываются "
+        "по идемпотентному ключу в кэше."
+    ),
+)
 async def yookassa_webhook(
     request: Request,
     db: AsyncSession = Depends(get_db),
-):
-    """
-    HTTP-уведомления ЮKassa.
-    Безопасность по документации: проверка IP отправителя + сверка объекта через API
-    («Object status authentication»). Подпись X-Signature в актуальной документации
-    не используется для merchant HTTP notifications.
-    """
+) -> StatusOk:
     body = await request.body()
     try:
         event = parse_notification(body)
@@ -40,7 +44,7 @@ async def yookassa_webhook(
     idem = notification_idempotency_key(event)
     if await cache.exists(idem):
         logger.info("Duplicate YooKassa webhook ignored", key=idem)
-        return {"status": "ok"}
+        return StatusOk()
 
     if settings.YOOKASSA_WEBHOOK_VERIFY_IP:
         client_ip = get_client_ip(request)
@@ -86,4 +90,4 @@ async def yookassa_webhook(
         logger.info("Unhandled YooKassa event", event_type=event_type)
 
     await cache.set(idem, "processed", ttl=86400)
-    return {"status": "ok"}
+    return StatusOk()

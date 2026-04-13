@@ -55,6 +55,7 @@ services:
     volumes:
       - ./storage:/app/storage
       - ./app:/app/app
+      - ./tests:/app/tests
       # Лендинг (HTML/CSS/JS): совпадает с LANDING_STATIC_DIR → /app/static, правки без пересборки образа
       - ./static:/app/static
       - ./alembic:/app/alembic

@@ -1,5 +1,6 @@
 import hashlib
 import json
+import httpx
 from openai import AsyncOpenAI, RateLimitError, APIError
 import structlog
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
@@ -17,9 +18,14 @@ LLM_CACHE_PREFIX = "llm:v2"
 
 class LLMService:
     def __init__(self):
+        timeout = httpx.Timeout(
+            settings.LLM_HTTP_TIMEOUT_SECONDS,
+            connect=min(30.0, float(settings.LLM_HTTP_TIMEOUT_SECONDS)),
+        )
         self.client = AsyncOpenAI(
             api_key=settings.DEEPSEEK_API_KEY,
-            base_url="https://api.deepseek.com"
+            base_url="https://api.deepseek.com",
+            timeout=timeout,
         )
         self.model = settings.LLM_MODEL
 

@@ -28,7 +28,12 @@ def _subscription_to_out(sub: Subscription) -> SubscriptionOut:
     )
 
 
-@router.get("/me", response_model=SubscriptionOut | None)
+@router.get(
+    "/me",
+    response_model=SubscriptionOut | None,
+    summary="Текущая подписка Astro Pro",
+    description="Активная или просроченная с отображением периода и флага отмены к концу периода.",
+)
 async def get_my_subscription(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
@@ -53,7 +58,11 @@ async def get_my_subscription(
     return _subscription_to_out(sub)
 
 
-@router.post("/me/cancel", response_model=SubscriptionOut)
+@router.post(
+    "/me/cancel",
+    response_model=SubscriptionOut,
+    summary="Отменить подписку к концу периода",
+)
 async def cancel_my_subscription(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
@@ -79,7 +88,12 @@ async def cancel_my_subscription(
     return _subscription_to_out(sub)
 
 
-@router.post("/me/resume", response_model=SubscriptionOut)
+@router.post(
+    "/me/resume",
+    response_model=SubscriptionOut,
+    summary="Возобновить подписку",
+    description="Снимает отмену в конце периода, если подписка ещё активна.",
+)
 async def resume_my_subscription(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),

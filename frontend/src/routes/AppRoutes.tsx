@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useParams } from 'react-router-dom'
 import { MainLayout } from '@/layouts/MainLayout'
 import { DashboardLayout } from '@/layouts/DashboardLayout'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
@@ -12,6 +12,13 @@ import { OrderDataPage } from '@/pages/order/OrderDataPage'
 import { OrderConfirmPage } from '@/pages/order/OrderConfirmPage'
 import { OrderStatusPage } from '@/pages/order/OrderStatusPage'
 import { ReportDownloadPage } from '@/pages/ReportDownloadPage'
+
+/** Совместимость со старыми ссылками из писем (`/cabinet/orders/:id`). */
+function CabinetOrdersRedirect() {
+  const { orderId } = useParams<{ orderId: string }>()
+  if (!orderId) return <Navigate to="/dashboard/orders" replace />
+  return <Navigate to={`/reports/${orderId}`} replace />
+}
 
 export function AppRoutes() {
   return (
@@ -37,6 +44,7 @@ export function AppRoutes() {
         <Route path="/reports/:orderId" element={<MainLayout />}>
           <Route index element={<ReportDownloadPage />} />
         </Route>
+        <Route path="/cabinet/orders/:orderId" element={<CabinetOrdersRedirect />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

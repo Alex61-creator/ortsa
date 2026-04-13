@@ -177,7 +177,8 @@ async def _generate_report_async(order_id: int, task_id: str):
                 template_body={
                     "user_name": natal_data.full_name,
                     "order_id": order.id,
-                    "download_link": f"{settings.public_app_base_url}/cabinet/orders/{order.id}",
+                    # Канонический путь SPA: /reports/:orderId (см. frontend/src/routes/AppRoutes.tsx)
+                    "download_link": f"{settings.public_app_base_url}/reports/{order.id}",
                 },
                 attachments=[pdf_path],
             )

@@ -1,10 +1,15 @@
 from typing import List, Optional
+
 from pydantic import AnyHttpUrl, EmailStr, Field, PostgresDsn, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
 
 # Корень репозитория: .../app/core/config.py -> три уровня вверх (не путать с пакетом `app/`)
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+
+
+def _normalize_admin_email(raw: str) -> str:
+    return raw.strip().lower()
 
 
 class Settings(BaseSettings):
@@ -96,6 +101,8 @@ class Settings(BaseSettings):
 
     DEEPSEEK_API_KEY: str
     LLM_MODEL: str = "deepseek-chat"
+    # Таймаут HTTP к api.deepseek.com (сек.); меньше soft limit Celery-таска
+    LLM_HTTP_TIMEOUT_SECONDS: float = 300.0
     LLM_MAX_TOKENS: int = 4096
     LLM_MAX_TOKENS_FREE: int = 2048
     LLM_MAX_TOKENS_FULL: int = 4096
@@ -114,6 +121,12 @@ class Settings(BaseSettings):
     ADMIN_PASSWORD: str
     ADMIN_EMAIL: EmailStr
 
+    # SPA админки (отдельный поддомен): OAuth redirect и CORS
+    ADMIN_APP_ORIGIN: Optional[AnyHttpUrl] = None
+    # Через запятую: email Google и числовые id Telegram (как строки), совпадение → is_admin при входе
+    ADMIN_GOOGLE_EMAILS: str = ""
+    ADMIN_TELEGRAM_USER_IDS: str = ""
+
     RATE_LIMIT_PER_MINUTE: int = 60
     RATE_LIMIT_AUTH_PER_MINUTE: int = 5
     RATE_LIMIT_ORDERS_PER_MINUTE: int = 10
@@ -123,6 +136,16 @@ class Settings(BaseSettings):
 
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
+
+    # Пул SQLAlchemy (подберите под Uvicorn workers + Celery; сумма < max_connections PostgreSQL)
+    DB_POOL_SIZE: int = 5
+    DB_MAX_OVERFLOW: int = 10
+
+    # Readiness: проверка Celery (ping воркеров + длина очереди в Redis). В dev без воркера — false.
+    HEALTH_CHECK_CELERY: bool = False
+    # Порог длины очереди default `celery` в Redis; при превышении — 503 если CELERY_QUEUE_FAIL_READINESS
+    CELERY_QUEUE_ALERT_LENGTH: int = 50
+    CELERY_QUEUE_FAIL_READINESS: bool = False
 
     @property
     def public_app_base_url(self) -> str:
@@ -135,5 +158,21 @@ class Settings(BaseSettings):
         if self.SITE_URL:
             return str(self.SITE_URL).rstrip("/")
         return self.public_app_base_url
+
+    @property
+    def admin_app_base_url(self) -> str:
+        """Origin админ-SPA для OAuth redirect (без завершающего /)."""
+        if self.ADMIN_APP_ORIGIN:
+            return str(self.ADMIN_APP_ORIGIN).rstrip("/")
+        return self.public_app_base_url
+
+    @property
+    def admin_google_emails_set(self) -> set[str]:
+        return {_normalize_admin_email(e) for e in self.ADMIN_GOOGLE_EMAILS.split(",") if e.strip()}
+
+    @property
+    def admin_telegram_ids_set(self) -> set[str]:
+        return {e.strip() for e in self.ADMIN_TELEGRAM_USER_IDS.split(",") if e.strip()}
+
 
 settings = Settings()
