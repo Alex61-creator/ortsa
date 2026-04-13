@@ -1,6 +1,6 @@
-import { Typography, Row, Col, Card, Button } from 'antd'
+import { Typography, Row, Col, Card, Button, Alert } from 'antd'
 import { useQuery } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Steps } from 'antd'
 import { listTariffs } from '@/api/tariffs'
@@ -11,11 +11,21 @@ const { Title } = Typography
 export function OrderTariffPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const location = useLocation() as { state?: { from?: string } }
   const setTariff = useOrderWizardStore((s) => s.setTariffCode)
   const { data: tariffs, isLoading } = useQuery({ queryKey: ['tariffs'], queryFn: listTariffs })
+  const redirectNote = location.state?.from
 
   return (
     <div style={{ maxWidth: 960, margin: '0 auto', padding: 24 }}>
+      {redirectNote && (
+        <Alert
+          type="warning"
+          showIcon
+          style={{ marginBottom: 24 }}
+          message={t('order.loginToContinue', { place: redirectNote })}
+        />
+      )}
       <Steps
         current={0}
         items={[

@@ -23,7 +23,7 @@ Backend сервиса онлайн-натальной карты: FastAPI, Post
    docker compose up --build
    ```
 
-3. API: `http://localhost:8000`, OpenAPI: `http://localhost:8000/api/v1/openapi.json`, health: `GET /health`.
+3. API: `http://localhost:8000`, OpenAPI: `http://localhost:8000/api/v1/openapi.json`, health: `GET /health`. Главная **маркетинговая** страница — HTML из каталога `static/` (тот же хост, путь `/`). Клиентское **SPA** заказа и кабинета собирается из `frontend/` и в Docker Compose с **внешним** Caddy раздаётся только на путях вроде `/order`, `/order/...`, `/dashboard/...`, `/reports/...`, `/auth/callback` (см. `Caddyfile`); корень `/` на проде не должен отдавать `index.html` React.
 
 4. Миграции (из корня репозитория, с установленными зависимостями):
 

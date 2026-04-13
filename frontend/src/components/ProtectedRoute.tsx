@@ -6,7 +6,7 @@ export function ProtectedRoute() {
   const loc = useLocation()
 
   if (!token) {
-    return <Navigate to="/" replace state={{ from: `${loc.pathname}${loc.search}` }} />
+    return <Navigate to="/order/tariff" replace state={{ from: `${loc.pathname}${loc.search}` }} />
   }
   return <Outlet />
 }

@@ -68,6 +68,37 @@
     if (lo) lo.classList.toggle("show", !!show);
   }
 
+  var twaSilentLock = false;
+
+  async function trySilentTwaLogin() {
+    if (twaSilentLock) return;
+    if (!isTwaWithInitData() || hasJwt()) return;
+    twaSilentLock = true;
+    var tg = window.Telegram && window.Telegram.WebApp;
+    try {
+      var r = await fetch(apiBase() + "/auth/twa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ initData: tg.initData }),
+      });
+      if (!r.ok) throw new Error("auth failed");
+      var data = await r.json();
+      if (data.access_token) {
+        try {
+          sessionStorage.setItem(JWT_KEY, data.access_token);
+        } catch (e) {}
+      }
+      updateNavAuth();
+      if (typeof window.astrogenUpdateStep3Auth === "function") {
+        window.astrogenUpdateStep3Auth();
+      }
+    } catch (err) {
+      console.warn("[astrogen] silent TWA login failed", err);
+    }
+  }
+
+  window.astrogenTwaLoginSilent = trySilentTwaLogin;
+
   async function doTwaLogin() {
     var tg = window.Telegram && window.Telegram.WebApp;
     if (!tg || !tg.initData) {
@@ -90,6 +121,9 @@
       }
       closePopup();
       updateNavAuth();
+      if (typeof window.astrogenUpdateStep3Auth === "function") {
+        window.astrogenUpdateStep3Auth();
+      }
       window.location.href = "/cabinet";
     } catch (err) {
       alert(tAuth("auth_popup_alert_tg_fail", "Не удалось войти через Telegram."));
@@ -113,6 +147,7 @@
   document.addEventListener("DOMContentLoaded", function () {
     updateNavAuth();
     setupTgVisibility();
+    trySilentTwaLogin();
 
     var openBtn = document.getElementById("nav-open-auth");
     if (openBtn) {

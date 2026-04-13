@@ -2,7 +2,6 @@ import { Navigate, Route, Routes, useParams } from 'react-router-dom'
 import { MainLayout } from '@/layouts/MainLayout'
 import { DashboardLayout } from '@/layouts/DashboardLayout'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
-import { LandingPage } from '@/pages/LandingPage'
 import { AuthCallbackPage } from '@/pages/AuthCallbackPage'
 import { ProfilePage } from '@/pages/dashboard/ProfilePage'
 import { NatalDataPage } from '@/pages/dashboard/NatalDataPage'
@@ -23,9 +22,7 @@ function CabinetOrdersRedirect() {
 export function AppRoutes() {
   return (
     <Routes>
-      <Route element={<MainLayout />}>
-        <Route path="/" element={<LandingPage />} />
-      </Route>
+      <Route path="/" element={<Navigate to="/order/tariff" replace />} />
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/dashboard" element={<DashboardLayout />}>
@@ -46,7 +43,7 @@ export function AppRoutes() {
         </Route>
         <Route path="/cabinet/orders/:orderId" element={<CabinetOrdersRedirect />} />
       </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Navigate to="/order/tariff" replace />} />
     </Routes>
   )
 }

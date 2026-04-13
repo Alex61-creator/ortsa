@@ -78,6 +78,9 @@ alembic/versions/*.pyc
 .DS_Store
 Thumbs.db
 
+# HTML-макеты (референсы, не прод-код)
+HTML макеты/
+
 # Node / frontend
 node_modules/
 frontend/dist/

@@ -1,6 +1,6 @@
 # Прод: TLS через ACME. Черновик с примером домена: deploy/Caddyfile.prod.example (скопируйте и переименуйте блок домена).
 # HTML с FastAPI уже получает CSP из SecurityHeadersMiddleware (см. app/middleware/security_headers.py).
-# При отдаче статики только через Caddy без FastAPI — продублируйте политику там или проксируйте на FastAPI.
+# Корень / и маркетинг — FastAPI + static/; React SPA только на путях приложения (см. handle ниже).
 yourdomain.com {
     encode gzip
 
@@ -9,12 +9,6 @@ yourdomain.com {
         X-Frame-Options DENY
         Referrer-Policy strict-origin-when-cross-origin
         Strict-Transport-Security max-age=31536000;
-    }
-
-    handle / {
-        root * /srv/frontend
-        try_files {path} /index.html
-        file_server
     }
 
     handle_path /api/* {
@@ -30,6 +24,55 @@ yourdomain.com {
     }
 
     handle /health/ready {
+        reverse_proxy fastapi:8000
+    }
+
+    handle /assets/* {
+        root * /srv/frontend
+        file_server
+    }
+
+    handle /favicon.ico {
+        root * /srv/frontend
+        file_server
+    }
+
+    @spa_cabinet_orders path /cabinet/orders /cabinet/orders/*
+    handle @spa_cabinet_orders {
+        root * /srv/frontend
+        try_files {path} /index.html
+        file_server
+    }
+
+    @spa_order path /order /order/*
+    handle @spa_order {
+        root * /srv/frontend
+        try_files {path} /index.html
+        file_server
+    }
+
+    @spa_dashboard path /dashboard /dashboard/*
+    handle @spa_dashboard {
+        root * /srv/frontend
+        try_files {path} /index.html
+        file_server
+    }
+
+    @spa_reports path /reports /reports/*
+    handle @spa_reports {
+        root * /srv/frontend
+        try_files {path} /index.html
+        file_server
+    }
+
+    @spa_oauth_cb path /auth/callback /auth/callback/*
+    handle @spa_oauth_cb {
+        root * /srv/frontend
+        try_files {path} /index.html
+        file_server
+    }
+
+    handle {
         reverse_proxy fastapi:8000
     }
 }
