@@ -295,6 +295,7 @@ Redis в тестах подменяется на **fakeredis** (in-memory) в `
 
 ### Прокси, IP и вебхуки ЮKassa
 
+- **OAuth и HTTPS:** в консолях Google / Яндекс указывайте redirect URI как **`https://ваш-домен/...`** ([`docs/DEPLOY_URLS.md`](docs/DEPLOY_URLS.md)). Uvicorn подставляет схему из **`X-Forwarded-Proto`**, если IP прокси входит в **`FORWARDED_ALLOW_IPS`** (в `docker-compose.yml` / `docker-compose.prod.yml` для `fastapi` задано по умолчанию для частных Docker-сетей). Иначе в `redirect_uri` останется `http://` и обмен кода с провайдером может не совпасть с зарегистрированным URI.
 - ЮKassa шлёт уведомления с фиксированных IP; опционально включается проверка **`YOOKASSA_WEBHOOK_VERIFY_IP`**. Реальный IP клиента берётся из запроса ([`app/utils/client_ip.py`](app/utils/client_ip.py)): учитывайте **`X-Forwarded-For`** только если reverse proxy **один доверенный** и подставляет заголовок честно; иначе возможны ложные отказы 401 на `/api/v1/webhooks/yookassa`.
 - Для проверки соответствия события API используется **`YOOKASSA_WEBHOOK_VERIFY_API`**.
 

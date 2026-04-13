@@ -89,7 +89,8 @@ async def oauth_callback(
 async def google_authorize(request: Request):
     redirect_uri = str(request.url_for("google_callback"))
     state = await create_state(OAuthProvider.GOOGLE)
-    return await google_oauth_client.get_authorization_url(redirect_uri, state=state)
+    url = await google_oauth_client.get_authorization_url(redirect_uri, state=state)
+    return RedirectResponse(url, status_code=status.HTTP_302_FOUND)
 
 
 @router.get(
@@ -125,7 +126,8 @@ async def google_callback(
 async def google_authorize_admin(request: Request):
     redirect_uri = str(request.url_for("google_callback_admin"))
     state = await create_state(OAuthProvider.GOOGLE, flow="admin")
-    return await google_oauth_client.get_authorization_url(redirect_uri, state=state)
+    url = await google_oauth_client.get_authorization_url(redirect_uri, state=state)
+    return RedirectResponse(url, status_code=status.HTTP_302_FOUND)
 
 
 @router.get(
@@ -166,7 +168,8 @@ async def google_callback_admin(
 async def yandex_authorize(request: Request):
     redirect_uri = str(request.url_for("yandex_callback"))
     state = await create_state(OAuthProvider.YANDEX)
-    return await yandex_oauth_client.get_authorization_url(redirect_uri, state=state)
+    url = await yandex_oauth_client.get_authorization_url(redirect_uri, state=state)
+    return RedirectResponse(url, status_code=status.HTTP_302_FOUND)
 
 
 @router.get(
@@ -201,7 +204,8 @@ async def yandex_callback(
 async def apple_authorize(request: Request):
     redirect_uri = str(request.url_for("apple_callback"))
     state = await create_state(OAuthProvider.APPLE)
-    return await apple_oauth_client.get_authorization_url(redirect_uri, state=state)
+    url = await apple_oauth_client.get_authorization_url(redirect_uri, state=state)
+    return RedirectResponse(url, status_code=status.HTTP_302_FOUND)
 
 
 async def _apple_oauth_callback(

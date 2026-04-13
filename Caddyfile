@@ -1,6 +1,9 @@
 # Прод: TLS через ACME. Черновик с примером домена: deploy/Caddyfile.prod.example (скопируйте и переименуйте блок домена).
 # HTML с FastAPI уже получает CSP из SecurityHeadersMiddleware (см. app/middleware/security_headers.py).
 # Корень / и маркетинг — FastAPI + static/; React SPA только на путях приложения (см. handle ниже).
+#
+# reverse_proxy передаёт X-Forwarded-Proto (https). Uvicorn учитывает его только если IP прокси в FORWARDED_ALLOW_IPS
+# (в docker-compose задано по умолчанию); иначе redirect_uri в OAuth остаётся http:// — в консолях Google/Яндекс указывайте https://…
 yourdomain.com {
     encode gzip
 
@@ -11,11 +14,11 @@ yourdomain.com {
         Strict-Transport-Security max-age=31536000;
     }
 
-    handle_path /api/* {
+    handle /api/* {
         reverse_proxy fastapi:8000
     }
 
-    handle_path /admin/* {
+    handle /admin/* {
         reverse_proxy fastapi:8000
     }
 

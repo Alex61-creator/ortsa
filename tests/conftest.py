@@ -1,6 +1,8 @@
 import os
+import sys
 from datetime import datetime
 from decimal import Decimal
+from types import ModuleType
 
 import fakeredis.aioredis
 import pytest
@@ -30,6 +32,10 @@ _defaults = {
     "ADMIN_USERNAME": "admin",
     "ADMIN_PASSWORD": "admin",
     "ADMIN_EMAIL": "admin@example.com",
+    "OAUTH_GOOGLE_CLIENT_ID": "test-google-client",
+    "OAUTH_GOOGLE_CLIENT_SECRET": "test-google-secret",
+    "OAUTH_YANDEX_CLIENT_ID": "test-yandex-client",
+    "OAUTH_YANDEX_CLIENT_SECRET": "test-yandex-secret",
 }
 for _k, _v in _defaults.items():
     os.environ.setdefault(_k, _v)
@@ -38,6 +44,32 @@ from app.core.cache import cache
 
 # In-memory Redis: тесты не требуют живой Redis (TariffService, вебхуки, clear_cache).
 cache.redis = fakeredis.aioredis.FakeRedis(decode_responses=True)
+
+
+def _stub_weasyprint_if_system_libs_missing() -> None:
+    """WeasyPrint тянет GTK/Pango; на macOS без них импорт падает — заглушка только для прогона тестов."""
+    try:
+        import weasyprint  # noqa: F401
+    except OSError:
+        mod = ModuleType("weasyprint")
+
+        class _HTML:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def write_pdf(self, *args, **kwargs):
+                pass
+
+        class _CSS:
+            def __init__(self, *args, **kwargs):
+                pass
+
+        mod.HTML = _HTML
+        mod.CSS = _CSS
+        sys.modules["weasyprint"] = mod
+
+
+_stub_weasyprint_if_system_libs_missing()
 
 from app.main import app
 from app.api.deps import get_db
