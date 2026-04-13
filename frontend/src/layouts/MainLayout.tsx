@@ -55,7 +55,7 @@ export function MainLayout() {
               />
             )}
             {token ? (
-              <Link to="/dashboard/profile">
+              <Link to="/dashboard">
                 <Button type="primary">{t('nav.dashboard')}</Button>
               </Link>
             ) : (

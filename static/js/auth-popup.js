@@ -124,7 +124,7 @@
       if (typeof window.astrogenUpdateStep3Auth === "function") {
         window.astrogenUpdateStep3Auth();
       }
-      window.location.href = "/cabinet";
+      window.location.href = "/dashboard";
     } catch (err) {
       alert(tAuth("auth_popup_alert_tg_fail", "Не удалось войти через Telegram."));
     } finally {
@@ -154,7 +154,7 @@
       openBtn.addEventListener("click", function (e) {
         e.preventDefault();
         if (hasJwt()) {
-          window.location.href = "/cabinet";
+          window.location.href = "/dashboard";
           return;
         }
         openPopup();

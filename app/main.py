@@ -4,7 +4,7 @@ from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -177,7 +177,6 @@ async def robots_txt():
             "User-agent: *",
             "Allow: /",
             "Disallow: /api/",
-            "Disallow: /cabinet",
             "",
             f"Sitemap: {base}/sitemap.xml",
             "",
@@ -232,11 +231,9 @@ async def oauth_callback_page():
 
 
 @app.get("/cabinet", tags=["Лендинг"], include_in_schema=False)
-async def cabinet_page():
-    path = _static_root / "cabinet.html"
-    if path.is_file():
-        return _html_file_response(path)
-    raise HTTPException(status_code=404, detail="Not found")
+async def cabinet_redirect():
+    """Статический кабинет удалён; канонический ЛК — React SPA."""
+    return RedirectResponse(url="/dashboard", status_code=307)
 
 
 @app.get("/sample-report.html", tags=["Лендинг"], include_in_schema=False)

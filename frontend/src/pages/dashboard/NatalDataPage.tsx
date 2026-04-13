@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import {
-  Typography,
   Table,
   Button,
   Modal,
@@ -27,8 +26,6 @@ import { nominatimSearch, type GeocodeHit } from '@/lib/geocoder'
 import { getSelectableTimezones } from '@/lib/timezones'
 import { HOUSE_SYSTEMS, canChooseHouseSystem } from '@/lib/tariff'
 import { useOrderWizardStore } from '@/stores/orderWizardStore'
-
-const { Title } = Typography
 
 const schema = z.object({
   full_name: z.string().min(1).max(80),
@@ -162,14 +159,11 @@ export function NatalDataPage() {
 
   return (
     <div>
-      <Space style={{ marginBottom: 16 }}>
-        <Title level={2} style={{ margin: 0 }}>
-          {t('dashboard.natal')}
-        </Title>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
           Добавить
         </Button>
-      </Space>
+      </div>
       <Table<NatalDataOut>
         loading={isLoading}
         rowKey="id"

@@ -17,7 +17,7 @@ export function AuthCallbackPage() {
     }
     setToken(token)
     message.success('Вы вошли в аккаунт')
-    navigate('/dashboard/profile', { replace: true })
+    navigate('/dashboard', { replace: true })
   }, [params, navigate, setToken])
 
   return <Spin size="large" fullscreen tip="Вход…" />

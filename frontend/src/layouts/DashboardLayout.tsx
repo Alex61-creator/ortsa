@@ -1,88 +1,203 @@
-import { Layout, Menu, Grid, Drawer, Button } from 'antd'
+import { useMemo, useState } from 'react'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
-  UserOutlined,
+  AppstoreOutlined,
   CalendarOutlined,
-  ShoppingOutlined,
+  FileTextOutlined,
   MenuOutlined,
+  QuestionCircleOutlined,
+  SettingOutlined,
+  ShoppingOutlined,
+  StarOutlined,
 } from '@ant-design/icons'
-import { useState } from 'react'
-import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Grid } from 'antd'
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/authStore'
 import { useEffectiveThemeMode } from '@/hooks/useEffectiveThemeMode'
+import { useThemeStore } from '@/stores/themeStore'
+import { useTwaEnvironment } from '@/hooks/useTwaEnvironment'
+import { fetchMe } from '@/api/users'
+import { fetchMySubscription } from '@/api/subscriptions'
+import { listOrders } from '@/api/orders'
+import '@/styles/cabinet-mockup.css'
 
-const { Sider, Content } = Layout
+const TITLE_KEYS: Record<string, string> = {
+  '/dashboard': 'dashboard.navHome',
+  '/dashboard/orders': 'dashboard.navOrders',
+  '/dashboard/reports': 'dashboard.navReports',
+  '/dashboard/natal': 'dashboard.navNatal',
+  '/dashboard/subscription': 'dashboard.navSubscription',
+  '/dashboard/settings': 'dashboard.navSettings',
+  '/dashboard/support': 'dashboard.navSupport',
+}
+
+function LogoIcon() {
+  return (
+    <div className="sidebar-logo-icon">
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden>
+        <circle cx="10" cy="10" r="8.5" stroke="white" strokeWidth="1" />
+        <circle cx="10" cy="10" r="5" stroke="white" strokeWidth="0.8" opacity="0.6" />
+        <circle cx="10" cy="1.5" r="2" fill="white" />
+      </svg>
+    </div>
+  )
+}
+
+function initialsFromEmail(email: string | undefined): string {
+  if (!email) return '?'
+  const local = email.split('@')[0] ?? ''
+  return (local.slice(0, 2) || '?').toUpperCase()
+}
 
 export function DashboardLayout() {
   const { t } = useTranslation()
-  const colorMode = useEffectiveThemeMode()
   const location = useLocation()
   const navigate = useNavigate()
   const logout = useAuthStore((s) => s.logout)
   const screens = Grid.useBreakpoint()
-  const [open, setOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const colorMode = useEffectiveThemeMode()
+  const { isTwa } = useTwaEnvironment()
+  const themeMode = useThemeStore((s) => s.mode)
+  const setThemeMode = useThemeStore((s) => s.setMode)
 
-  const items = [
-    { key: '/dashboard/profile', icon: <UserOutlined />, label: <Link to="/dashboard/profile">{t('dashboard.profile')}</Link> },
-    { key: '/dashboard/natal', icon: <CalendarOutlined />, label: <Link to="/dashboard/natal">{t('dashboard.natal')}</Link> },
-    { key: '/dashboard/orders', icon: <ShoppingOutlined />, label: <Link to="/dashboard/orders">{t('dashboard.orders')}</Link> },
-  ]
+  const { data: me } = useQuery({ queryKey: ['me'], queryFn: fetchMe })
+  const { data: subscription } = useQuery({ queryKey: ['subscription'], queryFn: fetchMySubscription })
+  const { data: orders } = useQuery({ queryKey: ['orders'], queryFn: listOrders })
 
-  const selected = items.find((i) => location.pathname.startsWith(i.key))?.key ?? '/dashboard/profile'
+  const topTitle = useMemo(() => {
+    const k = TITLE_KEYS[location.pathname]
+    if (k) return t(k)
+    return t('nav.dashboard')
+  }, [location.pathname, t])
 
-  const menu = (
-    <Menu
-      theme={colorMode === 'dark' ? 'dark' : 'light'}
-      mode="inline"
-      selectedKeys={[selected]}
-      items={items}
-      onClick={() => setOpen(false)}
-    />
-  )
+  const orderCount = orders?.length ?? 0
+  const showProBadge = subscription?.status === 'active' && subscription.tariff_code?.toLowerCase().includes('pro')
+
+  const navClass = ({ isActive }: { isActive: boolean }) => `nav-item cabinet-nav-link${isActive ? ' active' : ''}`
+
+  const closeMobile = () => {
+    if (!screens.md) setSidebarOpen(false)
+  }
+
+  const toggleTheme = () => {
+    if (isTwa) return
+    setThemeMode(themeMode === 'dark' ? 'light' : 'dark')
+  }
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      {screens.md ? (
-        <Sider breakpoint="lg" collapsedWidth={0} width={240}>
-          {menu}
-          <div style={{ padding: 16 }}>
-            <Button
-              block
+    <div className="cabinet-mockup-root" data-theme={colorMode === 'dark' ? 'dark' : 'light'}>
+      <div className="cabinet-layout">
+        <aside className={`sidebar${sidebarOpen ? ' open' : ''}`} id="sidebar">
+          <Link to="/dashboard" className="sidebar-logo" onClick={closeMobile} style={{ textDecoration: 'none', color: 'inherit' }}>
+            <LogoIcon />
+            Astrogen
+          </Link>
+
+          <nav className="sidebar-nav">
+            <div className="nav-section-label">{t('dashboard.sectionCabinet')}</div>
+            <NavLink to="/dashboard" end className={navClass} onClick={closeMobile}>
+              <AppstoreOutlined />
+              {t('dashboard.navHome')}
+            </NavLink>
+            <NavLink to="/dashboard/orders" className={navClass} onClick={closeMobile}>
+              <ShoppingOutlined />
+              {t('dashboard.navOrders')}
+              {orderCount > 0 && <span className="nav-badge">{orderCount > 99 ? '99+' : orderCount}</span>}
+            </NavLink>
+            <NavLink to="/dashboard/reports" className={navClass} onClick={closeMobile}>
+              <FileTextOutlined />
+              {t('dashboard.navReports')}
+            </NavLink>
+            <NavLink to="/dashboard/natal" className={navClass} onClick={closeMobile}>
+              <CalendarOutlined />
+              {t('dashboard.navNatal')}
+            </NavLink>
+
+            <div className="nav-section-label">{t('dashboard.sectionAccount')}</div>
+            <NavLink to="/dashboard/subscription" className={navClass} onClick={closeMobile}>
+              <StarOutlined />
+              {t('dashboard.navSubscription')}
+              {showProBadge && (
+                <span className="nav-badge" style={{ background: 'var(--purple-light)', color: 'var(--purple)' }}>
+                  Pro
+                </span>
+              )}
+            </NavLink>
+            <NavLink to="/dashboard/settings" className={navClass} onClick={closeMobile}>
+              <SettingOutlined />
+              {t('dashboard.navSettings')}
+            </NavLink>
+            <NavLink to="/dashboard/support" className={navClass} onClick={closeMobile}>
+              <QuestionCircleOutlined />
+              {t('dashboard.navSupport')}
+            </NavLink>
+          </nav>
+
+          <div className="sidebar-user">
+            <div className="user-avatar">{initialsFromEmail(me?.email)}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="user-name">{me?.email?.split('@')[0] ?? '—'}</div>
+              <div className="user-plan">{subscription?.tariff_name ?? t('dashboard.planFree')}</div>
+            </div>
+            <button
+              type="button"
+              className="icon-btn"
+              title={t('dashboard.logout')}
               onClick={() => {
                 logout()
                 navigate('/')
               }}
+              style={{ border: 'none', background: 'none', width: 28, height: 28 }}
             >
-              {t('dashboard.logout')}
-            </Button>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+                <path
+                  d="M9.5 4.5L12 7l-2.5 2.5M12 7H5.5M5.5 2H2.5A1 1 0 001.5 3v8a1 1 0 001 1h3"
+                  stroke="currentColor"
+                  strokeWidth="1.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
           </div>
-        </Sider>
-      ) : (
-        <Drawer title="Menu" placement="left" onClose={() => setOpen(false)} open={open} width={260}>
-          {menu}
-          <Button
-            block
-            style={{ marginTop: 16 }}
-            onClick={() => {
-              logout()
-              navigate('/')
-            }}
-          >
-            {t('dashboard.logout')}
-          </Button>
-        </Drawer>
-      )}
-      <Layout>
-        {!screens.md && (
-          <div style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Button icon={<MenuOutlined />} onClick={() => setOpen(true)} />
-            <span>{t('nav.dashboard')}</span>
+        </aside>
+
+        <main className="cabinet-main">
+          <div className="cabinet-topbar">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <button
+                type="button"
+                className="icon-btn mobile-menu-btn"
+                aria-label="Menu"
+                onClick={() => setSidebarOpen((v) => !v)}
+              >
+                <MenuOutlined />
+              </button>
+              <div className="topbar-title">{topTitle}</div>
+            </div>
+            <div className="topbar-actions">
+              <button
+                type="button"
+                className="icon-btn"
+                title={t('dashboard.toggleTheme')}
+                onClick={toggleTheme}
+                disabled={isTwa}
+              >
+                {colorMode === 'dark' ? '☀' : '☽'}
+              </button>
+              <Link to="/order/tariff" className="btn btn-primary btn-sm">
+                + {t('dashboard.newOrder')}
+              </Link>
+            </div>
           </div>
-        )}
-        <Content style={{ padding: 24 }}>
-          <Outlet />
-        </Content>
-      </Layout>
-    </Layout>
+
+          <div className="cabinet-content">
+            <Outlet />
+          </div>
+        </main>
+      </div>
+    </div>
   )
 }

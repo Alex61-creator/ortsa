@@ -47,7 +47,7 @@ npm run build:deploy
 - **`VITE_LANDING_ORIGIN`** — базовый URL HTML-лендинга (в dev обычно `http://127.0.0.1:8000`); в prod при пустом значении используется тот же origin, что и у SPA.
 - **`YOOKASSA_RETURN_URL`** на бэкенде должен указывать на **origin фронтенда** (тот же URL используется для OAuth callback: `/auth/callback?token=...`).
 
-**Токены:** лендинг в `static/` сохраняет JWT в **`sessionStorage`** (`astrogen_jwt`), React SPA — в **`localStorage`** (persist Zustand, ключ `astrogen_auth_token`). Сессия при переходе между лендингом и SPA на одном домене может не совпадать до отдельной унификации.
+**Токены:** лендинг в `static/` (в т.ч. TWA) может хранить JWT в **`sessionStorage`** (`astrogen_jwt`). React SPA сохраняет токен в **`localStorage`** через persist Zustand (`astrogen_auth_token`). При открытии SPA токен из `sessionStorage` переносится в store (`main.tsx` + `onRehydrateStorage` в `authStore.ts`), чтобы ссылка «Кабинет» на `/dashboard` работала без повторного входа.
 
 **Telegram Mini App:** в BotFather укажите **Web App URL** `https://ВАШ-ДОМЕН/` — откроется статический лендинг; фоновый вход через `initData` выполняет [`static/js/auth-popup.js`](../static/js/auth-popup.js) (`trySilentTwaLogin`).
 

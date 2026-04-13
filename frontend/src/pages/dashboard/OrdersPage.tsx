@@ -1,12 +1,10 @@
-import { Typography, Table, Button, Tag } from 'antd'
+import { Table, Button, Tag } from 'antd'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import dayjs from 'dayjs'
 import { listOrders } from '@/api/orders'
 import type { OrderListItem, OrderStatus } from '@/types/api'
-
-const { Title } = Typography
 
 const statusColor: Record<OrderStatus, string> = {
   pending: 'default',
@@ -24,7 +22,6 @@ export function OrdersPage() {
 
   return (
     <div>
-      <Title level={2}>{t('orders.title')}</Title>
       <Table<OrderListItem>
         loading={isLoading}
         rowKey="id"

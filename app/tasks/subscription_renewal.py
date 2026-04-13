@@ -77,7 +77,7 @@ async def _renew_due_subscriptions_async() -> None:
                         body="",
                         template_name="subscription_past_due.html",
                         template_body={
-                            "cabinet_link": f"{settings.public_app_base_url}/cabinet",
+                            "cabinet_link": f"{settings.public_app_base_url}/dashboard",
                         },
                     )
                 except Exception:

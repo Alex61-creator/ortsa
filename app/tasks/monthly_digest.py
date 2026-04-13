@@ -134,7 +134,7 @@ async def _run_monthly_pro_digests_async() -> None:
                         "period": period,
                         "period_start_display": period_start_display,
                         "interpretation": interpretation.raw_content,
-                        "cabinet_link": f"{settings.public_app_base_url}/cabinet",
+                        "cabinet_link": f"{settings.public_app_base_url}/dashboard",
                     },
                 )
             except Exception as exc:

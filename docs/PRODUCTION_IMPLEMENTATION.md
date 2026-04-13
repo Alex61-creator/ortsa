@@ -337,13 +337,13 @@
 
 ### 2.1. Ссылки в письмах vs маршруты SPA
 
-**Суть:** канонический путь во фронте и в письме отчёта — **`/reports/{order_id}`** (`app/tasks/report_generation.py`, `frontend/src/routes/AppRoutes.tsx`). Редирект **`/cabinet/orders/:id` → `/reports/:id`** сохранён для старых ссылок. Статический кабинет **`/cabinet`** (`static/cabinet.html`) — отдельный UX.
+**Суть:** канонический путь во фронте и в письме отчёта — **`/reports/{order_id}`** (`app/tasks/report_generation.py`, `frontend/src/routes/AppRoutes.tsx`). Редирект **`/cabinet/orders/:id` → `/reports/:id`** сохранён для старых ссылок. Личный кабинет — только React SPA **`/dashboard/*`**; запрос **`/cabinet`** на бэкенде даёт **307** на **`/dashboard`**.
 
 | Статус | Действие |
 |--------|----------|
 | [x] | Выбрать **один канонический путь** (`/reports/{id}`) и использовать в письмах и документации. |
 | [x] | Редирект в React-router для `/cabinet/orders/:id`. |
-| [ ] | Проверить статический кабинет **`/cabinet`** — нужны ли deep links на конкретный заказ. |
+| [x] | Кабинет пользователя — React `/dashboard/*`; редирект `/cabinet` → `/dashboard`. |
 | [ ] | Прогнать сценарий на **проде**: оплата → письмо → клик по ссылке → скачивание/кабинет. |
 
 ---

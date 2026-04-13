@@ -19,6 +19,17 @@ export const useAuthStore = create<AuthState>()(
     {
       name: STORAGE_KEY,
       partialize: (s) => ({ token: s.token }),
+      onRehydrateStorage: () => () => {
+        try {
+          const jwt = sessionStorage.getItem('astrogen_jwt')
+          if (jwt && !useAuthStore.getState().token) {
+            useAuthStore.getState().setToken(jwt)
+            sessionStorage.removeItem('astrogen_jwt')
+          }
+        } catch {
+          /* ignore */
+        }
+      },
     }
   )
 )

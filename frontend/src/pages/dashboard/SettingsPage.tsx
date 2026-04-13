@@ -1,12 +1,10 @@
-import { Typography, Card, Switch, Button, Space, Modal } from 'antd'
+import { Card, Switch, Button, Space, Modal } from 'antd'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { deleteAccount, exportUserData, fetchMe, patchMeConsent } from '@/api/users'
 import { useAuthStore } from '@/stores/authStore'
 
-const { Title, Paragraph } = Typography
-
-export function ProfilePage() {
+export function SettingsPage() {
   const { t } = useTranslation()
   const qc = useQueryClient()
   const logout = useAuthStore((s) => s.logout)
@@ -45,32 +43,29 @@ export function ProfilePage() {
   const hasConsent = Boolean(me.consent_given_at)
 
   return (
-    <div>
-      <Title level={2}>{t('profile.title')}</Title>
-      <Card style={{ maxWidth: 560 }}>
-        <Paragraph>
-          <strong>{t('profile.email')}:</strong> {me.email}
-        </Paragraph>
-        <Paragraph>
-          <Space>
-            <span>{t('profile.consent')}</span>
-            <Switch
-              checked={hasConsent}
-              disabled={hasConsent}
-              loading={patchConsent.isPending}
-              onChange={(v) => {
-                if (v) patchConsent.mutate(true)
-              }}
-            />
-          </Space>
-        </Paragraph>
-        <Space direction="vertical" style={{ marginTop: 16 }}>
-          <Button onClick={() => void onExport()}>{t('profile.export')}</Button>
-          <Button danger onClick={onDelete}>
-            {t('profile.deleteAccount')}
-          </Button>
+    <Card style={{ maxWidth: 560 }} styles={{ body: { padding: 24 } }}>
+      <p>
+        <strong>{t('profile.email')}:</strong> {me.email}
+      </p>
+      <p style={{ marginTop: 16 }}>
+        <Space>
+          <span>{t('profile.consent')}</span>
+          <Switch
+            checked={hasConsent}
+            disabled={hasConsent}
+            loading={patchConsent.isPending}
+            onChange={(v) => {
+              if (v) patchConsent.mutate(true)
+            }}
+          />
         </Space>
-      </Card>
-    </div>
+      </p>
+      <Space direction="vertical" style={{ marginTop: 16 }}>
+        <Button onClick={() => void onExport()}>{t('profile.export')}</Button>
+        <Button danger onClick={onDelete}>
+          {t('profile.deleteAccount')}
+        </Button>
+      </Space>
+    </Card>
   )
 }
