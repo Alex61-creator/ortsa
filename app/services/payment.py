@@ -65,6 +65,7 @@ class YookassaPaymentService:
         metadata: Optional[Dict] = None,
         *,
         save_payment_method: bool = False,
+        idempotency_key: str | None = None,
     ) -> Dict[str, Any]:
         payment_data: Dict[str, Any] = {
             "amount": {"value": str(amount), "currency": "RUB"},
@@ -92,7 +93,7 @@ class YookassaPaymentService:
         payment = await asyncio.to_thread(
             Payment.create,
             payment_data,
-            idempotency_key=str(order_id),
+            idempotency_key=idempotency_key or str(order_id),
         )
 
         logger.info("Payment created", order_id=order_id, payment_id=payment.id)
@@ -152,6 +153,7 @@ class YookassaPaymentService:
                 "paid": payment.paid,
                 "amount": payment.amount.value,
                 "metadata": payment.metadata,
+                "confirmation_url": getattr(getattr(payment, "confirmation", None), "confirmation_url", None),
             }
         except Exception as e:
             logger.error("Failed to fetch payment", payment_id=payment_id, error=str(e))

@@ -15,3 +15,8 @@ export async function createOrder(payload: OrderCreatePayload): Promise<OrderOut
   const { data } = await api.post<OrderOut>('/orders/', payload)
   return data
 }
+
+export async function retryOrderPayment(orderId: number): Promise<OrderOut> {
+  const { data } = await api.post<OrderOut>(`/orders/${orderId}/retry-payment`)
+  return data
+}

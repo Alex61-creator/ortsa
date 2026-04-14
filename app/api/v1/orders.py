@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 from decimal import Decimal
 from typing import Optional
+from uuid import uuid4
 
 from app.db.session import get_db
 from app.api.deps import get_current_active_user, get_current_admin_user
@@ -236,6 +237,107 @@ async def create_order(
         user_id=current_user.id,
         yookassa_id=order.yookassa_id,
     )
+
+    return OrderOut(
+        id=order.id,
+        user_id=order.user_id,
+        natal_data_id=order.natal_data_id,
+        tariff_id=order.tariff_id,
+        status=order.status.value,
+        amount=order.amount,
+        yookassa_id=order.yookassa_id,
+        confirmation_url=payment["confirmation_url"],
+        created_at=order.created_at,
+    )
+
+
+@router.post(
+    "/{order_id}/retry-payment",
+    response_model=OrderOut,
+    summary="Повторная инициализация оплаты заказа",
+    description=(
+        "Возвращает актуальный `confirmation_url` для заказа текущего пользователя. "
+        "Доступно только для `pending` и `failed_to_init_payment`."
+    ),
+)
+async def retry_order_payment(
+    order_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    stmt = (
+        select(Order)
+        .where(Order.id == order_id, Order.user_id == current_user.id)
+        .options(joinedload(Order.tariff))
+    )
+    result = await db.execute(stmt)
+    order = result.unique().scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if order.status not in {OrderStatus.PENDING, OrderStatus.FAILED_TO_INIT_PAYMENT}:
+        raise HTTPException(
+            status_code=400,
+            detail="Retry payment is available only for pending or failed_to_init_payment orders",
+        )
+    if order.amount <= 0:
+        raise HTTPException(status_code=400, detail="Free order does not require payment")
+    if not order.tariff:
+        raise HTTPException(status_code=404, detail="Tariff not found")
+    payment_service = YookassaPaymentService()
+    if order.yookassa_id:
+        existing_payment = await payment_service.get_payment(order.yookassa_id)
+        existing_url = existing_payment.get("confirmation_url") if existing_payment else None
+        if existing_url and existing_payment.get("status") in {"pending", "waiting_for_capture"}:
+            return OrderOut(
+                id=order.id,
+                user_id=order.user_id,
+                natal_data_id=order.natal_data_id,
+                tariff_id=order.tariff_id,
+                status=order.status.value,
+                amount=order.amount,
+                yookassa_id=order.yookassa_id,
+                confirmation_url=existing_url,
+                created_at=order.created_at,
+            )
+
+    receipt_email = resolve_receipt_and_report_email(current_user.email, order.report_delivery_email)
+    if not receipt_email:
+        raise HTTPException(
+            status_code=400,
+            detail="Укажите report_delivery_email: для аккаунта без реальной почты нужен email для отчёта и чека.",
+        )
+
+    description = f"AstroGen Natal Chart - {order.tariff.name}"
+    save_pm = getattr(order.tariff, "billing_type", None) == "subscription"
+    try:
+        payment = await payment_service.create_payment(
+            order_id=order.id,
+            amount=order.amount,
+            description=description,
+            user_email=receipt_email,
+            metadata={"order_id": order.id, "tariff": order.tariff.code},
+            save_payment_method=save_pm,
+            idempotency_key=f"{order.id}-retry-{uuid4()}",
+        )
+    except Exception as exc:
+        logger.exception(
+            "YooKassa retry payment failed",
+            order_id=order.id,
+            user_id=current_user.id,
+            error=str(exc),
+        )
+        order.status = OrderStatus.FAILED_TO_INIT_PAYMENT
+        await db.commit()
+        await db.refresh(order)
+        raise HTTPException(
+            status_code=502,
+            detail="Payment provider unavailable. Retry later or contact support.",
+        )
+
+    order.yookassa_id = payment["id"]
+    order.status = OrderStatus.PENDING
+    await db.commit()
+    await db.refresh(order)
 
     return OrderOut(
         id=order.id,

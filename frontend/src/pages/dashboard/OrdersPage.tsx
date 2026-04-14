@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import dayjs from 'dayjs'
-import { Spin } from 'antd'
-import { listOrders } from '@/api/orders'
+import { App, Spin } from 'antd'
+import { listOrders, retryOrderPayment } from '@/api/orders'
 import type { OrderListItem, OrderStatus } from '@/types/api'
 
 type OrderFilter = 'all' | 'paid' | 'pending'
@@ -52,8 +52,22 @@ function matchesFilter(o: OrderListItem, f: OrderFilter): boolean {
 
 export function OrdersPage() {
   const { t } = useTranslation()
+  const { message } = App.useApp()
   const { data, isLoading } = useQuery({ queryKey: ['orders'], queryFn: listOrders })
   const [filter, setFilter] = useState<OrderFilter>('all')
+  const payMut = useMutation({
+    mutationFn: (orderId: number) => retryOrderPayment(orderId),
+    onSuccess: (order) => {
+      if (order.confirmation_url) {
+        window.location.assign(order.confirmation_url)
+        return
+      }
+      message.error('Ссылка на оплату недоступна. Попробуйте позже.')
+    },
+    onError: () => {
+      message.error('Не удалось продолжить оплату. Попробуйте позже.')
+    },
+  })
 
   const rows = useMemo(() => {
     const list = data ?? []
@@ -127,38 +141,53 @@ export function OrdersPage() {
                       <div className="order-actions">
                         {o.report_ready && (
                           <>
-                            <Link to={`/reports/${o.id}`}>
-                              <button type="button" className="btn btn-default btn-xs">
-                                {o.tariff.code.toLowerCase().includes('bundle') ? '3 PDF' : t('orders.actionReport')}
-                              </button>
+                            <Link to={`/reports/${o.id}`} className="btn btn-default btn-xs">
+                              {o.tariff.code.toLowerCase().includes('bundle') ? '3 PDF' : t('orders.actionReport')}
                             </Link>
-                            <Link to={`/reports/${o.id}`}>
-                              <button type="button" className="btn btn-primary btn-xs">
-                                PDF
-                              </button>
+                            <Link to={`/reports/${o.id}`} className="btn btn-primary btn-xs">
+                              PDF
                             </Link>
-                            <Link to={`/reports/${o.id}`}>
-                              <button type="button" className="btn btn-default btn-xs">
-                                {t('orders.actionDetails')}
-                              </button>
+                            <Link to={`/reports/${o.id}`} className="btn btn-default btn-xs">
+                              {t('orders.actionDetails')}
                             </Link>
                           </>
                         )}
                         {!o.report_ready && (o.status === 'paid' || o.status === 'processing') && (
                           <span style={{ fontSize: 12, color: 'var(--text-3)' }}>{t('orders.actionWaitReport')}</span>
                         )}
-                        {o.status === 'pending' && (
-                          <Link to="/order/tariff">
-                            <button type="button" className="btn btn-default btn-xs">
-                              {t('orders.actionPay')}
-                            </button>
+                        {(o.status === 'pending' || o.status === 'failed_to_init_payment') && (
+                          <button
+                            type="button"
+                            className="btn btn-default btn-xs"
+                            disabled={payMut.isPending}
+                            onClick={() => payMut.mutate(o.id)}
+                          >
+                            {o.status === 'pending' ? 'Продолжить оплату' : 'Повторить оплату'}
+                          </button>
+                        )}
+                        {o.status === 'completed' && !o.report_ready && Number(o.amount) === 0 && (
+                          <Link to="/order/tariff" className="btn btn-default btn-xs">
+                            Докупить (новый заказ)
                           </Link>
                         )}
                         {o.status === 'completed' && !o.report_ready && Number(o.amount) === 0 && (
-                          <Link to="/order/tariff">
-                            <button type="button" className="btn btn-default btn-xs">
-                              {t('orders.actionUpsell')}
-                            </button>
+                          <span style={{ fontSize: 12, color: 'var(--text-3)' }}>
+                            Создаст новый заказ
+                          </span>
+                        )}
+                        {o.status === 'failed' && (
+                          <Link to="/order/tariff" className="btn btn-default btn-xs">
+                            Создать новый заказ
+                          </Link>
+                        )}
+                        {o.status === 'failed' && (
+                          <span style={{ fontSize: 12, color: 'var(--text-3)' }}>
+                            Повторная генерация через новый заказ
+                          </span>
+                        )}
+                        {o.status === 'refunded' && (
+                          <Link to="/order/tariff" className="btn btn-default btn-xs">
+                            Создать новый заказ
                           </Link>
                         )}
                       </div>
