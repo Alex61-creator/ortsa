@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import i18n from 'i18next'
@@ -104,8 +105,20 @@ export function SettingsPage() {
   const lang = i18n.language?.startsWith('en') ? 'en' : 'ru'
 
   return (
-    <div className="card">
-      <div className="card-body">
+    <div>
+      <div className="settings-pro-banner">
+        <div className="settings-pro-banner-left">
+          <div className="settings-pro-banner-star">✦</div>
+          <div>
+            <strong>Откройте полный доступ с Astro Pro</strong>
+            <p>Транзиты, синастрия, прогрессии и несколько профилей в одном кабинете.</p>
+          </div>
+        </div>
+        <Link className="btn btn-primary btn-sm" to="/order/tariff">
+          Подключить Pro
+        </Link>
+      </div>
+      <div className="settings-grid">
         <div className="settings-section">
           <div className="settings-section-title">{t('settings.sectionAccount')}</div>
           <div className="settings-row">
@@ -302,7 +315,7 @@ export function SettingsPage() {
           </div>
         </div>
 
-        <div className="settings-section">
+        <div className="settings-section settings-section--wide">
           <div className="settings-section-title">{t('settings.sectionSession')}</div>
           <div className="settings-row">
             <div>

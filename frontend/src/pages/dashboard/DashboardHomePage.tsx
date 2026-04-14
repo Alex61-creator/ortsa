@@ -19,6 +19,7 @@ export function DashboardHomePage() {
 
   const sub = data.subscription
   const planLabel = sub ? sub.tariff_name : '—'
+  const latestReadyReport = data.recent_orders.find((o) => o.report_ready) ?? null
   const periodHint =
     sub?.current_period_end != null
       ? t('dashboard.homePlanUntil', { date: dayjs(sub.current_period_end).format('DD.MM') })
@@ -73,7 +74,7 @@ export function DashboardHomePage() {
                     </div>
                   </div>
                   {o.report_ready ? (
-                    <span className="tag tag-green">{t('dashboard.homeTagReady')}</span>
+                    <span className="tag tag-blue">{t('dashboard.homeTagReady')}</span>
                   ) : (
                     <span className="tag tag-blue">{o.status}</span>
                   )}
@@ -83,20 +84,42 @@ export function DashboardHomePage() {
           </div>
         </div>
 
-        <div className="upgrade-card">
-          <div className="upgrade-title">{t('dashboard.homeSubscriptionBox')}</div>
-          {sub ? (
-            <>
-              <div className="upgrade-features">
-                <div className="upgrade-feat">✓ {sub.tariff_name}</div>
-              </div>
-              <Link to="/dashboard/subscription" className="btn btn-primary btn-sm">
-                {t('dashboard.homeManageSub')}
-              </Link>
-            </>
-          ) : (
-            <p style={{ fontSize: 14, color: 'var(--text-2)', marginBottom: 12 }}>{t('dashboard.homeNoSub')}</p>
-          )}
+        <div>
+          <div className="upgrade-card" style={{ marginBottom: 16 }}>
+            <div className="upgrade-title">{t('dashboard.homeSubscriptionBox')}</div>
+            {sub ? (
+              <>
+                <div className="upgrade-features">
+                  <div className="upgrade-feat">✓ {sub.tariff_name}</div>
+                </div>
+                <Link to="/dashboard/subscription" className="btn btn-primary btn-sm">
+                  {t('dashboard.homeManageSub')}
+                </Link>
+              </>
+            ) : (
+              <p style={{ fontSize: 14, color: 'var(--text-2)', marginBottom: 12 }}>{t('dashboard.homeNoSub')}</p>
+            )}
+          </div>
+          <div className="card" style={{ padding: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 10, color: 'var(--text)' }}>Последний отчёт</div>
+            {latestReadyReport ? (
+              <>
+                <div style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 12 }}>
+                  {latestReadyReport.tariff.name} · {dayjs(latestReadyReport.created_at).format('D MMM YYYY')}
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <Link to={`/reports/${latestReadyReport.id}`} className="btn btn-default btn-sm" style={{ textDecoration: 'none' }}>
+                    Открыть PDF
+                  </Link>
+                  <Link to="/dashboard/reports" className="btn btn-ghost btn-sm" style={{ textDecoration: 'none' }}>
+                    Все →
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <p style={{ fontSize: 13, color: 'var(--text-3)', margin: 0 }}>PDF-отчёты пока не готовы</p>
+            )}
+          </div>
         </div>
       </div>
     </div>

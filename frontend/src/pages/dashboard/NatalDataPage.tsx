@@ -26,6 +26,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm } from 'react-hook-form'
 import { createNatalData, deleteNatalData, listNatalData, updateNatalData } from '@/api/natal'
+import { fetchMySubscription } from '@/api/subscriptions'
 import type { NatalDataOut } from '@/types/api'
 import { nominatimSearch, type GeocodeHit } from '@/lib/geocoder'
 import { getSelectableTimezones } from '@/lib/timezones'
@@ -84,14 +85,20 @@ export function NatalDataPage() {
   const [geoOpen, setGeoOpen] = useState(false)
   const [upsellOpen, setUpsellOpen] = useState(false)
   const [upsellTab, setUpsellTab] = useState<'pro' | 'bundle'>('pro')
+  const [upsellBilling, setUpsellBilling] = useState<'year' | 'month'>('year')
+  const [upsellCollapsed, setUpsellCollapsed] = useState(false)
 
   const locale = i18n.language?.startsWith('en') ? 'en' : 'ru'
 
   const { data, isLoading } = useQuery({ queryKey: ['natal-data'], queryFn: listNatalData })
+  const { data: subscription } = useQuery({ queryKey: ['subscription'], queryFn: fetchMySubscription })
 
   const sorted = useMemo(() => [...(data ?? [])].sort((a, b) => a.id - b.id), [data])
   const primaryId = sorted[0]?.id
   const totalCards = sorted.length
+  const isPro = subscription?.status === 'active' && subscription.tariff_code?.toLowerCase().includes('pro')
+  const maxCards = isPro ? 5 : 1
+  const usagePercent = Math.min(100, Math.round((totalCards / maxCards) * 100))
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -227,64 +234,59 @@ export function NatalDataPage() {
   }
 
   const renderUpsell = () => {
-    if (!upsellOpen) return null
+    if (!upsellOpen || upsellCollapsed) return null
     return (
       <div className="natal-upsell-panel">
-        <div className="natal-upsell-tabs">
-          <button
-            type="button"
-            className={`natal-upsell-tab${upsellTab === 'pro' ? ' active' : ''}`}
-            onClick={() => setUpsellTab('pro')}
-          >
-            Astro Pro
-          </button>
-          <button
-            type="button"
-            className={`natal-upsell-tab${upsellTab === 'bundle' ? ' active' : ''}`}
-            onClick={() => setUpsellTab('bundle')}
-          >
-            {t('natal.upsellBundleTab')}
-          </button>
-          <button type="button" className="natal-upsell-hide" onClick={() => setUpsellOpen(false)}>
-            {t('common.hide')}
+        <div className="natal-upsell-head">
+          <div>
+            <div className="natal-upsell-badge">Astro Pro</div>
+            <h3>{t('natal.upsellProTitle')}</h3>
+            <p>{t('natal.upsellProDesc')}</p>
+          </div>
+          <div className="natal-upsell-price">
+            <div className="natal-upsell-billing-seg">
+              <button
+                type="button"
+                className={`natal-upsell-billing-btn${upsellBilling === 'year' ? ' active' : ''}`}
+                onClick={() => setUpsellBilling('year')}
+              >
+                Год
+              </button>
+              <button
+                type="button"
+                className={`natal-upsell-billing-btn${upsellBilling === 'month' ? ' active' : ''}`}
+                onClick={() => setUpsellBilling('month')}
+              >
+                Месяц
+              </button>
+            </div>
+            <div>{upsellBilling === 'year' ? '325' : '490'} ₽</div>
+            <small>{upsellBilling === 'year' ? 'в месяц · при годовой оплате' : 'в месяц'}</small>
+            {upsellBilling === 'year' && <small>Экономия 1 980 ₽/год</small>}
+          </div>
+        </div>
+        <div className="natal-upsell-feature-grid">
+          <div className="natal-upsell-feature">
+            <strong>🔭 Транзиты</strong>
+            <span>Личный календарь с прогнозами</span>
+          </div>
+          <div className="natal-upsell-feature">
+            <strong>💫 Синастрия</strong>
+            <span>Анализ совместимости двух натальных карт</span>
+          </div>
+          <div className="natal-upsell-feature">
+            <strong>📈 Прогрессии</strong>
+            <span>Годовые прогнозы событий и тенденций</span>
+          </div>
+        </div>
+        <div className="natal-upsell-actions">
+          <Link to="/order/tariff" className="btn btn-primary" state={{ from: t('dashboard.navNatal') }}>
+            {upsellBilling === 'year' ? 'Подключить Pro · 3 900 ₽/год' : 'Попробовать 7 дней бесплатно'}
+          </Link>
+          <button type="button" className="btn btn-ghost" onClick={() => setUpsellCollapsed(true)}>
+            Скрыть
           </button>
         </div>
-
-        {upsellTab === 'pro' ? (
-          <div className="natal-upsell-content">
-            <div>
-              <div className="natal-upsell-badge">Astro Pro</div>
-              <h3>{t('natal.upsellProTitle')}</h3>
-              <p>{t('natal.upsellProDesc')}</p>
-            </div>
-            <div className="natal-upsell-price">
-              <div>325 ₽ / мес*</div>
-              <small>{t('natal.upsellProPriceHint')}</small>
-            </div>
-            <div className="natal-upsell-actions">
-              <Link to="/order/tariff" className="btn btn-primary" state={{ from: t('dashboard.navNatal') }}>
-                {t('natal.upsellChoosePro')}
-              </Link>
-            </div>
-          </div>
-        ) : (
-          <div className="natal-upsell-content">
-            <div>
-              <div className="natal-upsell-badge bundle">{t('natal.upsellOneTimeBadge')}</div>
-              <h3>{t('natal.upsellBundleTitle')}</h3>
-              <p>{t('natal.upsellBundleDesc')}</p>
-            </div>
-            <div className="natal-upsell-price">
-              <div>1 590 ₽</div>
-              <small>{t('natal.upsellOneTimeHint')}</small>
-            </div>
-            <div className="natal-upsell-actions">
-              <Link to="/order/tariff" className="btn btn-default" state={{ from: t('dashboard.navNatal') }}>
-                {t('natal.upsellOpenPricing')}
-              </Link>
-            </div>
-          </div>
-        )}
       </div>
     )
   }
@@ -293,14 +295,18 @@ export function NatalDataPage() {
     <div className="natal-page">
       <p className="natal-page-intro">{t('natal.intro')}</p>
       <div className="natal-limit-indicator">
-        <span>{t('natal.charts')}:</span>
+        <span>Использовано:</span>
         <div className="natal-limit-bar">
-          <div className={`natal-limit-bar-fill${totalCards >= 1 ? ' full' : ''}`} />
+          <div
+            className={`natal-limit-bar-fill${totalCards >= maxCards ? ' full' : ''}`}
+            style={{ width: `${usagePercent}%` }}
+          />
         </div>
-        <span className={totalCards >= 1 ? 'is-limit' : ''}>
-          {totalCards} / {Math.max(totalCards, 1)}
+        <span className={totalCards >= maxCards ? 'is-limit' : ''}>
+          {totalCards} / {maxCards}
         </span>
-        {totalCards >= 1 ? (
+        <span style={{ color: 'var(--primary)', fontWeight: 600 }}>{isPro ? 'Astro Pro' : 'Free'}</span>
+        {totalCards >= maxCards ? (
           <>
             <span>·</span>
             <span>{t('natal.limitReached')}</span>
@@ -310,6 +316,14 @@ export function NatalDataPage() {
           </>
         ) : null}
       </div>
+      {upsellOpen && upsellCollapsed && (
+        <div className="natal-upsell-mini">
+          <span>Astro Pro — транзиты, синастрия и 5 профилей.</span>
+          <button type="button" className="btn-link" onClick={() => setUpsellCollapsed(false)}>
+            Показать
+          </button>
+        </div>
+      )}
       {renderUpsell()}
       <div className="natal-grid">
         {sorted.map((row) => {
@@ -358,6 +372,14 @@ export function NatalDataPage() {
             </div>
           )
         })}
+
+        {totalCards >= 1 && (
+          <button type="button" className="locked-slot-card" onClick={() => setUpsellOpen(true)}>
+            <div className="locked-slot-icon">🔒</div>
+            <div className="locked-slot-title">{t('natal.limitReached')}</div>
+            <div className="locked-slot-hint">{t('natal.increase')}</div>
+          </button>
+        )}
 
         <button
           type="button"

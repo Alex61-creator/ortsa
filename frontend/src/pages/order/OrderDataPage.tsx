@@ -135,7 +135,7 @@ export function OrderDataPage() {
   }
 
   return (
-    <div style={{ maxWidth: 560, margin: '0 auto', padding: 24 }}>
+    <div className="order-step-shell">
       <Steps
         current={1}
         items={[
@@ -143,94 +143,108 @@ export function OrderDataPage() {
           { title: t('order.stepData') },
           { title: t('order.stepConfirm') },
         ]}
-        style={{ marginBottom: 32 }}
+        style={{ marginBottom: 24 }}
       />
-      <Title level={2}>{t('order.dataTitle')}</Title>
-      <Form layout="vertical">
-        <Form.Item label={t('natal.labelFullName')} required>
-          <Controller name="full_name" control={form.control} render={({ field }) => <Input {...field} />} />
-        </Form.Item>
-        <Form.Item label={t('natal.labelBirthDate')} required>
-          <Controller name="birth_date" control={form.control} render={({ field }) => <DatePicker style={{ width: '100%' }} {...field} />} />
-        </Form.Item>
-        <Form.Item label={t('natal.labelBirthTime')} required>
-          <Controller
-            name="birth_time"
-            control={form.control}
-            render={({ field }) => <TimePicker style={{ width: '100%' }} format="HH:mm" {...field} />}
-          />
-        </Form.Item>
-        <Form.Item label={t('natal.labelPlace')} required>
-          <Space.Compact style={{ width: '100%' }}>
-            <Controller name="birth_place" control={form.control} render={({ field }) => <Input {...field} />} />
-            <Button type="default" onClick={() => void searchGeo()}>
-              {t('natal.searchPlace')}
-            </Button>
-          </Space.Compact>
-        </Form.Item>
-        <Space wrap>
-          <Form.Item label={t('natal.labelLat')}>
-            <Controller
-              name="lat"
-              control={form.control}
-              render={({ field }) => <InputNumber step={0.0001} style={{ width: 160 }} {...field} />}
-            />
-          </Form.Item>
-          <Form.Item label={t('natal.labelLon')}>
-            <Controller
-              name="lon"
-              control={form.control}
-              render={({ field }) => <InputNumber step={0.0001} style={{ width: 160 }} {...field} />}
-            />
-          </Form.Item>
-        </Space>
-        <Form.Item label={t('natal.labelTz')}>
-          <Controller
-            name="timezone"
-            control={form.control}
-            render={({ field }) => (
-              <Select
-                showSearch
-                optionFilterProp="label"
-                style={{ width: '100%' }}
-                options={getSelectableTimezones().map((z) => ({ label: z, value: z }))}
-                {...field}
+      <div className="order-data-grid">
+        <div className="order-data-intro">
+          <div className="order-intro-step">Шаг 2 из 3</div>
+          <h3>{t('order.dataTitle')}</h3>
+          <p>Точные дата, время и место рождения - основа расчета. Данные хранятся в защищенном виде.</p>
+          <div className="order-intro-list">
+            <div>1. Заполните форму</div>
+            <div>2. Проверьте заказ</div>
+            <div>3. Оплатите через ЮKassa</div>
+          </div>
+        </div>
+
+        <div className="order-data-form">
+          <Form layout="vertical">
+            <Form.Item label={t('natal.labelFullName')} required>
+              <Controller name="full_name" control={form.control} render={({ field }) => <Input {...field} />} />
+            </Form.Item>
+            <Form.Item label={t('natal.labelBirthDate')} required>
+              <Controller name="birth_date" control={form.control} render={({ field }) => <DatePicker style={{ width: '100%' }} {...field} />} />
+            </Form.Item>
+            <Form.Item label={t('natal.labelBirthTime')} required>
+              <Controller
+                name="birth_time"
+                control={form.control}
+                render={({ field }) => <TimePicker style={{ width: '100%' }} format="HH:mm" {...field} />}
               />
-            )}
-          />
-        </Form.Item>
-        {canChooseHouseSystem(tariffCode) && (
-          <Form.Item label={t('natal.labelHouse')}>
-            <Controller
-              name="house_system"
-              control={form.control}
-              render={({ field }) => (
-                <Select
-                  style={{ width: '100%' }}
-                  options={HOUSE_SYSTEMS.map((h) => ({ label: h.label, value: h.value }))}
-                  {...field}
+            </Form.Item>
+            <Form.Item label={t('natal.labelPlace')} required>
+              <Space.Compact style={{ width: '100%' }}>
+                <Controller name="birth_place" control={form.control} render={({ field }) => <Input {...field} />} />
+                <Button type="default" onClick={() => void searchGeo()}>
+                  {t('natal.searchPlace')}
+                </Button>
+              </Space.Compact>
+            </Form.Item>
+            <Space wrap>
+              <Form.Item label={t('natal.labelLat')}>
+                <Controller
+                  name="lat"
+                  control={form.control}
+                  render={({ field }) => <InputNumber step={0.0001} style={{ width: 160 }} {...field} />}
                 />
-              )}
-            />
-          </Form.Item>
-        )}
-        {!me?.consent_given_at && (
-          <Form.Item>
-            <Controller
-              name="accept_privacy_policy"
-              control={form.control}
-              render={({ field }) => (
-                <Checkbox checked={field.value} onChange={(e) => field.onChange(e.target.checked)}>
-                  {t('natal.privacyConsent')}
-                </Checkbox>
-              )}
-            />
-          </Form.Item>
-        )}
-        <Button type="primary" loading={save.isPending} onClick={() => void form.handleSubmit((v) => save.mutate(v))()}>
-          {t('common.continue')}
-        </Button>
-      </Form>
+              </Form.Item>
+              <Form.Item label={t('natal.labelLon')}>
+                <Controller
+                  name="lon"
+                  control={form.control}
+                  render={({ field }) => <InputNumber step={0.0001} style={{ width: 160 }} {...field} />}
+                />
+              </Form.Item>
+            </Space>
+            <Form.Item label={t('natal.labelTz')}>
+              <Controller
+                name="timezone"
+                control={form.control}
+                render={({ field }) => (
+                  <Select
+                    showSearch
+                    optionFilterProp="label"
+                    style={{ width: '100%' }}
+                    options={getSelectableTimezones().map((z) => ({ label: z, value: z }))}
+                    {...field}
+                  />
+                )}
+              />
+            </Form.Item>
+            {canChooseHouseSystem(tariffCode) && (
+              <Form.Item label={t('natal.labelHouse')}>
+                <Controller
+                  name="house_system"
+                  control={form.control}
+                  render={({ field }) => (
+                    <Select
+                      style={{ width: '100%' }}
+                      options={HOUSE_SYSTEMS.map((h) => ({ label: h.label, value: h.value }))}
+                      {...field}
+                    />
+                  )}
+                />
+              </Form.Item>
+            )}
+            {!me?.consent_given_at && (
+              <Form.Item>
+                <Controller
+                  name="accept_privacy_policy"
+                  control={form.control}
+                  render={({ field }) => (
+                    <Checkbox checked={field.value} onChange={(e) => field.onChange(e.target.checked)}>
+                      {t('natal.privacyConsent')}
+                    </Checkbox>
+                  )}
+                />
+              </Form.Item>
+            )}
+            <Button type="primary" loading={save.isPending} onClick={() => void form.handleSubmit((v) => save.mutate(v))()}>
+              Далее -> Проверить заказ
+            </Button>
+          </Form>
+        </div>
+      </div>
 
       <Modal title={t('natal.pickPlaceTitle')} open={geoOpen} footer={null} onCancel={() => setGeoOpen(false)}>
         <List

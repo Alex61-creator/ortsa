@@ -1,4 +1,4 @@
-import { Typography, Button, Card, Descriptions, Steps, Space } from 'antd'
+import { Typography, Button, Card, Steps } from 'antd'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery } from '@tanstack/react-query'
@@ -51,7 +51,7 @@ export function OrderConfirmPage() {
   }
 
   return (
-    <div style={{ maxWidth: 640, margin: '0 auto', padding: 24 }}>
+    <div className="order-step-shell">
       <Steps
         current={2}
         items={[
@@ -59,23 +59,75 @@ export function OrderConfirmPage() {
           { title: t('order.stepData') },
           { title: t('order.stepConfirm') },
         ]}
-        style={{ marginBottom: 32 }}
+        style={{ marginBottom: 24 }}
       />
-      <Title level={2}>{t('order.confirmTitle')}</Title>
-      <Card>
-        <Descriptions column={1} bordered size="small">
-          <Descriptions.Item label={t('order.confirmTariff')}>{tariff?.name ?? tariffCode}</Descriptions.Item>
-          <Descriptions.Item label={t('order.confirmPrice')}>{tariff ? `${tariff.price} ₽` : '—'}</Descriptions.Item>
-          <Descriptions.Item label={t('order.confirmName')}>{natal?.full_name}</Descriptions.Item>
-          <Descriptions.Item label={t('order.confirmPlace')}>{natal?.birth_place}</Descriptions.Item>
-        </Descriptions>
-        <Space style={{ marginTop: 24 }}>
-          <Button onClick={() => navigate('/order/data')}>{t('common.back')}</Button>
-          <Button type="primary" loading={pay.isPending} onClick={() => pay.mutate()}>
-            {t('order.pay')}
-          </Button>
-        </Space>
-      </Card>
+      <div style={{ fontSize: 12, color: 'var(--ag-text-secondary)', marginBottom: 14 }}>Шаг 3 из 3 - проверьте данные перед оплатой</div>
+      <div className="order-confirm-grid">
+        <div>
+          <Card style={{ marginBottom: 12 }}>
+            <div className="order-review-head">
+              <div className="order-review-title">Натальные данные</div>
+              <button type="button" style={{ border: 'none', background: 'none', color: 'var(--ag-primary)', cursor: 'pointer' }} onClick={() => navigate('/order/data')}>
+                Изменить
+              </button>
+            </div>
+            <div className="order-review-rows">
+              <span>Имя</span>
+              <strong>{natal?.full_name ?? '—'}</strong>
+              <span>Дата</span>
+              <strong>{natal?.birth_date ? new Date(natal.birth_date).toLocaleDateString('ru-RU') : '—'}</strong>
+              <span>Время</span>
+              <strong>{natal?.birth_time ? new Date(natal.birth_time).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '—'}</strong>
+              <span>Место</span>
+              <strong>{natal?.birth_place ?? '—'}</strong>
+            </div>
+          </Card>
+
+          <Card>
+            <div className="order-review-head">
+              <div className="order-review-title">Выбранный тариф</div>
+              <button type="button" style={{ border: 'none', background: 'none', color: 'var(--ag-primary)', cursor: 'pointer' }} onClick={() => navigate('/order/tariff')}>
+                Изменить
+              </button>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 600 }}>{tariff?.name ?? tariffCode}</div>
+                <div style={{ fontSize: 12, color: 'var(--ag-text-secondary)' }}>Разовая покупка или подписка</div>
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 700 }}>{tariff ? `${tariff.price} ₽` : '—'}</div>
+            </div>
+          </Card>
+          <div
+            style={{
+              marginTop: 12,
+              padding: '10px 12px',
+              border: '1px solid var(--ag-border)',
+              borderRadius: 10,
+              fontSize: 12,
+              color: 'var(--ag-text-secondary)',
+              background: 'color-mix(in srgb, var(--ag-bg-container) 94%, transparent)',
+            }}
+          >
+            После нажатия «Оплатить» вы будете перенаправлены на защищенную страницу ЮKassa.
+          </div>
+        </div>
+
+        <div>
+          <div className="order-summary-box">
+            <div className="order-summary-title">Итого к оплате</div>
+            <div className="order-summary-amount">{tariff ? `${tariff.price} ₽` : '—'}</div>
+            <div className="order-summary-note">После оплаты откроется защищенная страница ЮKassa</div>
+            <Button type="primary" size="large" block loading={pay.isPending} onClick={() => pay.mutate()}>
+              Оплатить через ЮKassa
+            </Button>
+            <div className="order-summary-meta">Visa, Mastercard, МИР, СБП, ЮMoney</div>
+          </div>
+          <div style={{ marginTop: 8 }}>
+            <Button onClick={() => navigate('/order/tariff')}>← Изменить тариф</Button>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

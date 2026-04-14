@@ -169,6 +169,37 @@ export function SubscriptionPage() {
           </div>
         </div>
       )}
+
+      <div className="sub-compare-title">Сравнение тарифов</div>
+      <div className="sub-compare-grid">
+        <div className="sub-compare-card">
+          <div className="sub-compare-name">Бесплатный</div>
+          <div className="sub-compare-price">0 ₽</div>
+          <ul className="sub-compare-list">
+            <li>Натальная карта</li>
+            <li>Базовый PDF-отчёт</li>
+            <li>1 профиль в кабинете</li>
+          </ul>
+          <button type="button" className="btn btn-default btn-sm" disabled>
+            Текущий тариф
+          </button>
+        </div>
+        <div className="sub-compare-card featured">
+          <div className="sub-compare-name" style={{ color: 'var(--purple)' }}>
+            Astro Pro
+          </div>
+          <div className="sub-compare-price">{amount} ₽ / мес</div>
+          <ul className="sub-compare-list">
+            <li>Всё из Бесплатного</li>
+            <li>Транзиты + личный календарь</li>
+            <li>Синастрия и прогрессии</li>
+            <li>До 5 профилей в кабинете</li>
+          </ul>
+          <Link to="/order/tariff" className="btn btn-primary btn-sm">
+            Управлять планом
+          </Link>
+        </div>
+      </div>
     </div>
   )
 }

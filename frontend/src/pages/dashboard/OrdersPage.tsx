@@ -33,7 +33,7 @@ function statusTagClass(status: OrderStatus, reportReady: boolean): string {
 }
 
 function statusLabel(status: OrderStatus, reportReady: boolean, t: (k: string) => string): string {
-  if (reportReady) return t('orders.statusPdfReady')
+  if (reportReady) return t('orders.statusPaid')
   if (status === 'completed') return t('orders.statusDone')
   if (status === 'pending' || status === 'failed_to_init_payment') return t('orders.statusPendingPay')
   if (status === 'paid' || status === 'processing') return t('orders.statusPaid')
@@ -129,7 +129,7 @@ export function OrdersPage() {
                           <>
                             <Link to={`/reports/${o.id}`}>
                               <button type="button" className="btn btn-default btn-xs">
-                                {t('orders.actionReport')}
+                                {o.tariff.code.toLowerCase().includes('bundle') ? '3 PDF' : t('orders.actionReport')}
                               </button>
                             </Link>
                             <Link to={`/reports/${o.id}`}>

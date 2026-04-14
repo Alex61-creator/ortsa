@@ -201,8 +201,43 @@
 .support-contact-card:hover {
   border-color: var(--primary) !important;
 }
+.support-grid {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 16px;
+}
 .support-contact-grid {
   grid-template-columns: 1fr 1fr;
+}
+.support-right {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.faq-item {
+  border-bottom: 1px solid var(--border);
+  padding: 10px 0;
+}
+.faq-item:last-child {
+  border-bottom: none;
+}
+.faq-q {
+  width: 100%;
+  border: none;
+  background: none;
+  color: var(--text);
+  padding: 0;
+  font: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+}
+.faq-a {
+  margin-top: 8px;
+  color: var(--text-2);
+  font-size: 13px;
 }
 @media (max-width: 520px) {
   .support-contact-grid {
@@ -357,12 +392,42 @@
 .add-natal-card:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
 .add-natal-card-title { font-size: 14px; font-weight: 500; }
 .add-natal-card-hint { font-size: 12px; }
+.locked-slot-card {
+  border: 1px dashed var(--primary-border);
+  border-radius: var(--r-lg);
+  background: linear-gradient(135deg, var(--primary-light) 0%, transparent 100%);
+  min-height: 160px;
+  cursor: pointer;
+  color: var(--text);
+  font: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.locked-slot-icon {
+  font-size: 22px;
+}
+.locked-slot-title {
+  font-weight: 600;
+}
+.locked-slot-hint {
+  font-size: 12px;
+  color: var(--text-2);
+}
 
 .natal-upsell-panel {
   border: 1px solid var(--primary-border);
   border-radius: var(--r-lg);
   background: linear-gradient(135deg, var(--primary-light) 0%, color-mix(in srgb, var(--bg-container) 94%, #722ed1 6%) 100%);
   padding: 16px;
+}
+.natal-upsell-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  align-items: start;
 }
 .natal-upsell-tabs { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
 .natal-upsell-tab {
@@ -408,8 +473,56 @@
 }
 .natal-upsell-price { text-align: right; }
 .natal-upsell-price > div { font-size: 24px; font-weight: 700; color: var(--text); }
-.natal-upsell-price > small { color: var(--text-3); }
+.natal-upsell-price > small { color: var(--text-3); display: block; }
+.natal-upsell-billing-seg {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.natal-upsell-billing-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-2);
+  padding: 5px 10px;
+  cursor: pointer;
+  font: inherit;
+}
+.natal-upsell-billing-btn.active {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+.natal-upsell-feature-grid {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.natal-upsell-feature {
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 10px;
+  background: color-mix(in srgb, var(--bg-container) 94%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.natal-upsell-feature span {
+  color: var(--text-2);
+  font-size: 12px;
+}
 .natal-upsell-actions { grid-column: 1 / -1; display: flex; gap: 8px; }
+.natal-upsell-mini {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--primary-border);
+  border-radius: var(--r);
+  background: var(--primary-light);
+  padding: 10px 12px;
+  font-size: 13px;
+}
 
 .natal-upsell-modal-body {
   margin-top: 16px;
@@ -464,12 +577,93 @@
 .sub-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .cancel-confirm { display: none; margin-top: 16px; padding: 16px; background: var(--danger-light); border: 1px solid rgba(255,77,79,0.3); border-radius: var(--r); }
 .cancel-confirm.show { display: block; }
+.sub-compare-title {
+  margin: 22px 0 12px;
+  font-size: 12px;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.sub-compare-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.sub-compare-card {
+  background: var(--bg-container);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px;
+}
+.sub-compare-card.featured {
+  border-color: var(--primary-border);
+  box-shadow: var(--shadow-hover);
+}
+.sub-compare-name { font-size: 14px; font-weight: 600; color: var(--text); }
+.sub-compare-price { font-size: 22px; font-weight: 700; margin: 6px 0 10px; }
+.sub-compare-list {
+  margin: 0 0 12px;
+  padding-left: 18px;
+  color: var(--text-2);
+  display: grid;
+  gap: 4px;
+}
 
 /* ═══════════════════════════════════════════
    ════ SETTINGS ════
 ═══════════════════════════════════════════ */
 .settings-section { margin-bottom: 24px; }
 .settings-section-title { font-size: 15px; font-weight: 500; color: var(--text); margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.settings-grid .settings-section {
+  background: var(--bg-container);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 18px;
+  margin-bottom: 0;
+}
+.settings-grid .settings-section.settings-section--wide {
+  grid-column: 1 / -1;
+}
+.settings-pro-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: linear-gradient(135deg, var(--primary-light) 0%, rgba(114,46,209,0.06) 100%);
+  border: 1px solid var(--primary-border);
+  border-radius: var(--r-lg);
+  padding: 14px 18px;
+  margin-bottom: 16px;
+}
+.settings-pro-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.settings-pro-banner-star {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  background: var(--bg-container);
+  border: 1px solid var(--primary-border);
+}
+.settings-pro-banner p {
+  margin: 4px 0 0;
+  color: var(--text-2);
+  font-size: 13px;
+}
+.settings-pro-banner .btn {
+  text-decoration: none;
+}
 .settings-row {
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 0; border-bottom: 1px solid var(--border); gap: 16px;
@@ -512,18 +706,27 @@
    RESPONSIVE
 ═══════════════════════════════════════════ */
 .mobile-menu-btn { display: none; }
+.topbar-order-btn {
+  text-decoration: none;
+}
 @media (max-width: 900px) {
   .cabinet-mockup-root { --sidebar-w: 0px; }
   .sidebar { transform: translateX(-240px); --sidebar-w: 240px; }
   .sidebar.open { transform: translateX(0); }
   .cabinet-main { margin-left: 0; }
   .mobile-menu-btn { display: flex; }
+  .topbar-order-btn { display: none; }
   .dashboard-grid { grid-template-columns: 1fr 1fr; }
   .recent-row { grid-template-columns: 1fr; }
   .natal-grid { grid-template-columns: 1fr; }
   .natal-upsell-content { grid-template-columns: 1fr; }
+  .natal-upsell-head { grid-template-columns: 1fr; }
+  .natal-upsell-feature-grid { grid-template-columns: 1fr; }
   .natal-upsell-price { text-align: left; }
   .sub-features { grid-template-columns: 1fr; }
+  .sub-compare-grid { grid-template-columns: 1fr; }
+  .support-grid { grid-template-columns: 1fr; }
+  .settings-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 600px) {
   .dashboard-grid { grid-template-columns: 1fr; }

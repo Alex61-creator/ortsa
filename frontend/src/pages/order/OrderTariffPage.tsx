@@ -48,6 +48,7 @@ export function OrderTariffPage() {
   const redirectNote = location.state?.from
   const [mode, setMode] = useState<PricingMode>('onetime')
   const [isYearly, setIsYearly] = useState(true)
+  const [selectedOneTime, setSelectedOneTime] = useState('report')
   const oneTimePlans = useMemo<OneTimePlanModel[]>(
     () => [
       {
@@ -191,9 +192,10 @@ export function OrderTariffPage() {
                 return (
                   <Col xs={24} md={8} key={plan.code}>
                     <Card
-                      className={`pricing-card${plan.isPopular ? ' pricing-card-popular' : ''}`}
+                      className={`pricing-card${plan.isPopular ? ' pricing-card-popular' : ''}${selectedOneTime === plan.code ? ' pricing-card-selected' : ''}`}
                       loading={isLoading}
                       bordered={false}
+                      onClick={() => setSelectedOneTime(plan.code)}
                     >
                       {plan.ribbon && (
                         <div className={`pricing-ribbon ${plan.ribbonTone === 'green' ? 'green' : 'blue'}`}>{plan.ribbon}</div>
@@ -243,15 +245,24 @@ export function OrderTariffPage() {
                 {t('order.switchToProCta')}
               </Button>
             </div>
+            <div className="pricing-step-nav">
+              <button type="button" className="pricing-nav-btn" onClick={() => navigate('/dashboard')}>
+                ← Назад
+              </button>
+              <button type="button" className="pricing-nav-btn pricing-nav-btn-primary" onClick={() => startOrderFor(selectedOneTime)}>
+                Далее → Проверить заказ
+              </button>
+            </div>
           </>
         ) : (
           <>
             <div className="billing-toggle">
-              <span className={!isYearly ? 'active' : ''}>{t('order.billingMonthly')}</span>
-              <Button type={isYearly ? 'primary' : 'default'} size="small" onClick={() => setIsYearly((v) => !v)}>
-                {isYearly ? t('order.billingPlanYear') : t('order.billingMonthly')}
-              </Button>
-              <span className={isYearly ? 'active' : ''}>{t('order.billingYearly')}</span>
+              <button type="button" className={`billing-toggle-btn${isYearly ? ' active' : ''}`} onClick={() => setIsYearly(true)}>
+                Год
+              </button>
+              <button type="button" className={`billing-toggle-btn${!isYearly ? ' active' : ''}`} onClick={() => setIsYearly(false)}>
+                Месяц
+              </button>
               {isYearly ? <Tag color="purple">{t('order.discount34')}</Tag> : null}
             </div>
             <Card className="pro-card" bordered={false}>
@@ -293,6 +304,11 @@ export function OrderTariffPage() {
               <Button type="link" onClick={() => setMode('onetime')} style={{ paddingInline: 6 }}>
                 {t('order.switchToOneTimeCta')}
               </Button>
+            </div>
+            <div className="pricing-step-nav">
+              <button type="button" className="pricing-nav-btn" onClick={() => navigate('/dashboard')}>
+                ← Назад
+              </button>
             </div>
           </>
         )}
