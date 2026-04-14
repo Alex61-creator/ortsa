@@ -1,9 +1,9 @@
 .cabinet-mockup-root {
-  --primary: #1677FF;
-  --primary-light: #E6F4FF;
-  --primary-border: #91CAFF;
-  --primary-hover: #0958D9;
-  --danger: #FF4D4F;
+  --primary: var(--ag-primary);
+  --primary-light: var(--ag-primary-bg);
+  --primary-border: var(--ag-preview-border);
+  --primary-hover: #0958d9;
+  --danger: var(--ag-error);
   --danger-light: #FFF2F0;
   --success: #52C41A;
   --success-light: #F6FFED;
@@ -13,14 +13,14 @@
   --warning-border: #FFE58F;
   --purple: #722ED1;
   --purple-light: #F9F0FF;
-  --bg: #F5F5F5;
-  --bg-container: #FFFFFF;
-  --bg-secondary: #FAFAFA;
-  --border: #D9D9D9;
-  --text: rgba(0,0,0,0.88);
-  --text-2: rgba(0,0,0,0.65);
-  --text-3: rgba(0,0,0,0.45);
-  --text-4: rgba(0,0,0,0.25);
+  --bg: var(--ag-bg);
+  --bg-container: var(--ag-bg-container);
+  --bg-secondary: color-mix(in srgb, var(--ag-bg-container) 90%, #ffffff 10%);
+  --border: var(--ag-border);
+  --text: var(--ag-text);
+  --text-2: var(--ag-text-secondary);
+  --text-3: color-mix(in srgb, var(--ag-text-secondary) 70%, transparent);
+  --text-4: color-mix(in srgb, var(--ag-text-secondary) 45%, transparent);
   --shadow: 0 1px 2px rgba(0,0,0,0.03), 0 4px 12px rgba(0,0,0,0.06);
   --shadow-hover: 0 4px 16px rgba(22,119,255,0.12);
   --r: 8px; --r-lg: 12px;
@@ -30,10 +30,14 @@
   --header-h: 60px;
 }
 .cabinet-mockup-root[data-theme="dark"] {
-  --bg: #141414; --bg-container: #1F1F1F; --bg-secondary: #191919;
-  --border: #424242;
-  --text: rgba(255,255,255,0.88); --text-2: rgba(255,255,255,0.65);
-  --text-3: rgba(255,255,255,0.45); --text-4: rgba(255,255,255,0.2);
+  --bg: var(--ag-bg);
+  --bg-container: var(--ag-bg-container);
+  --bg-secondary: color-mix(in srgb, var(--ag-bg-container) 88%, #000000 12%);
+  --border: var(--ag-border);
+  --text: var(--ag-text);
+  --text-2: var(--ag-text-secondary);
+  --text-3: color-mix(in srgb, var(--ag-text-secondary) 75%, transparent);
+  --text-4: color-mix(in srgb, var(--ag-text-secondary) 48%, transparent);
   --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.4);
   --primary-light: rgba(22,119,255,0.12); --primary-border: rgba(22,119,255,0.35);
   --success-light: rgba(82,196,26,0.1); --success-border: rgba(82,196,26,0.3);
@@ -44,6 +48,9 @@
 .cabinet-mockup-root,
 .cabinet-mockup-root * {
   box-sizing: border-box;
+}
+.cabinet-mockup-root[data-theme="light"] {
+  --bg-secondary: color-mix(in srgb, var(--ag-bg-container) 92%, #000000 8%);
 }
 .cabinet-mockup-root {
   font-family: var(--font);
@@ -145,6 +152,16 @@
 .sidebar-logo-icon {
   width: 32px; height: 32px; border-radius: 8px;
   background: var(--primary); display: flex; align-items: center; justify-content: center;
+}
+.sidebar-cta {
+  padding: 12px 12px 6px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-cta-btn {
+  width: 100%;
+  justify-content: center;
+  font-weight: 500;
+  text-decoration: none;
 }
 .sidebar-nav { flex: 1; padding: 12px 8px; overflow-y: auto; }
 .nav-section-label {
@@ -282,17 +299,51 @@
    ════ NATAL DATA ════
 ═══════════════════════════════════════════ */
 .natal-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.natal-page { display: flex; flex-direction: column; gap: 16px; }
+.natal-page-intro { margin: 0; font-size: 14px; color: var(--text-2); }
+.natal-limit-indicator {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+.natal-limit-bar {
+  width: 130px;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-secondary) 90%, transparent);
+  overflow: hidden;
+}
+.natal-limit-bar-fill {
+  height: 100%;
+  width: 0;
+  transition: width 0.2s ease;
+  background: var(--success);
+}
+.natal-limit-bar-fill.full {
+  width: 100%;
+  background: var(--warning);
+}
+.natal-limit-indicator .is-limit {
+  color: var(--warning);
+  font-weight: 600;
+}
 .natal-card {
   background: var(--bg-container); border: 1px solid var(--border);
-  border-radius: var(--r-lg); padding: 20px; cursor: pointer;
+  border-radius: var(--r-lg); padding: 20px;
   transition: all 0.2s; position: relative;
 }
 .natal-card:hover { border-color: var(--primary-border); box-shadow: var(--shadow-hover); }
 .natal-card.active-card { border-color: var(--primary); border-width: 2px; }
 .natal-card-name { font-size: 16px; font-weight: 500; color: var(--text); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.natal-card-name .tag { font-size: 11px; }
 .natal-card-row { font-size: 13px; color: var(--text-2); margin-bottom: 5px; display: flex; gap: 6px; }
 .natal-card-row svg { color: var(--text-3); flex-shrink: 0; margin-top: 2px; }
 .natal-card-actions { display: flex; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+.natal-link-btn { text-decoration: none; }
+.natal-card-actions [data-danger="true"] { color: var(--danger); }
 .natal-edit-form { display: none; }
 .natal-edit-form.open { display: block; }
 .natal-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -301,9 +352,74 @@
   border-radius: var(--r-lg); padding: 32px 20px; cursor: pointer;
   transition: all 0.15s; display: flex; flex-direction: column; align-items: center;
   justify-content: center; gap: 10px; color: var(--text-3); text-align: center;
-  min-height: 160px;
+  min-height: 160px; font: inherit;
 }
 .add-natal-card:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+.add-natal-card-title { font-size: 14px; font-weight: 500; }
+.add-natal-card-hint { font-size: 12px; }
+
+.natal-upsell-panel {
+  border: 1px solid var(--primary-border);
+  border-radius: var(--r-lg);
+  background: linear-gradient(135deg, var(--primary-light) 0%, color-mix(in srgb, var(--bg-container) 94%, #722ed1 6%) 100%);
+  padding: 16px;
+}
+.natal-upsell-tabs { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.natal-upsell-tab {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-2);
+  border-radius: 999px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.natal-upsell-tab.active {
+  color: var(--primary);
+  border-color: var(--primary-border);
+  background: color-mix(in srgb, var(--bg-container) 88%, transparent);
+}
+.natal-upsell-hide { margin-left: auto; }
+.natal-upsell-hide,
+.natal-upsell-actions .btn {
+  text-decoration: none;
+}
+.natal-upsell-content {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+.natal-upsell-content h3 { margin: 0 0 4px; font-size: 18px; color: var(--text); }
+.natal-upsell-content p { margin: 0; font-size: 13px; color: var(--text-2); max-width: 560px; }
+.natal-upsell-badge {
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--primary-border);
+  background: var(--bg-container);
+  color: var(--primary);
+  padding: 3px 8px;
+  border-radius: 999px;
+  margin-bottom: 8px;
+}
+.natal-upsell-badge.bundle {
+  border-color: var(--success-border);
+  color: var(--success);
+}
+.natal-upsell-price { text-align: right; }
+.natal-upsell-price > div { font-size: 24px; font-weight: 700; color: var(--text); }
+.natal-upsell-price > small { color: var(--text-3); }
+.natal-upsell-actions { grid-column: 1 / -1; display: flex; gap: 8px; }
+
+.natal-upsell-modal-body {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.natal-upsell-modal-body h4 { margin: 0; color: var(--text); }
+.natal-upsell-modal-body p { margin: 0; color: var(--text-2); font-size: 13px; }
+.natal-upsell-modal-body .btn { justify-content: center; text-decoration: none; }
 
 /* ═══════════════════════════════════════════
    ════ REPORTS ════
@@ -405,6 +521,8 @@
   .dashboard-grid { grid-template-columns: 1fr 1fr; }
   .recent-row { grid-template-columns: 1fr; }
   .natal-grid { grid-template-columns: 1fr; }
+  .natal-upsell-content { grid-template-columns: 1fr; }
+  .natal-upsell-price { text-align: left; }
   .sub-features { grid-template-columns: 1fr; }
 }
 @media (max-width: 600px) {

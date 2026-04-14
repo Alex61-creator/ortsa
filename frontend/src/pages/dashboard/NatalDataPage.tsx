@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import type { AxiosError } from 'axios'
 import {
+  Alert,
   Button,
   Modal,
   Form,
@@ -12,6 +14,7 @@ import {
   InputNumber,
   Space,
   List,
+  Segmented,
 } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
@@ -79,6 +82,8 @@ export function NatalDataPage() {
   const [editing, setEditing] = useState<NatalDataOut | null>(null)
   const [geoHits, setGeoHits] = useState<GeocodeHit[]>([])
   const [geoOpen, setGeoOpen] = useState(false)
+  const [upsellOpen, setUpsellOpen] = useState(false)
+  const [upsellTab, setUpsellTab] = useState<'pro' | 'bundle'>('pro')
 
   const locale = i18n.language?.startsWith('en') ? 'en' : 'ru'
 
@@ -86,6 +91,7 @@ export function NatalDataPage() {
 
   const sorted = useMemo(() => [...(data ?? [])].sort((a, b) => a.id - b.id), [data])
   const primaryId = sorted[0]?.id
+  const totalCards = sorted.length
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -138,6 +144,12 @@ export function NatalDataPage() {
       setOpen(false)
       setEditing(null)
       form.reset()
+    },
+    onError: (error) => {
+      const err = error as AxiosError<{ detail?: string }>
+      if (err.response?.status === 403) {
+        setUpsellOpen(true)
+      }
     },
   })
 
@@ -214,23 +226,100 @@ export function NatalDataPage() {
     return `${tm} (${tzShort})`
   }
 
-  return (
-    <div>
-      <div style={{ marginBottom: 16, fontSize: 14, color: 'var(--text-2)' }}>{t('natal.intro')}</div>
+  const renderUpsell = () => {
+    if (!upsellOpen) return null
+    return (
+      <div className="natal-upsell-panel">
+        <div className="natal-upsell-tabs">
+          <button
+            type="button"
+            className={`natal-upsell-tab${upsellTab === 'pro' ? ' active' : ''}`}
+            onClick={() => setUpsellTab('pro')}
+          >
+            Astro Pro
+          </button>
+          <button
+            type="button"
+            className={`natal-upsell-tab${upsellTab === 'bundle' ? ' active' : ''}`}
+            onClick={() => setUpsellTab('bundle')}
+          >
+            {t('natal.upsellBundleTab')}
+          </button>
+          <button type="button" className="natal-upsell-hide" onClick={() => setUpsellOpen(false)}>
+            {t('common.hide')}
+          </button>
+        </div>
 
+        {upsellTab === 'pro' ? (
+          <div className="natal-upsell-content">
+            <div>
+              <div className="natal-upsell-badge">Astro Pro</div>
+              <h3>{t('natal.upsellProTitle')}</h3>
+              <p>{t('natal.upsellProDesc')}</p>
+            </div>
+            <div className="natal-upsell-price">
+              <div>325 ₽ / мес*</div>
+              <small>{t('natal.upsellProPriceHint')}</small>
+            </div>
+            <div className="natal-upsell-actions">
+              <Link to="/order/tariff" className="btn btn-primary" state={{ from: t('dashboard.navNatal') }}>
+                {t('natal.upsellChoosePro')}
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="natal-upsell-content">
+            <div>
+              <div className="natal-upsell-badge bundle">{t('natal.upsellOneTimeBadge')}</div>
+              <h3>{t('natal.upsellBundleTitle')}</h3>
+              <p>{t('natal.upsellBundleDesc')}</p>
+            </div>
+            <div className="natal-upsell-price">
+              <div>1 590 ₽</div>
+              <small>{t('natal.upsellOneTimeHint')}</small>
+            </div>
+            <div className="natal-upsell-actions">
+              <Link to="/order/tariff" className="btn btn-default" state={{ from: t('dashboard.navNatal') }}>
+                {t('natal.upsellOpenPricing')}
+              </Link>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="natal-page">
+      <p className="natal-page-intro">{t('natal.intro')}</p>
+      <div className="natal-limit-indicator">
+        <span>{t('natal.charts')}:</span>
+        <div className="natal-limit-bar">
+          <div className={`natal-limit-bar-fill${totalCards >= 1 ? ' full' : ''}`} />
+        </div>
+        <span className={totalCards >= 1 ? 'is-limit' : ''}>
+          {totalCards} / {Math.max(totalCards, 1)}
+        </span>
+        {totalCards >= 1 ? (
+          <>
+            <span>·</span>
+            <span>{t('natal.limitReached')}</span>
+            <button type="button" className="btn-link" onClick={() => setUpsellOpen(true)}>
+              {t('natal.increase')}
+            </button>
+          </>
+        ) : null}
+      </div>
+      {renderUpsell()}
       <div className="natal-grid">
         {sorted.map((row) => {
           const isPrimary = row.id === primaryId
           return (
-            <div
-              key={row.id}
-              className={`natal-card${isPrimary ? ' active-card' : ''}`}
-              style={{ cursor: 'default' }}
-            >
+            <div key={row.id} className={`natal-card${isPrimary ? ' active-card' : ''}`}>
               <div className="natal-card-name">
                 {row.full_name}
                 {isPrimary && (
-                  <span className="tag tag-blue" style={{ fontSize: 11 }}>
+                  <span className="tag tag-blue">
                     {t('natal.badgeMe')}
                   </span>
                 )}
@@ -252,14 +341,14 @@ export function NatalDataPage() {
                   {t('common.edit')}
                 </button>
                 {isPrimary ? (
-                  <Link to="/dashboard/reports" className="btn btn-ghost btn-sm" style={{ textDecoration: 'none' }}>
+                  <Link to="/dashboard/reports" className="btn btn-ghost btn-sm natal-link-btn">
                     {t('natal.reports')}
                   </Link>
                 ) : (
                   <button
                     type="button"
                     className="btn btn-ghost btn-sm"
-                    style={{ color: 'var(--danger)' }}
+                    data-danger="true"
                     onClick={() => confirmDelete(row)}
                   >
                     {t('common.delete')}
@@ -275,11 +364,10 @@ export function NatalDataPage() {
           className="add-natal-card"
           onClick={openCreate}
           disabled={isLoading}
-          style={{ border: 'none', font: 'inherit' }}
         >
           <PlusOutlined style={{ fontSize: 28, color: 'inherit' }} />
-          <div style={{ fontSize: 14, fontWeight: 500 }}>{t('natal.addCard')}</div>
-          <div style={{ fontSize: 12 }}>{t('natal.addCardHint')}</div>
+          <div className="add-natal-card-title">{t('natal.addCard')}</div>
+          <div className="add-natal-card-hint">{t('natal.addCardHint')}</div>
         </button>
       </div>
 
@@ -291,6 +379,19 @@ export function NatalDataPage() {
         confirmLoading={save.isPending}
         width={560}
       >
+        {!editing && upsellOpen && (
+          <Alert
+            type="warning"
+            showIcon
+            style={{ marginBottom: 12 }}
+            message={t('natal.limitWarning')}
+            action={
+              <Link to="/order/tariff" state={{ from: t('dashboard.navNatal') }}>
+                {t('common.pricing')}
+              </Link>
+            }
+          />
+        )}
         <Form layout="vertical">
           <Form.Item label={t('natal.labelFullName')} required>
             <Controller name="full_name" control={form.control} render={({ field }) => <Input {...field} />} />
@@ -394,6 +495,39 @@ export function NatalDataPage() {
             </List.Item>
           )}
         />
+      </Modal>
+
+      <Modal
+        title={t('natal.upsellModalTitle')}
+        open={upsellOpen}
+        footer={null}
+        onCancel={() => setUpsellOpen(false)}
+      >
+        <Segmented
+          block
+          value={upsellTab}
+          onChange={(value) => setUpsellTab(value as 'pro' | 'bundle')}
+          options={[
+            { label: 'Astro Pro', value: 'pro' },
+            { label: t('natal.upsellBundleTab'), value: 'bundle' },
+          ]}
+        />
+        <div className="natal-upsell-modal-body">
+          {upsellTab === 'pro' ? (
+            <>
+              <h4>{t('natal.upsellProModalTitle')}</h4>
+              <p>{t('natal.upsellProModalDesc')}</p>
+            </>
+          ) : (
+            <>
+              <h4>{t('natal.upsellBundleModalTitle')}</h4>
+              <p>{t('natal.upsellBundleModalDesc')}</p>
+            </>
+          )}
+          <Link to="/order/tariff" className="btn btn-primary" state={{ from: t('dashboard.navNatal') }}>
+            {t('natal.upsellGoPricing')}
+          </Link>
+        </div>
       </Modal>
     </div>
   )

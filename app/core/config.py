@@ -61,9 +61,6 @@ class Settings(BaseSettings):
     STORAGE_DIR: Path = Path("/app/storage")
     STORAGE_RETENTION_DAYS: int = 90
 
-    # Статика лендинга (HTML/CSS/JS). В Docker обычно монтируется в /app/static
-    LANDING_STATIC_DIR: Path = _PROJECT_ROOT / "static"
-
     # Nominatim: обязательный User-Agent с контактом (политика использования)
     NOMINATIM_USER_AGENT: str = "AstroGen/1.0 (contact: support@astrogen.ru)"
 

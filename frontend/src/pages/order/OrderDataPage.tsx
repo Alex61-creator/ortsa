@@ -81,7 +81,7 @@ export function OrderDataPage() {
   const save = useMutation({
     mutationFn: async (values: FormValues) => {
       if (!me?.consent_given_at && !values.accept_privacy_policy) {
-        message.error('Нужно согласие с политикой обработки данных')
+        message.error(t('natal.privacyConsent'))
         throw new Error('consent')
       }
       const d = values.birth_date!
@@ -126,9 +126,9 @@ export function OrderDataPage() {
   if (!tariffCode) {
     return (
       <div style={{ padding: 24 }}>
-        <Title level={4}>Сначала выберите тариф</Title>
+        <Title level={4}>{t('order.fallbackSelectTariff')}</Title>
         <Button type="primary" onClick={() => navigate('/order/tariff')}>
-          К тарифам
+          {t('order.fallbackToTariffs')}
         </Button>
       </div>
     )
@@ -145,38 +145,38 @@ export function OrderDataPage() {
         ]}
         style={{ marginBottom: 32 }}
       />
-      <Title level={2}>Данные рождения</Title>
+      <Title level={2}>{t('order.dataTitle')}</Title>
       <Form layout="vertical">
-        <Form.Item label="ФИО" required>
+        <Form.Item label={t('natal.labelFullName')} required>
           <Controller name="full_name" control={form.control} render={({ field }) => <Input {...field} />} />
         </Form.Item>
-        <Form.Item label="Дата рождения" required>
+        <Form.Item label={t('natal.labelBirthDate')} required>
           <Controller name="birth_date" control={form.control} render={({ field }) => <DatePicker style={{ width: '100%' }} {...field} />} />
         </Form.Item>
-        <Form.Item label="Время рождения" required>
+        <Form.Item label={t('natal.labelBirthTime')} required>
           <Controller
             name="birth_time"
             control={form.control}
             render={({ field }) => <TimePicker style={{ width: '100%' }} format="HH:mm" {...field} />}
           />
         </Form.Item>
-        <Form.Item label="Место" required>
+        <Form.Item label={t('natal.labelPlace')} required>
           <Space.Compact style={{ width: '100%' }}>
             <Controller name="birth_place" control={form.control} render={({ field }) => <Input {...field} />} />
             <Button type="default" onClick={() => void searchGeo()}>
-              Найти
+              {t('natal.searchPlace')}
             </Button>
           </Space.Compact>
         </Form.Item>
         <Space wrap>
-          <Form.Item label="Широта">
+          <Form.Item label={t('natal.labelLat')}>
             <Controller
               name="lat"
               control={form.control}
               render={({ field }) => <InputNumber step={0.0001} style={{ width: 160 }} {...field} />}
             />
           </Form.Item>
-          <Form.Item label="Долгота">
+          <Form.Item label={t('natal.labelLon')}>
             <Controller
               name="lon"
               control={form.control}
@@ -184,7 +184,7 @@ export function OrderDataPage() {
             />
           </Form.Item>
         </Space>
-        <Form.Item label="Часовой пояс">
+        <Form.Item label={t('natal.labelTz')}>
           <Controller
             name="timezone"
             control={form.control}
@@ -200,7 +200,7 @@ export function OrderDataPage() {
           />
         </Form.Item>
         {canChooseHouseSystem(tariffCode) && (
-          <Form.Item label="Система домов">
+          <Form.Item label={t('natal.labelHouse')}>
             <Controller
               name="house_system"
               control={form.control}
@@ -221,7 +221,7 @@ export function OrderDataPage() {
               control={form.control}
               render={({ field }) => (
                 <Checkbox checked={field.value} onChange={(e) => field.onChange(e.target.checked)}>
-                  Согласие с политикой обработки ПДн
+                  {t('natal.privacyConsent')}
                 </Checkbox>
               )}
             />
@@ -232,7 +232,7 @@ export function OrderDataPage() {
         </Button>
       </Form>
 
-      <Modal title="Выберите место" open={geoOpen} footer={null} onCancel={() => setGeoOpen(false)}>
+      <Modal title={t('natal.pickPlaceTitle')} open={geoOpen} footer={null} onCancel={() => setGeoOpen(false)}>
         <List
           dataSource={geoHits}
           renderItem={(item) => (

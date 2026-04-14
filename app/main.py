@@ -1,11 +1,9 @@
 import structlog
 from datetime import date
-from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, RedirectResponse, Response
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import PlainTextResponse, RedirectResponse, Response
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from contextlib import asynccontextmanager
@@ -23,7 +21,6 @@ from app.core.cache import cache
 from app.core.health_checks import assert_dependencies_ready
 from app.api.deps import get_db
 from app.schemas.common import ReadyResponse
-from app.utils.landing_html import apply_seo_placeholders
 from app.middleware.security_headers import SecurityHeadersMiddleware
 
 setup_logging()
@@ -150,25 +147,6 @@ setup_exception_handlers(app)
 app.include_router(api_router, prefix=settings.API_V1_STR)
 setup_admin(app)
 
-_static_root: Path = settings.LANDING_STATIC_DIR.resolve()
-
-
-def _html_file_response(path: Path) -> HTMLResponse:
-    text = path.read_text(encoding="utf-8")
-    return HTMLResponse(
-        content=apply_seo_placeholders(text, settings),
-        media_type="text/html; charset=utf-8",
-    )
-
-
-if _static_root.is_dir():
-    app.mount(
-        "/static",
-        StaticFiles(directory=str(_static_root)),
-        name="landing_static",
-    )
-
-
 @app.get("/robots.txt", tags=["Лендинг"], include_in_schema=False)
 async def robots_txt():
     base = settings.site_base_url
@@ -191,9 +169,8 @@ async def sitemap_xml():
     today = date.today().isoformat()
     entries = [
         ("/", "1.0", "weekly"),
-        ("/privacy", "0.4", "monthly"),
-        ("/oferta", "0.4", "monthly"),
-        ("/sample-report.html", "0.6", "monthly"),
+        ("/order/tariff", "0.9", "weekly"),
+        ("/dashboard", "0.7", "weekly"),
     ]
     lines = [
         '<?xml version="1.0" encoding="UTF-8"?>',
@@ -216,18 +193,12 @@ async def sitemap_xml():
 
 @app.get("/", tags=["Лендинг"], include_in_schema=False)
 async def landing_index():
-    index_path = _static_root / "index.html"
-    if index_path.is_file():
-        return _html_file_response(index_path)
-    raise HTTPException(status_code=404, detail="Landing not found")
+    return RedirectResponse(url="/order/tariff", status_code=307)
 
 
 @app.get("/auth/callback", tags=["Лендинг"], include_in_schema=False)
 async def oauth_callback_page():
-    path = _static_root / "auth-callback.html"
-    if path.is_file():
-        return _html_file_response(path)
-    raise HTTPException(status_code=404, detail="Not found")
+    return RedirectResponse(url="/order/tariff", status_code=307)
 
 
 @app.get("/cabinet", tags=["Лендинг"], include_in_schema=False)
@@ -238,26 +209,17 @@ async def cabinet_redirect():
 
 @app.get("/sample-report.html", tags=["Лендинг"], include_in_schema=False)
 async def sample_report_page():
-    path = _static_root / "sample-report.html"
-    if path.is_file():
-        return _html_file_response(path)
-    raise HTTPException(status_code=404, detail="Not found")
+    return RedirectResponse(url="/order/tariff", status_code=307)
 
 
 @app.get("/privacy", tags=["Лендинг"], include_in_schema=False)
 async def privacy_page():
-    path = _static_root / "legal" / "privacy.html"
-    if path.is_file():
-        return _html_file_response(path)
-    raise HTTPException(status_code=404, detail="Not found")
+    return RedirectResponse(url="/order/tariff", status_code=307)
 
 
 @app.get("/oferta", tags=["Лендинг"], include_in_schema=False)
 async def oferta_page():
-    path = _static_root / "legal" / "oferta.html"
-    if path.is_file():
-        return _html_file_response(path)
-    raise HTTPException(status_code=404, detail="Not found")
+    return RedirectResponse(url="/order/tariff", status_code=307)
 
 @app.get("/health", tags=["Служебное"], summary="Проверка работоспособности")
 async def health_check():

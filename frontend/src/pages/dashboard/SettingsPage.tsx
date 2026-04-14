@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import i18n from 'i18next'
@@ -39,16 +39,6 @@ export function SettingsPage() {
     }
   })
 
-  useEffect(() => {
-    if (!me?.email) return
-    try {
-      const o = localStorage.getItem(LS_DELIVERY_EMAIL)
-      setDeliveryDraft(o ?? me.email)
-    } catch {
-      setDeliveryDraft(me.email)
-    }
-  }, [me?.email])
-
   const patchConsent = useMutation({
     mutationFn: (v: boolean) => patchMeConsent(v),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['me'] }),
@@ -69,6 +59,11 @@ export function SettingsPage() {
       /* ignore */
     }
     setDeliveryOpen(false)
+  }
+
+  const openDeliveryEditor = () => {
+    setDeliveryDraft(deliveryDisplay())
+    setDeliveryOpen((v) => !v)
   }
 
   const onExport = async () => {
@@ -182,7 +177,7 @@ export function SettingsPage() {
               >
                 {deliveryDisplay()}
               </div>
-              <button type="button" className="btn btn-default btn-sm" onClick={() => setDeliveryOpen((v) => !v)}>
+              <button type="button" className="btn btn-default btn-sm" onClick={openDeliveryEditor}>
                 {t('settings.change')}
               </button>
             </div>

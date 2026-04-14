@@ -24,7 +24,7 @@ Backend сервиса онлайн-натальной карты: FastAPI, Post
    docker compose up --build
    ```
 
-3. API: `http://localhost:8000`, OpenAPI: `http://localhost:8000/api/v1/openapi.json`, health: `GET /health`. Главная **маркетинговая** страница — HTML из каталога `static/` (тот же хост, путь `/`). Клиентское **SPA** заказа и кабинета собирается из `frontend/` и в Docker Compose с **внешним** Caddy раздаётся только на путях вроде `/order`, `/order/...`, `/dashboard/...`, `/reports/...`, `/auth/callback` (см. `Caddyfile`); корень `/` на проде не должен отдавать `index.html` React.
+3. API: `http://localhost:8000`, OpenAPI: `http://localhost:8000/api/v1/openapi.json`, health: `GET /health`. Публичный вход в приложение и заказ — **React SPA**: корень `/` и маршруты `/order/...`, `/dashboard/...`, `/reports/...` ведут в SPA (см. `Caddyfile`).
 
 4. Миграции (из корня репозитория, с установленными зависимостями):
 
@@ -32,7 +32,7 @@ Backend сервиса онлайн-натальной карты: FastAPI, Post
    alembic upgrade head
    ```
 
-**Продакшен (отдельный Compose):** [`docker-compose.prod.yml`](docker-compose.prod.yml) — образ приложения **без** монтирования `./app`/`./static`; том только для `storage`. Сборка SPA в каталог для Caddy: `cd frontend && npm run build:deploy` (→ `frontend-dist/`). Запуск: `docker compose -f docker-compose.prod.yml --env-file .env up -d`. Черновик Caddy с доменом: [`deploy/Caddyfile.prod.example`](deploy/Caddyfile.prod.example). Резервное копирование БД и `storage`: [`scripts/backup_all.sh`](scripts/backup_all.sh) (см. [`docs/PRODUCTION_IMPLEMENTATION.md`](docs/PRODUCTION_IMPLEMENTATION.md) §1.6).
+**Продакшен (отдельный Compose):** [`docker-compose.prod.yml`](docker-compose.prod.yml) — образ приложения **без** монтирования `./app`; том только для `storage`. Сборка SPA в каталоги для Caddy: `cd frontend && npm run build:deploy` (→ `frontend-dist/`) и `cd ../frontend-admin && npm run build` (→ `frontend-admin/dist/`). Запуск: `docker compose -f docker-compose.prod.yml --env-file .env up -d`. Черновик Caddy с доменом (включая `admin.<домен>` для админ-SPA): [`deploy/Caddyfile.prod.example`](deploy/Caddyfile.prod.example). Резервное копирование БД и `storage`: [`scripts/backup_all.sh`](scripts/backup_all.sh) (см. [`docs/PRODUCTION_IMPLEMENTATION.md`](docs/PRODUCTION_IMPLEMENTATION.md) §1.6).
 
 ## Локальная разработка (без Docker)
 
@@ -266,7 +266,7 @@ Redis в тестах подменяется на **fakeredis** (in-memory) в `
 
 **`app/templates/`** — `email/*.html` (письма: отчёт готов, возврат), `pdf/report.html` (шаблон PDF).
 
-**`app/utils/`** — `hashing`, `sanitize`, `tz`, `validation`, `email_policy` (плейсхолдер-email для чеков), `landing_html` (подстановки SEO в статический HTML).
+**`app/utils/`** — `hashing`, `sanitize`, `tz`, `validation`, `email_policy` (плейсхолдер-email для чеков), `landing_html` (вспомогательный SEO helper для legacy-шаблонов).
 
 **`scripts/`** — `init_db.py` (инициализация БД), `create_admin.py` (учётка администратора).
 
@@ -274,14 +274,14 @@ Redis в тестах подменяется на **fakeredis** (in-memory) в `
 
 ### Фронтенд и HTML-макеты
 
-- **Продакшен:** отдаётся только содержимое каталога **`static/`** (HTML/CSS/JS); роуты в `app/main.py` (`/`, юридические страницы и т.д.). Запрос **`/cabinet`** перенаправляет на React SPA **`/dashboard`** (статический кабинет удалён).
-- Каталог **`HTML макеты/`** (если присутствует в репозитории) — визуальные референсы и черновики; актуальная вёрстка для пользователей — в **`static/`**. Переносите изменения из макетов в `static/` осознанным PR.
+- **Продакшен:** интерфейс пользователя отдаётся из сборки **React SPA** (`frontend-dist/`) через Caddy. Backend обслуживает API и служебные маршруты.
+- Каталог **`HTML макеты/`** (если присутствует в репозитории) — визуальные референсы и черновики; актуальная пользовательская версия живёт в `frontend/src/`.
 
 ### SEO и языки
 
 - Эндпоинты **`GET /robots.txt`** и **`GET /sitemap.xml`** собираются из `site_base_url` в конфиге (`SITE_URL` или, если не задан, `public_app_base_url`).
-- В **`static/index.html`** используются плейсхолдеры `__SITE_BASE_URL__` и `__META_VERIFICATIONS__`; при отдаче страницы подставляются значения из `.env` (`GOOGLE_SITE_VERIFICATION`, `YANDEX_VERIFICATION`, `BING_SITE_VERIFICATION` — опционально).
-- Переключение языка на лендинге через JS не создаёт отдельный индексируемый URL; полноценная английская версия для международного SEO (например статический `/en/` и `hreflang`) — отдельная задача.
+- В sitemap включены актуальные SPA-маршруты (`/order/tariff`, `/dashboard`) как публичные точки входа.
+- Переключение языка в SPA клиентское; полноценная SEO-стратегия с отдельными индексируемыми локализованными URL — отдельная задача.
 
 ### Чеклист релиза (прод)
 
@@ -332,8 +332,7 @@ Redis в тестах подменяется на **fakeredis** (in-memory) в `
 
 ### OG-картинка и favicon
 
-- Превью для соцсетей: **`static/images/og-default.png`** (1200×630). Пересборка: `pip install -r requirements-dev.txt` и `python scripts/generate_og_default.py`.
-- Иконка сайта: **`static/favicon.svg`**, подключена в `static/index.html`.
+- Превью и favicon задаются в сборке SPA (`frontend/`) и проксируются Caddy вместе с `frontend-dist`.
 
 См. также [`CONTRIBUTING.md`](CONTRIBUTING.md).
 

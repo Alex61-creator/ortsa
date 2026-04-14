@@ -25,7 +25,7 @@ export function OrderStatusPage() {
   })
 
   if (!Number.isFinite(id)) {
-    return <Result status="error" title="Некорректный заказ" />
+    return <Result status="error" title={t('order.invalidOrder')} />
   }
 
   if (isLoading || !data) {
@@ -38,27 +38,27 @@ export function OrderStatusPage() {
   return (
     <div style={{ maxWidth: 560, margin: '0 auto', padding: 24 }}>
       <Typography.Title level={2}>{t('order.statusTitle')}</Typography.Title>
-      <Paragraph>Статус: {data.status}</Paragraph>
+      <Paragraph>{t('order.statusLabel', { status: data.status })}</Paragraph>
       {done && (
         <>
           <Result
             status="success"
-            title="Оплата прошла"
+            title={t('order.paidTitle')}
             subTitle={t('order.paidHint')}
             extra={
               <Space direction="vertical">
                 {data.report_ready && (
                   <Link to={`/reports/${data.id}`}>
-                    <Button type="primary">Открыть отчёт</Button>
+                    <Button type="primary">{t('order.openReport')}</Button>
                   </Link>
                 )}
                 {isTwa && (
                   <Paragraph type="secondary">
-                    Когда отчёт будет готов, вы получите ссылку в боте или на почте.
+                    {t('order.reportReadyHint')}
                   </Paragraph>
                 )}
                 <Link to="/dashboard/orders">
-                  <Button type="default">Мои заказы</Button>
+                  <Button type="default">{t('order.myOrders')}</Button>
                 </Link>
               </Space>
             }
@@ -68,14 +68,14 @@ export function OrderStatusPage() {
       {data.status === 'pending' && (
         <Result
           status="info"
-          title="Ожидаем оплату"
-          subTitle="Завершите оплату в открывшемся окне ЮKassa."
+          title={t('order.pendingTitle')}
+          subTitle={t('order.pendingHint')}
         />
       )}
       {data.status === 'processing' && (
-        <Result status="info" title="Генерация отчёта" subTitle="Обычно 5–15 минут." />
+        <Result status="info" title={t('order.processingTitle')} subTitle={t('order.processingHint')} />
       )}
-      {failed && <Result status="error" title="Проблема с заказом" subTitle={data.status} />}
+      {failed && <Result status="error" title={t('order.problemTitle')} subTitle={data.status} />}
     </div>
   )
 }

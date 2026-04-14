@@ -10,8 +10,8 @@
 | **Google OAuth — redirect (сайт)** | Google Cloud Console → OAuth | `https://ВАШ-ДОМЕН/api/v1/auth/google/callback` |
 | **Google OAuth — redirect (админка)** | Google Cloud Console → OAuth | `https://ВАШ-ДОМЕН/api/v1/auth/google/callback-admin` |
 | **Яндекс OAuth — redirect** | Яндекс OAuth → Redirect URI | `https://ВАШ-ДОМЕН/api/v1/auth/yandex/callback` (в консоли — **точное** совпадение со схемой и путём) |
-| **Админ-SPA** | `ADMIN_APP_ORIGIN`, CORS | `https://admin.ВАШ-ДОМЕН` (если выносите админку на поддомен) |
-| **Telegram Mini App** | BotFather → Web App URL | **`https://ВАШ-ДОМЕН/`** (корень сайта) — открывается HTML-лендинг из `static/`; тихий вход через `POST /api/v1/auth/twa` по `initData` (см. `static/js/auth-popup.js`). Если указать только путь SPA без лендинга на `/`, пользователь не увидит маркетинговую главную при старте из бота. |
+| **Админ-SPA** | `ADMIN_APP_ORIGIN`, CORS | `https://admin.ВАШ-ДОМЕН` (рекомендуемый вариант; шаблоны `Caddyfile` и `deploy/Caddyfile.prod.example` уже включают `admin.<домен>`, `X-Robots-Tag: noindex` и `robots.txt` с `Disallow: /`) |
+| **Telegram Mini App** | BotFather → Web App URL | **`https://ВАШ-ДОМЕН/`** (корень React SPA); авторизация через `POST /api/v1/auth/twa` по `initData`. |
 
 **Почта ([Unisender](https://www.unisender.com/)):** SMTP-параметры и DKIM задаются в кабинете Unisender; в DNS домена отправки — записи SPF/DKIM/DMARC по инструкции провайдера (см. `PRODUCTION_IMPLEMENTATION.md` §2.3.1).
 

@@ -25,7 +25,7 @@ export function OrderConfirmPage() {
 
   const pay = useMutation({
     mutationFn: async () => {
-      if (!tariffCode || !natalDataId) throw new Error('Неполные данные')
+      if (!tariffCode || !natalDataId) throw new Error(t('order.incompleteDataError'))
       return createOrder({ tariff_code: tariffCode, natal_data_id: natalDataId })
     },
     onSuccess: (order) => {
@@ -44,8 +44,8 @@ export function OrderConfirmPage() {
   if (!tariffCode || !natalDataId) {
     return (
       <div style={{ padding: 24 }}>
-        <Title level={4}>Не хватает шагов оформления</Title>
-        <Button onClick={() => navigate('/order/tariff')}>Начать сначала</Button>
+        <Title level={4}>{t('order.confirmIncompleteSteps')}</Title>
+        <Button onClick={() => navigate('/order/tariff')}>{t('common.startOver')}</Button>
       </div>
     )
   }
@@ -61,13 +61,13 @@ export function OrderConfirmPage() {
         ]}
         style={{ marginBottom: 32 }}
       />
-      <Title level={2}>Подтверждение</Title>
+      <Title level={2}>{t('order.confirmTitle')}</Title>
       <Card>
         <Descriptions column={1} bordered size="small">
-          <Descriptions.Item label="Тариф">{tariff?.name ?? tariffCode}</Descriptions.Item>
-          <Descriptions.Item label="Цена">{tariff ? `${tariff.price} ₽` : '—'}</Descriptions.Item>
-          <Descriptions.Item label="Имя">{natal?.full_name}</Descriptions.Item>
-          <Descriptions.Item label="Место">{natal?.birth_place}</Descriptions.Item>
+          <Descriptions.Item label={t('order.confirmTariff')}>{tariff?.name ?? tariffCode}</Descriptions.Item>
+          <Descriptions.Item label={t('order.confirmPrice')}>{tariff ? `${tariff.price} ₽` : '—'}</Descriptions.Item>
+          <Descriptions.Item label={t('order.confirmName')}>{natal?.full_name}</Descriptions.Item>
+          <Descriptions.Item label={t('order.confirmPlace')}>{natal?.birth_place}</Descriptions.Item>
         </Descriptions>
         <Space style={{ marginTop: 24 }}>
           <Button onClick={() => navigate('/order/data')}>{t('common.back')}</Button>

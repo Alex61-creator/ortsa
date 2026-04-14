@@ -2,7 +2,9 @@
 # Сборка: docker build -t astro-prod:latest .
 # Запуск:   docker compose -f docker-compose.prod.yml --env-file .env up -d
 #
-# Перед первым запуском: соберите SPA в ./frontend-dist (npm run build:deploy в frontend/)
+# Перед первым запуском:
+# - соберите пользовательский SPA в ./frontend-dist (npm run build:deploy в frontend/)
+# - соберите админский SPA в ./frontend-admin/dist (npm run build в frontend-admin/)
 # и задайте DOCKER_IMAGE при необходимости (по умолчанию astro-prod:latest).
 
 services:
@@ -129,6 +131,7 @@ services:
       - caddy_data:/data
       - caddy_config:/config
       - ./frontend-dist:/srv/frontend:ro
+      - ./frontend-admin/dist:/srv/frontend-admin:ro
     depends_on:
       - fastapi
     networks:

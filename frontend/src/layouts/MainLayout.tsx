@@ -1,7 +1,6 @@
 import { Layout, Button, Space, Typography } from 'antd'
 import { MoonOutlined, SunOutlined } from '@ant-design/icons'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { BackButton } from '@twa-dev/sdk/react'
@@ -11,13 +10,6 @@ import { useThemeStore } from '@/stores/themeStore'
 import '@/styles/global.css'
 
 const { Header, Content, Footer } = Layout
-
-function landingOrigin(): string {
-  const v = import.meta.env.VITE_LANDING_ORIGIN
-  if (v && String(v).trim()) return String(v).replace(/\/$/, '')
-  if (typeof window !== 'undefined') return window.location.origin
-  return ''
-}
 
 const SPA_ENTRY_PATHS = new Set(['/order', '/order/tariff'])
 
@@ -30,9 +22,6 @@ export function MainLayout() {
   const themeMode = useThemeStore((s) => s.mode)
   const setThemeMode = useThemeStore((s) => s.setMode)
 
-  const siteBase = useMemo(() => landingOrigin(), [])
-  const pricingHref = `${siteBase}/#pricing`
-
   const showTwaBack = isTwa && !SPA_ENTRY_PATHS.has(location.pathname)
 
   return (
@@ -40,16 +29,16 @@ export function MainLayout() {
       {showTwaBack && <BackButton onClick={() => navigate(-1)} />}
       <Header className="app-header">
         <div className="app-header-inner">
-          <a href={siteBase} style={{ textDecoration: 'none' }}>
+          <Link to="/order/tariff" style={{ textDecoration: 'none' }}>
             <Typography.Title level={4} style={{ margin: 0, color: 'var(--ag-text)' }}>
               {t('appName')}
             </Typography.Title>
-          </a>
+          </Link>
           <Space wrap>
             {!isTwa && (
               <Button
                 type="text"
-                aria-label={themeMode === 'dark' ? 'Светлая тема' : 'Тёмная тема'}
+                aria-label={t('dashboard.toggleTheme')}
                 icon={themeMode === 'dark' ? <SunOutlined /> : <MoonOutlined />}
                 onClick={() => setThemeMode(themeMode === 'dark' ? 'light' : 'dark')}
               />
@@ -60,7 +49,7 @@ export function MainLayout() {
               </Link>
             ) : (
               !isTwa && (
-                <Button href={pricingHref} type="link">
+                <Button type="link" onClick={() => navigate('/order/tariff')}>
                   {t('nav.tariff')}
                 </Button>
               )

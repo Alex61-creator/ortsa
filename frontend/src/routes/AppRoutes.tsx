@@ -27,6 +27,10 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/order/tariff" replace />} />
+      <Route path="/privacy" element={<Navigate to="/order/tariff" replace />} />
+      <Route path="/oferta" element={<Navigate to="/order/tariff" replace />} />
+      <Route path="/sample-report.html" element={<Navigate to="/order/tariff" replace />} />
+      <Route path="/cabinet" element={<Navigate to="/dashboard" replace />} />
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/dashboard" element={<DashboardLayout />}>

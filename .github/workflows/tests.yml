@@ -20,10 +20,6 @@ jobs:
             requirements-dev.txt
       - name: Install dependencies
         run: pip install -r requirements.txt -r requirements-dev.txt
-      - name: Verify static landing markers
-        run: |
-          grep -q 'meta name="api-base"' static/index.html
-          grep -q '__SITE_BASE_URL__' static/index.html
       - name: Run pytest
         run: pytest -q
 

@@ -1,13 +1,47 @@
 # Скопируйте в корень репозитория как Caddyfile на сервере (или подключите volume).
 # Замените astrogen.ru на ваш боевой домен; DNS: A/AAAA для @ и для www (для ACME на оба имени).
 # До деплоя: DNS A/AAAA на этот сервер, порты 80/443 открыты для ACME.
-# Корень / — лендинг FastAPI (static/); SPA — только на /order, /dashboard, /reports, /auth/callback; legacy /cabinet/orders → SPA.
+# React-only: SPA отдается на корне и путях приложения; FastAPI только для API/служебных путей.
 # reverse_proxy передаёт X-Forwarded-Proto; на бэкенде задайте FORWARDED_ALLOW_IPS (см. docker-compose.prod.yml, docs/DEPLOY_URLS.md).
 #
 # Cloudflare-only (без отдельного Caddy): Redirect Rule 301 — host www.astrogen.ru → https://astrogen.ru${uri}
 
 www.astrogen.ru {
     redir https://astrogen.ru{uri} permanent
+}
+
+admin.astrogen.ru {
+    encode gzip
+
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
+        Strict-Transport-Security max-age=31536000;
+        X-Robots-Tag "noindex, nofollow, noarchive, nosnippet"
+    }
+
+    handle = /robots.txt {
+        respond "User-agent: *\nDisallow: /\n" 200
+    }
+
+    handle_path /api/* {
+        reverse_proxy fastapi:8000
+    }
+
+    handle /health {
+        reverse_proxy fastapi:8000
+    }
+
+    handle /health/ready {
+        reverse_proxy fastapi:8000
+    }
+
+    handle {
+        root * /srv/frontend-admin
+        try_files {path} /index.html
+        file_server
+    }
 }
 
 astrogen.ru {
@@ -82,6 +116,8 @@ astrogen.ru {
     }
 
     handle {
-        reverse_proxy fastapi:8000
+        root * /srv/frontend
+        try_files {path} /index.html
+        file_server
     }
 }

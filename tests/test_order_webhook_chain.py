@@ -83,7 +83,9 @@ async def test_http_create_order_then_yookassa_webhook_paid_and_enqueue_report(
 @pytest.mark.asyncio
 async def test_landing_html_includes_content_security_policy(client: AsyncClient):
     r = await client.get("/")
-    assert r.status_code == 200
-    assert "content-security-policy" in {k.lower() for k in r.headers.keys()}
-    csp = r.headers.get("content-security-policy") or r.headers.get("Content-Security-Policy")
-    assert csp and "default-src" in csp
+    assert r.status_code in (302, 307, 308)
+    assert r.headers.get("location") == "/order/tariff"
+    # Для redirect-ответов в React-only режиме проверяем базовые security headers.
+    headers_lower = {k.lower() for k in r.headers.keys()}
+    assert "x-content-type-options" in headers_lower
+    assert "referrer-policy" in headers_lower

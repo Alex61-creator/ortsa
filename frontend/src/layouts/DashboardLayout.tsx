@@ -107,6 +107,12 @@ export function DashboardLayout() {
             Astrogen
           </Link>
 
+          <div className="sidebar-cta">
+            <Link to="/order/tariff" className="btn btn-primary sidebar-cta-btn" onClick={closeMobile}>
+              + {t('dashboard.newOrder')}
+            </Link>
+          </div>
+
           <nav className="sidebar-nav">
             <div className="nav-section-label">{t('dashboard.sectionCabinet')}</div>
             <NavLink to="/dashboard" end className={navClass} onClick={closeMobile}>
@@ -205,9 +211,6 @@ export function DashboardLayout() {
               >
                 {colorMode === 'dark' ? '☀' : '☽'}
               </button>
-              <Link to="/order/tariff" className="btn btn-primary btn-sm">
-                + {t('dashboard.newOrder')}
-              </Link>
             </div>
           </div>
 

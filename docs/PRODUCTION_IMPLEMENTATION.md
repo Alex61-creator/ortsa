@@ -34,7 +34,7 @@
 
 - [ ] Политика **секретов** на сервере: Docker secrets / Vault / переменные оркестратора (не ручной `.env` без дисциплины).
 - [ ] **SQLAdmin `/admin`:** длинный случайный пароль; ограничение по IP/VPN; только HTTPS.
-- [ ] **`ADMIN_APP_ORIGIN`**, allowlist админов; выкладка сборки `frontend-admin`; смоук админ-сценариев.
+- [ ] **`ADMIN_APP_ORIGIN`**, allowlist админов; выкладка сборки `frontend-admin`; смоук админ-сценариев (Caddy-шаблоны под `admin.<домен>` уже есть в репозитории).
 - [ ] **Бэкапы:** PostgreSQL и `storage`; расписание; учебный прогон восстановления.
 - [ ] **Мониторинг:** uptime на `/health` и `/health/ready`; опционально Sentry; алерты по диску и 5xx.
 - [ ] **Прод-сборка** по `docker-compose.prod.yml`: образ из CI с тегом/дигестом; переменные `VITE_*` в пайплайне фронта.
@@ -189,10 +189,10 @@
 | Статус | Действие |
 |--------|----------|
 | [ ] | Задать `ADMIN_APP_ORIGIN` (origin админ-SPA) и добавить его в CORS (приложение добавляет origin автоматически, если задан). |
-| [ ] | В reverse proxy: хост `admin.example.com` → статика сборки `frontend-admin` + прокси `/api/*` на FastAPI (как основной сайт). |
+| [x] | В репозитории добавлен шаблон reverse proxy: хост `admin.example.com` → статика сборки `frontend-admin` + прокси `/api/*` на FastAPI (см. `Caddyfile`, `deploy/Caddyfile.prod.example`), с anti-index (`X-Robots-Tag: noindex`, `robots.txt: Disallow: /`). |
 | [ ] | Ограничить доступ к поддомену админки (VPN / allowlist), не полагаться только на OAuth. |
 | [ ] | Заполнить allowlist админов в env; при смене состава админов — обновить env и при необходимости снять флаг `is_admin` в БД вручную. |
-| [ ] | Собрать `frontend-admin` (`npm run build`), выкласть `dist/` на хост админки; локальный запуск и чеклист проверки — в корневом [`README.md`](../README.md) (раздел «Админ-панель»). |
+| [ ] | Собрать `frontend-admin` (`npm run build`), выложить `dist/` на хост админки (в `docker-compose.prod.yml` уже смонтировано в `/srv/frontend-admin`); локальный запуск и чеклист проверки — в корневом [`README.md`](../README.md) (раздел «Админ-панель»). |
 
 ---
 
@@ -470,7 +470,7 @@
 
 ### Фаза D: reverse proxy и TLS
 
-13. **Caddy / Nginx:** TLS через Let's Encrypt (в `Caddyfile` заменить заглушечный домен), проксирование на контейнер API, раздача статики фронта и лендинга.
+13. **Caddy / Nginx:** TLS через Let's Encrypt (в `Caddyfile` заменить заглушечный домен), проксирование на контейнер API и раздача React SPA (`frontend-dist`).
 14. **Админ-SPA:** сборка `frontend-admin`, выкладка `dist/`, `ADMIN_APP_ORIGIN` и CORS.
 15. **Проверить** HTTP→HTTPS редирект и HSTS по политике безопасности.
 

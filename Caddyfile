@@ -1,6 +1,6 @@
 # Прод: TLS через ACME. Черновик с примером домена: deploy/Caddyfile.prod.example (скопируйте и переименуйте блок домена).
 # HTML с FastAPI уже получает CSP из SecurityHeadersMiddleware (см. app/middleware/security_headers.py).
-# Корень / и маркетинг — FastAPI + static/; React SPA только на путях приложения (см. handle ниже).
+# React-only: SPA на корне и маршрутах приложения; FastAPI только для API/служебных путей.
 #
 # reverse_proxy передаёт X-Forwarded-Proto (https). Uvicorn учитывает его только если IP прокси в FORWARDED_ALLOW_IPS
 # (в docker-compose задано по умолчанию); иначе redirect_uri в OAuth остаётся http:// — в консолях Google/Яндекс указывайте https://…
@@ -9,6 +9,42 @@
 # Если TLS терминирует Cloudflare: аналог в Rules → Redirect Rules (301, www → apex).
 www.yourdomain.com {
     redir https://yourdomain.com{uri} permanent
+}
+
+# Админский поддомен (React SPA из frontend-admin/dist -> /srv/frontend-admin).
+# Для OAuth задайте ADMIN_APP_ORIGIN=https://admin.yourdomain.com.
+admin.yourdomain.com {
+    encode gzip
+
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
+        Strict-Transport-Security max-age=31536000;
+        X-Robots-Tag "noindex, nofollow, noarchive, nosnippet"
+    }
+
+    handle = /robots.txt {
+        respond "User-agent: *\nDisallow: /\n" 200
+    }
+
+    handle /api/* {
+        reverse_proxy fastapi:8000
+    }
+
+    handle /health {
+        reverse_proxy fastapi:8000
+    }
+
+    handle /health/ready {
+        reverse_proxy fastapi:8000
+    }
+
+    handle {
+        root * /srv/frontend-admin
+        try_files {path} /index.html
+        file_server
+    }
 }
 
 yourdomain.com {
@@ -83,11 +119,13 @@ yourdomain.com {
     }
 
     handle {
-        reverse_proxy fastapi:8000
+        root * /srv/frontend
+        try_files {path} /index.html
+        file_server
     }
 }
 
-# Локальная разработка в Docker: без ACME/TLS, весь трафик на FastAPI (лендинг /static и /api).
+# Локальная разработка в Docker: без ACME/TLS, весь трафик на FastAPI.
 # За внешним reverse proxy задайте доверие к X-Forwarded-For (см. README: вебхуки ЮKassa).
 http://localhost, http://127.0.0.1 {
     encode gzip

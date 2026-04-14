@@ -10,7 +10,7 @@ export function SupportPage() {
   const [message, setMessage] = useState('')
 
   const sendMail = () => {
-    const subject = encodeURIComponent('Astrogen — поддержка')
+    const subject = encodeURIComponent(t('support.mailSubject'))
     const body = encodeURIComponent(message.trim() || '')
     window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`
   }

@@ -38,7 +38,7 @@ export function ReportDownloadPage() {
   }
 
   if (!Number.isFinite(id)) {
-    return <Result status="error" title="Некорректная ссылка" />
+    return <Result status="error" title={t('reports.invalidLink')} />
   }
 
   if (isLoading) {
@@ -50,9 +50,9 @@ export function ReportDownloadPage() {
       <div style={{ padding: 24, maxWidth: 560, margin: '0 auto' }}>
         <Result
           status="info"
-          title="Отчёт ещё готовится"
+          title={t('reports.preparingTitle')}
           extra={
-            <Typography.Link href="/dashboard/orders">Перейти к заказам</Typography.Link>
+            <Typography.Link href="/dashboard/orders">{t('reports.goToOrders')}</Typography.Link>
           }
         />
       </div>
