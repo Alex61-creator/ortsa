@@ -48,8 +48,8 @@ export function OrderTariffPage() {
   const { data: tariffs, isLoading, isError } = useQuery({ queryKey: ['tariffs'], queryFn: listTariffs })
   const redirectNote = location.state?.from
   const [mode, setMode] = useState<PricingMode>('onetime')
-  const [isYearly, setIsYearly] = useState(true)
   const [selectedOneTime, setSelectedOneTime] = useState('report')
+
   const oneTimePlans = useMemo<OneTimePlanModel[]>(
     () => [
       {
@@ -118,11 +118,10 @@ export function OrderTariffPage() {
     () => REQUIRED_ONE_TIME_CODES.filter((code) => !tariffsByCode.has(code)),
     [tariffsByCode],
   )
-  const proTariff = tariffsByCode.get('pro')
-  const tariffLoadFailed = isError || (!isLoading && (missingCodes.length > 0 || !proTariff))
-  const proMonthly = proTariff ? toNumber(proTariff.price) : null
-  const proYearlyMonthly = proMonthly === null ? null : Math.max(0, Math.round(proMonthly * 0.66))
-  const proYearlyTotal = proYearlyMonthly === null ? null : proYearlyMonthly * 12
+
+  const subMonthly = tariffsByCode.get('sub_monthly')
+  const subAnnual = tariffsByCode.get('sub_annual')
+  const tariffLoadFailed = isError || (!isLoading && missingCodes.length > 0)
 
   const startOrderFor = (tariffCode: string) => {
     setTariff(tariffCode)
@@ -131,9 +130,7 @@ export function OrderTariffPage() {
 
   const resolvePlanPrice = (plan: OneTimePlanModel): { current: number | null; old: number | null } => {
     const apiTariff = tariffsByCode.get(plan.code)
-    if (!apiTariff) {
-      return { current: null, old: null }
-    }
+    if (!apiTariff) return { current: null, old: null }
     const current = toNumber(apiTariff.price)
     if (plan.code === 'bundle') {
       const old = Math.round(current * (2370 / 1590))
@@ -141,8 +138,17 @@ export function OrderTariffPage() {
     }
     return { current, old: plan.oldPrice ?? null }
   }
+
   const selectedOneTimePlan = oneTimePlans.find((plan) => plan.code === selectedOneTime) ?? oneTimePlans[0]
   const selectedOneTimeUnavailable = resolvePlanPrice(selectedOneTimePlan).current === null
+
+  const monthlyPrice = subMonthly ? toNumber(subMonthly.price) : null
+  const annualPrice = subAnnual ? toNumber(subAnnual.price) : null
+  // Месячный эквивалент годовой подписки (для сравнения)
+  const annualMonthly = annualPrice !== null ? Math.round(annualPrice / 12) : null
+  const annualDiscount = monthlyPrice && annualMonthly
+    ? Math.round((1 - annualMonthly / monthlyPrice) * 100)
+    : null
 
   return (
     <div className="pricing-page">
@@ -188,6 +194,7 @@ export function OrderTariffPage() {
             <span className="pricing-mode-badge">{t('order.modeBetter')}</span>
           </button>
         </div>
+
         {tariffLoadFailed && (
           <Alert
             type="error"
@@ -266,11 +273,7 @@ export function OrderTariffPage() {
             </Row>
             <div className="pricing-switch-link">
               {t('order.switchToProPrompt')}
-              <Button
-                type="link"
-                onClick={() => setMode('subscription')}
-                style={{ paddingInline: 6 }}
-              >
+              <Button type="link" onClick={() => setMode('subscription')} style={{ paddingInline: 6 }}>
                 {t('order.switchToProCta')}
               </Button>
             </div>
@@ -290,55 +293,105 @@ export function OrderTariffPage() {
           </>
         ) : (
           <>
-            <div className="billing-toggle">
-              <button type="button" className={`billing-toggle-btn${isYearly ? ' active' : ''}`} onClick={() => setIsYearly(true)}>
-                Год
-              </button>
-              <button type="button" className={`billing-toggle-btn${!isYearly ? ' active' : ''}`} onClick={() => setIsYearly(false)}>
-                Месяц
-              </button>
-              {isYearly ? <Tag color="purple">{t('order.discount34')}</Tag> : null}
-            </div>
-            <Card className="pro-card" bordered={false}>
-              <div className="pro-grid">
-                <div>
-                  <Tag color="purple">Astro Pro</Tag>
-                  <Title level={3} style={{ marginTop: 10 }}>
-                    {t('order.proTitle')}
-                  </Title>
-                  <p className="pro-copy">{t('order.proCopy')}</p>
+            <Row gutter={[20, 20]}>
+              {/* ── Помесячная подписка ── */}
+              <Col xs={24} md={12}>
+                <Card className="pro-card" bordered={false}>
+                  <div style={{ marginBottom: 8 }}>
+                    <Tag color="blue">Astro Pro</Tag>
+                    <span style={{ marginLeft: 8, fontSize: 13, color: 'var(--ag-text-2)' }}>Помесячно</span>
+                  </div>
+                  <Title level={4} style={{ margin: '8px 0' }}>{t('order.proTitle')}</Title>
+                  <p style={{ color: 'var(--ag-text-2)', fontSize: 13 }}>{t('order.proCopy')}</p>
                   <ul className="pro-features">
                     <li>{t('order.proFeatTransits')}</li>
                     <li>{t('order.proFeatSynastry')}</li>
                     <li>{t('order.proFeatProgressions')}</li>
-                    <li>{t('order.proFeatProfiles')}</li>
+                    <li>До 5 натальных профилей</li>
                     <li>{t('order.proFeatReport')}</li>
                   </ul>
-                </div>
-                <div className="pro-price-box">
-                  {proMonthly === null || proYearlyMonthly === null || proYearlyTotal === null ? (
-                    <div className="pricing-price-unavailable">{t('order.tariffUnavailable')}</div>
-                  ) : (
-                    <>
-                      {isYearly ? <div className="pro-price-old">{formatRub(proMonthly)} ₽/мес</div> : null}
-                      <div className="pro-price-main">
-                        {formatRub(isYearly ? proYearlyMonthly : proMonthly)}
-                        <span> ₽</span>
-                      </div>
-                      <div className="pro-price-subtitle">{t('order.perMonth')}</div>
-                      <div className="pro-price-note">
-                        {isYearly
-                          ? t('order.yearlySinglePayment', { amount: formatRub(proYearlyTotal) })
-                          : t('order.yearlyMonthlyPayment', { amount: formatRub(proMonthly * 12) })}
-                      </div>
-                    </>
-                  )}
-                  <Button type="primary" size="large" block disabled={proMonthly === null} onClick={() => startOrderFor('pro')}>
-                    {proYearlyTotal === null ? t('order.tariffUnavailableCta') : isYearly ? t('order.payYearlyCta', { amount: formatRub(proYearlyTotal) }) : t('order.trialCta')}
-                  </Button>
-                </div>
-              </div>
-            </Card>
+                  <div style={{ marginTop: 16 }}>
+                    {monthlyPrice === null ? (
+                      <div className="pricing-price-unavailable">{t('order.tariffUnavailable')}</div>
+                    ) : (
+                      <>
+                        <div className="pro-price-main">
+                          {formatRub(monthlyPrice)}<span> ₽</span>
+                        </div>
+                        <div style={{ fontSize: 13, color: 'var(--ag-text-2)', marginBottom: 12 }}>
+                          в месяц · списание ежемесячно
+                        </div>
+                      </>
+                    )}
+                    <Button
+                      type="default"
+                      size="large"
+                      block
+                      disabled={monthlyPrice === null}
+                      onClick={() => startOrderFor('sub_monthly')}
+                    >
+                      {monthlyPrice === null ? t('order.tariffUnavailableCta') : t('order.trialCta')}
+                    </Button>
+                  </div>
+                </Card>
+              </Col>
+
+              {/* ── Годовая подписка ── */}
+              <Col xs={24} md={12}>
+                <Card className="pro-card" bordered={false} style={{ border: '2px solid var(--ag-primary)' }}>
+                  <div style={{ marginBottom: 8 }}>
+                    <Tag color="purple">Astro Pro</Tag>
+                    <span style={{ marginLeft: 8, fontSize: 13, color: 'var(--ag-text-2)' }}>Годовая</span>
+                    {annualDiscount && annualDiscount > 0 ? (
+                      <Tag color="green" style={{ marginLeft: 8 }}>−{annualDiscount}%</Tag>
+                    ) : null}
+                  </div>
+                  <Title level={4} style={{ margin: '8px 0' }}>{t('order.proTitle')}</Title>
+                  <p style={{ color: 'var(--ag-text-2)', fontSize: 13 }}>{t('order.proCopy')}</p>
+                  <ul className="pro-features">
+                    <li>{t('order.proFeatTransits')}</li>
+                    <li>{t('order.proFeatSynastry')}</li>
+                    <li>{t('order.proFeatProgressions')}</li>
+                    <li>До 5 натальных профилей</li>
+                    <li>{t('order.proFeatReport')}</li>
+                  </ul>
+                  <div style={{ marginTop: 16 }}>
+                    {annualPrice === null ? (
+                      <div className="pricing-price-unavailable">{t('order.tariffUnavailable')}</div>
+                    ) : (
+                      <>
+                        {monthlyPrice && annualMonthly ? (
+                          <div style={{ fontSize: 13, color: 'var(--ag-muted)', textDecoration: 'line-through', marginBottom: 2 }}>
+                            {formatRub(monthlyPrice)} ₽/мес
+                          </div>
+                        ) : null}
+                        <div className="pro-price-main">
+                          {annualMonthly !== null ? formatRub(annualMonthly) : '—'}<span> ₽</span>
+                        </div>
+                        <div style={{ fontSize: 13, color: 'var(--ag-text-2)', marginBottom: 4 }}>в месяц</div>
+                        <div style={{ fontSize: 12, color: 'var(--ag-muted)', marginBottom: 12 }}>
+                          Единый платёж {annualPrice !== null ? formatRub(annualPrice) : '—'} ₽/год
+                        </div>
+                      </>
+                    )}
+                    <Button
+                      type="primary"
+                      size="large"
+                      block
+                      disabled={annualPrice === null}
+                      onClick={() => startOrderFor('sub_annual')}
+                    >
+                      {annualPrice === null
+                        ? t('order.tariffUnavailableCta')
+                        : annualPrice !== null
+                          ? t('order.payYearlyCta', { amount: formatRub(annualPrice) })
+                          : '—'}
+                    </Button>
+                  </div>
+                </Card>
+              </Col>
+            </Row>
+
             <div className="pricing-switch-link">
               {t('order.switchToOneTimePrompt')}
               <Button type="link" onClick={() => setMode('onetime')} style={{ paddingInline: 6 }}>

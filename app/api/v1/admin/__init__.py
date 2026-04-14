@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from . import dashboard, flags, funnel, health, logs, orders, payments, promos, reports, support, tariffs, tasks, users
+from . import dashboard, flags, funnel, health, logs, orders, payments, promos, prompts, reports, support, tariffs, tasks, users
 
 router = APIRouter()
 router.include_router(dashboard.router, prefix="/dashboard")
@@ -16,3 +16,4 @@ router.include_router(flags.router, prefix="/flags")
 router.include_router(health.router, prefix="/health")
 router.include_router(logs.router, prefix="/logs")
 router.include_router(support.router, prefix="/support")
+router.include_router(prompts.router, prefix="/prompts")

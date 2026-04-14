@@ -15,6 +15,7 @@ import { PromosPage } from '@/pages/PromosPage'
 import { FlagsPage } from '@/pages/FlagsPage'
 import { HealthPage } from '@/pages/HealthPage'
 import { ActionLogPage } from '@/pages/ActionLogPage'
+import { PromptsPage } from '@/pages/PromptsPage'
 
 export function AppRoutes() {
   return (
@@ -35,6 +36,7 @@ export function AppRoutes() {
           <Route path="flags" element={<FlagsPage />} />
           <Route path="health" element={<HealthPage />} />
           <Route path="log" element={<ActionLogPage />} />
+          <Route path="prompts" element={<PromptsPage />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

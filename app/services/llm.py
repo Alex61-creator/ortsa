@@ -166,8 +166,21 @@ class LLMService:
         reraise=True
     )
     async def generate_interpretation(
-        self, chart_data: dict, tariff: Tariff, locale: str = "ru"
+        self,
+        chart_data: dict,
+        tariff: Tariff,
+        locale: str = "ru",
+        system_prompt_override: str | None = None,
     ) -> LLMResponseSchema:
+        """Генерирует интерпретацию натальной карты.
+
+        Args:
+            chart_data: Данные от Kerykeion.
+            tariff: Тариф (определяет llm_tier и токены).
+            locale: Язык ответа: ru | en.
+            system_prompt_override: Если передан — используется вместо захардкоженного промпта.
+                Загружается вызывающим кодом из таблицы llm_prompt_templates.
+        """
         if locale not in ("ru", "en"):
             locale = "ru"
         tier = resolve_llm_tier(tariff.code, getattr(tariff, "llm_tier", None))
@@ -177,7 +190,7 @@ class LLMService:
             logger.info("LLM cache hit", tier=tier.value, locale=locale)
             return LLMResponseSchema(**cached)
 
-        system_prompt = self.build_system_prompt(tier, locale)
+        system_prompt = system_prompt_override or self.build_system_prompt(tier, locale)
         include_transits = tier == LlmTier.PRO
         user_prompt = self.build_user_prompt(chart_data, include_transits, locale)
         max_tokens = self._max_tokens_for_tier(tier)

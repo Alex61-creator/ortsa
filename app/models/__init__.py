@@ -5,6 +5,8 @@ from app.models.order import Order
 from app.models.report import Report
 from app.models.subscription import Subscription, SubscriptionStatus
 from app.models.monthly_digest import MonthlyDigestLog
+from app.models.prompt_template import LlmPromptTemplate
+from app.models.order_natal_item import OrderNatalItem
 
 __all__ = [
     "User",
@@ -15,4 +17,6 @@ __all__ = [
     "Subscription",
     "SubscriptionStatus",
     "MonthlyDigestLog",
+    "LlmPromptTemplate",
+    "OrderNatalItem",
 ]

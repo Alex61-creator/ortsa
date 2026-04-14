@@ -45,3 +45,4 @@ class Order(Base):
     natal_data = relationship("NatalData", backref="orders")
     tariff = relationship("Tariff", backref="orders")
     report = relationship("Report", back_populates="order", uselist=False)
+    natal_items = relationship("OrderNatalItem", cascade="all, delete-orphan", order_by="OrderNatalItem.slot_index")
