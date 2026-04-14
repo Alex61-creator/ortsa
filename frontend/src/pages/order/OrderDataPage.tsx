@@ -240,7 +240,7 @@ export function OrderDataPage() {
               </Form.Item>
             )}
             <Button type="primary" loading={save.isPending} onClick={() => void form.handleSubmit((v) => save.mutate(v))()}>
-              Далее -> Проверить заказ
+              Далее {'->'} Проверить заказ
             </Button>
           </Form>
         </div>
