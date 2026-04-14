@@ -10,6 +10,7 @@ import '@/styles/order-pricing.css'
 
 const { Title } = Typography
 type PricingMode = 'onetime' | 'subscription'
+const REQUIRED_ONE_TIME_CODES = ['free', 'report', 'bundle'] as const
 
 interface PlanFeature {
   label: string
@@ -44,7 +45,7 @@ export function OrderTariffPage() {
   const navigate = useNavigate()
   const location = useLocation() as { state?: { from?: string } }
   const setTariff = useOrderWizardStore((s) => s.setTariffCode)
-  const { data: tariffs, isLoading } = useQuery({ queryKey: ['tariffs'], queryFn: listTariffs })
+  const { data: tariffs, isLoading, isError } = useQuery({ queryKey: ['tariffs'], queryFn: listTariffs })
   const redirectNote = location.state?.from
   const [mode, setMode] = useState<PricingMode>('onetime')
   const [isYearly, setIsYearly] = useState(true)
@@ -113,25 +114,35 @@ export function OrderTariffPage() {
     return map
   }, [tariffs])
 
+  const missingCodes = useMemo(
+    () => REQUIRED_ONE_TIME_CODES.filter((code) => !tariffsByCode.has(code)),
+    [tariffsByCode],
+  )
   const proTariff = tariffsByCode.get('pro')
-  const proMonthly = toNumber(proTariff?.price ?? '0')
-  const proYearlyMonthly = Math.max(0, Math.round(proMonthly * 0.66))
-  const proYearlyTotal = proYearlyMonthly * 12
+  const tariffLoadFailed = isError || (!isLoading && (missingCodes.length > 0 || !proTariff))
+  const proMonthly = proTariff ? toNumber(proTariff.price) : null
+  const proYearlyMonthly = proMonthly === null ? null : Math.max(0, Math.round(proMonthly * 0.66))
+  const proYearlyTotal = proYearlyMonthly === null ? null : proYearlyMonthly * 12
 
   const startOrderFor = (tariffCode: string) => {
     setTariff(tariffCode)
     navigate('/order/data')
   }
 
-  const resolvePlanPrice = (plan: OneTimePlanModel): { current: number; old: number | null } => {
+  const resolvePlanPrice = (plan: OneTimePlanModel): { current: number | null; old: number | null } => {
     const apiTariff = tariffsByCode.get(plan.code)
-    const current = toNumber(apiTariff?.price ?? '0')
+    if (!apiTariff) {
+      return { current: null, old: null }
+    }
+    const current = toNumber(apiTariff.price)
     if (plan.code === 'bundle') {
       const old = Math.round(current * (2370 / 1590))
       return { current, old }
     }
     return { current, old: plan.oldPrice ?? null }
   }
+  const selectedOneTimePlan = oneTimePlans.find((plan) => plan.code === selectedOneTime) ?? oneTimePlans[0]
+  const selectedOneTimeUnavailable = resolvePlanPrice(selectedOneTimePlan).current === null
 
   return (
     <div className="pricing-page">
@@ -177,6 +188,15 @@ export function OrderTariffPage() {
             <span className="pricing-mode-badge">{t('order.modeBetter')}</span>
           </button>
         </div>
+        {tariffLoadFailed && (
+          <Alert
+            type="error"
+            showIcon
+            className="pricing-api-alert"
+            message={t('order.tariffLoadError')}
+            description={t('order.tariffLoadErrorHint')}
+          />
+        )}
 
         {mode === 'onetime' ? (
           <>
@@ -195,7 +215,9 @@ export function OrderTariffPage() {
                       className={`pricing-card${plan.isPopular ? ' pricing-card-popular' : ''}${selectedOneTime === plan.code ? ' pricing-card-selected' : ''}`}
                       loading={isLoading}
                       bordered={false}
-                      onClick={() => setSelectedOneTime(plan.code)}
+                      onClick={() => {
+                        if (price.current !== null) setSelectedOneTime(plan.code)
+                      }}
                     >
                       {plan.ribbon && (
                         <div className={`pricing-ribbon ${plan.ribbonTone === 'green' ? 'green' : 'blue'}`}>{plan.ribbon}</div>
@@ -203,11 +225,17 @@ export function OrderTariffPage() {
                       <div className="pricing-card-title">{plan.title}</div>
                       <div className="pricing-card-desc">{plan.description}</div>
                       <div className="pricing-price-wrap">
-                        <div className="pricing-price-line">
-                          <span className="pricing-price-main">{formatRub(price.current)}</span>
-                          <span className="pricing-price-currency">₽</span>
-                        </div>
-                        <div className="pricing-price-period">{plan.period}</div>
+                        {price.current === null ? (
+                          <div className="pricing-price-unavailable">{t('order.tariffUnavailable')}</div>
+                        ) : (
+                          <>
+                            <div className="pricing-price-line">
+                              <span className="pricing-price-main">{formatRub(price.current)}</span>
+                              <span className="pricing-price-currency">₽</span>
+                            </div>
+                            <div className="pricing-price-period">{plan.period}</div>
+                          </>
+                        )}
                         {price.old ? (
                           <div className="pricing-price-meta">
                             <span className="pricing-price-old">{formatRub(price.old)} ₽</span>
@@ -226,6 +254,7 @@ export function OrderTariffPage() {
                         type={plan.isPopular ? 'primary' : 'default'}
                         block
                         size="large"
+                        disabled={price.current === null}
                         onClick={() => startOrderFor(plan.code)}
                       >
                         {plan.cta}
@@ -249,7 +278,12 @@ export function OrderTariffPage() {
               <button type="button" className="pricing-nav-btn" onClick={() => navigate('/dashboard')}>
                 ← Назад
               </button>
-              <button type="button" className="pricing-nav-btn pricing-nav-btn-primary" onClick={() => startOrderFor(selectedOneTime)}>
+              <button
+                type="button"
+                className="pricing-nav-btn pricing-nav-btn-primary"
+                disabled={selectedOneTimeUnavailable}
+                onClick={() => startOrderFor(selectedOneTime)}
+              >
                 Далее → Проверить заказ
               </button>
             </div>
@@ -282,19 +316,25 @@ export function OrderTariffPage() {
                   </ul>
                 </div>
                 <div className="pro-price-box">
-                  {isYearly ? <div className="pro-price-old">{formatRub(proMonthly)} ₽/мес</div> : null}
-                  <div className="pro-price-main">
-                    {formatRub(isYearly ? proYearlyMonthly : proMonthly)}
-                    <span> ₽</span>
-                  </div>
-                  <div className="pro-price-subtitle">{t('order.perMonth')}</div>
-                  <div className="pro-price-note">
-                    {isYearly
-                      ? t('order.yearlySinglePayment', { amount: formatRub(proYearlyTotal) })
-                      : t('order.yearlyMonthlyPayment', { amount: formatRub(proMonthly * 12) })}
-                  </div>
-                  <Button type="primary" size="large" block onClick={() => startOrderFor('pro')}>
-                    {isYearly ? t('order.payYearlyCta', { amount: formatRub(proYearlyTotal) }) : t('order.trialCta')}
+                  {proMonthly === null || proYearlyMonthly === null || proYearlyTotal === null ? (
+                    <div className="pricing-price-unavailable">{t('order.tariffUnavailable')}</div>
+                  ) : (
+                    <>
+                      {isYearly ? <div className="pro-price-old">{formatRub(proMonthly)} ₽/мес</div> : null}
+                      <div className="pro-price-main">
+                        {formatRub(isYearly ? proYearlyMonthly : proMonthly)}
+                        <span> ₽</span>
+                      </div>
+                      <div className="pro-price-subtitle">{t('order.perMonth')}</div>
+                      <div className="pro-price-note">
+                        {isYearly
+                          ? t('order.yearlySinglePayment', { amount: formatRub(proYearlyTotal) })
+                          : t('order.yearlyMonthlyPayment', { amount: formatRub(proMonthly * 12) })}
+                      </div>
+                    </>
+                  )}
+                  <Button type="primary" size="large" block disabled={proMonthly === null} onClick={() => startOrderFor('pro')}>
+                    {proYearlyTotal === null ? t('order.tariffUnavailableCta') : isYearly ? t('order.payYearlyCta', { amount: formatRub(proYearlyTotal) }) : t('order.trialCta')}
                   </Button>
                 </div>
               </div>

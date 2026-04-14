@@ -110,6 +110,7 @@ export function DashboardLayout() {
   }, [location.pathname, t])
 
   const orderCount = orders?.length ?? 0
+  const isDashboardHome = location.pathname === '/dashboard'
   const showProBadge = subscription?.status === 'active' && subscription.tariff_code?.toLowerCase().includes('pro')
   const planIsPro = subscription?.status === 'active' && showProBadge
 
@@ -237,9 +238,11 @@ export function DashboardLayout() {
               >
                 {colorMode === 'dark' ? <SunIcon /> : <MoonIcon />}
               </button>
-              <Link to="/order/tariff" className="btn btn-primary btn-sm topbar-order-btn">
-                + {t('dashboard.newOrder')}
-              </Link>
+              {!isDashboardHome && (
+                <Link to="/order/tariff" className="btn btn-primary btn-sm topbar-order-btn">
+                  + {t('dashboard.newOrder')}
+                </Link>
+              )}
             </div>
           </div>
 

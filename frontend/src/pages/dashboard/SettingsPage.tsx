@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import i18n from 'i18next'
@@ -106,18 +105,6 @@ export function SettingsPage() {
 
   return (
     <div>
-      <div className="settings-pro-banner">
-        <div className="settings-pro-banner-left">
-          <div className="settings-pro-banner-star">✦</div>
-          <div>
-            <strong>Откройте полный доступ с Astro Pro</strong>
-            <p>Транзиты, синастрия, прогрессии и несколько профилей в одном кабинете.</p>
-          </div>
-        </div>
-        <Link className="btn btn-primary btn-sm" to="/order/tariff">
-          Подключить Pro
-        </Link>
-      </div>
       <div className="settings-grid">
         <div className="settings-section">
           <div className="settings-section-title">{t('settings.sectionAccount')}</div>
@@ -165,59 +152,6 @@ export function SettingsPage() {
               </Button>
             </div>
           )}
-        </div>
-
-        <div className="settings-section">
-          <div className="settings-section-title">{t('settings.sectionDelivery')}</div>
-          <div className="settings-row">
-            <div style={{ flex: 1 }}>
-              <div className="settings-label">{t('settings.deliveryPdfEmail')}</div>
-              <div className="settings-value">{t('settings.deliveryHint')}</div>
-            </div>
-          </div>
-          <div className="delivery-email-block">
-            <div className="delivery-change-row">
-              <div
-                style={{
-                  background: 'var(--bg-secondary)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--r)',
-                  padding: '9px 14px',
-                  flex: 1,
-                  fontSize: 14,
-                  color: 'var(--text)',
-                }}
-              >
-                {deliveryDisplay()}
-              </div>
-              <button type="button" className="btn btn-default btn-sm" onClick={openDeliveryEditor}>
-                {t('settings.change')}
-              </button>
-            </div>
-            {deliveryOpen && (
-              <div className="delivery-field show" style={{ display: 'block', marginTop: 12 }}>
-                <div className="form-group">
-                  <label className="form-label">{t('settings.newDeliveryEmail')}</label>
-                  <input
-                    type="email"
-                    className="form-input"
-                    value={deliveryDraft}
-                    onChange={(e) => setDeliveryDraft(e.target.value)}
-                    placeholder="other@email.com"
-                  />
-                  <div className="form-hint">{t('settings.deliveryFormHint')}</div>
-                </div>
-                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                  <button type="button" className="btn btn-primary btn-sm" onClick={saveDelivery}>
-                    {t('common.save')}
-                  </button>
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => setDeliveryOpen(false)}>
-                    {t('common.cancel')}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
 
         <div className="settings-section">
@@ -277,6 +211,59 @@ export function SettingsPage() {
               />
               <span style={{ fontSize: 13, color: 'var(--text-2)' }}>{t('settings.pdfNotifyHint')}</span>
             </label>
+          </div>
+        </div>
+
+        <div className="settings-section">
+          <div className="settings-section-title">{t('settings.sectionDelivery')}</div>
+          <div className="settings-row">
+            <div style={{ flex: 1 }}>
+              <div className="settings-label">{t('settings.deliveryPdfEmail')}</div>
+              <div className="settings-value">{t('settings.deliveryHint')}</div>
+            </div>
+          </div>
+          <div className="delivery-email-block">
+            <div className="delivery-change-row">
+              <div
+                style={{
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--r)',
+                  padding: '9px 14px',
+                  flex: 1,
+                  fontSize: 14,
+                  color: 'var(--text)',
+                }}
+              >
+                {deliveryDisplay()}
+              </div>
+              <button type="button" className="btn btn-default btn-sm" onClick={openDeliveryEditor}>
+                {t('settings.change')}
+              </button>
+            </div>
+            {deliveryOpen && (
+              <div className="delivery-field show" style={{ display: 'block', marginTop: 12 }}>
+                <div className="form-group">
+                  <label className="form-label">{t('settings.newDeliveryEmail')}</label>
+                  <input
+                    type="email"
+                    className="form-input"
+                    value={deliveryDraft}
+                    onChange={(e) => setDeliveryDraft(e.target.value)}
+                    placeholder="other@email.com"
+                  />
+                  <div className="form-hint">{t('settings.deliveryFormHint')}</div>
+                </div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                  <button type="button" className="btn btn-primary btn-sm" onClick={saveDelivery}>
+                    {t('common.save')}
+                  </button>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => setDeliveryOpen(false)}>
+                    {t('common.cancel')}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

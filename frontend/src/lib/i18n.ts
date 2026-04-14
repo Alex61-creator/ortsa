@@ -305,6 +305,10 @@ const resources = {
         statusTitle: 'Статус оплаты',
         paidHint: 'Отчёт будет отправлен на вашу почту. Также он доступен в личном кабинете.',
         loginToContinue: 'Чтобы открыть «{{place}}», войдите в аккаунт.',
+        tariffLoadError: 'Не удалось загрузить тарифы',
+        tariffLoadErrorHint: 'Сервис тарифов временно недоступен. Обновите страницу или попробуйте позже.',
+        tariffUnavailable: 'Тариф временно недоступен',
+        tariffUnavailableCta: 'Недоступно',
       },
       auth: {
         tokenMissing: 'Токен не получен',
@@ -626,6 +630,10 @@ const resources = {
         statusTitle: 'Payment status',
         paidHint: 'The report will be emailed to you. It is also available in your account.',
         loginToContinue: 'Sign in to open «{{place}}».',
+        tariffLoadError: 'Could not load pricing plans',
+        tariffLoadErrorHint: 'Pricing service is temporarily unavailable. Refresh the page or try again later.',
+        tariffUnavailable: 'Plan is temporarily unavailable',
+        tariffUnavailableCta: 'Unavailable',
       },
       auth: {
         tokenMissing: 'Token is missing',
