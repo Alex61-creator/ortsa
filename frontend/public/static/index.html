@@ -731,15 +731,7 @@ body {
 .ant-btn-block { width: 100%; }
 
 /* ── PAGE HEADER ── */
-.page-header { text-align: left; max-width: 720px; margin: 0 0 36px; }
-.page-header .section-tag { margin-bottom: 14px; }
-.page-header .section-title { margin-bottom: 10px; }
-.page-header .section-subtitle {
-  margin: 0;
-  max-width: 620px;
-  font-size: 16px;
-  line-height: 1.7;
-}
+.page-header { text-align: left; margin: 0 0 40px; }
 
 /* ── SEGMENTED CONTROL (Ant Design style) ── */
 .ant-segmented {
@@ -747,8 +739,15 @@ body {
   background: var(--color-fill-tertiary);
   border-radius: var(--border-radius);
   padding: 2px;
-  margin: 0 auto 36px;
+  margin: 0;
   gap: 2px;
+}
+.pricing-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 36px;
 }
 .seg-item {
   display: flex; align-items: center; gap: 8px;
@@ -785,9 +784,11 @@ body {
 /* ── BILLING TOGGLE (Month/Year inside sub mode) ── */
 .billing-toggle-wrap {
   display: flex; align-items: center; justify-content: center; gap: 12px;
-  margin-bottom: 32px;
+  margin: 0 auto;
   min-height: 32px;
+  width: fit-content;
 }
+#billing-top-bridge { max-width: 100%; }
 .billing-label { font-size: 14px; color: var(--color-text-secondary); transition: color 0.2s, font-weight 0.2s; }
 .billing-label.active { color: var(--color-text); font-weight: 500; }
 .ant-switch {
@@ -1042,6 +1043,7 @@ body {
 }
 
 </style>
+<div class="container">
 <div id="pricing-v4-root" data-theme="light">
   <!-- HEADER -->
   <div class="page-header">
@@ -1051,7 +1053,7 @@ body {
   </div>
 
   <!-- SEGMENTED CONTROL -->
-  <div style="text-align:center; margin-bottom:36px;">
+  <div class="pricing-controls">
     <div class="ant-segmented">
       <button class="seg-item active" id="seg-onetime" onclick="switchMode('onetime')">
         Разовая покупка
@@ -1060,6 +1062,12 @@ body {
         Подписка Astro Pro
         <span class="seg-badge">Выгоднее</span>
       </button>
+    </div>
+    <div class="billing-toggle-wrap hidden" id="billing-top-bridge">
+      <span class="billing-label" id="lbl-month-top">Помесячно</span>
+      <button class="ant-switch checked" id="billing-switch-top" onclick="toggleBilling()"></button>
+      <span class="billing-label active" id="lbl-year-top">Годовой план</span>
+      <span class="save-badge" id="save-badge-top">−34% · экономия 1 980 ₽</span>
     </div>
   </div>
 
@@ -1188,14 +1196,6 @@ body {
   ══════════════════════════════════════ -->
   <div id="mode-sub" class="hidden">
 
-    <!-- Billing toggle: Month / Year (Year by default) -->
-    <div class="billing-toggle-wrap">
-      <span class="billing-label" id="lbl-month">Помесячно</span>
-      <button class="ant-switch checked" id="billing-switch" onclick="toggleBilling()"></button>
-      <span class="billing-label active" id="lbl-year">Годовой план</span>
-      <span class="save-badge" id="save-badge">−34% · экономия 1 980 ₽</span>
-    </div>
-
     <!-- Pro Hero Card -->
     <div class="pro-hero">
       <div class="pro-hero-inner">
@@ -1314,19 +1314,28 @@ function switchMode(mode) {
   document.getElementById('mode-sub').classList.toggle('hidden', isOne);
   document.getElementById('seg-onetime').classList.toggle('active', isOne);
   document.getElementById('seg-sub').classList.toggle('active', !isOne);
+  document.getElementById('billing-top-bridge').classList.toggle('hidden', isOne);
+  syncBillingTopBridge();
+}
+
+function syncBillingTopBridge() {
+  var segmented = document.querySelector('.pricing-controls .ant-segmented');
+  var bridge = document.getElementById('billing-top-bridge');
+  if (!segmented || !bridge) return;
+  bridge.style.width = segmented.offsetWidth + 'px';
 }
 
 function toggleBilling() {
   isYearly = !isYearly;
-  var sw = document.getElementById('billing-switch');
+  var sw = document.getElementById('billing-switch-top');
   sw.classList.toggle('checked', isYearly);
   sw.classList.toggle('monthly', !isYearly);
 
   var mainPrice = document.getElementById('main-price');
   var annualNote = document.getElementById('annual-note');
-  var saveBadge = document.getElementById('save-badge');
-  var lblMonth = document.getElementById('lbl-month');
-  var lblYear = document.getElementById('lbl-year');
+  var saveBadge = document.getElementById('save-badge-top');
+  var lblMonth = document.getElementById('lbl-month-top');
+  var lblYear = document.getElementById('lbl-year-top');
   var origWrap = document.getElementById('price-original-wrap');
   var insight = document.getElementById('hero-insight');
   
@@ -1361,7 +1370,10 @@ function toggleBilling() {
     mainPrice.classList.remove('price-fade');
   }, 150);
 }
+syncBillingTopBridge();
+window.addEventListener('resize', syncBillingTopBridge);
 </script>
+</div>
 </div>
 </section>
 

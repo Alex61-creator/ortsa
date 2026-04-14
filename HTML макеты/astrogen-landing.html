@@ -49,13 +49,19 @@
   --primary-border: rgba(22,119,255,0.4);
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  width: 100%;
+  overflow-x: hidden;
+}
 body {
   font-family: var(--font-body);
   background: var(--bg);
   color: var(--text-primary);
   font-size: 15px;
   line-height: 1.65;
+  width: 100%;
+  overflow-x: hidden;
   transition: background 0.25s, color 0.25s;
 }
 h1,h2,h3,h4 { font-family: var(--font-display); font-weight: 500; line-height: 1.2; }
@@ -65,6 +71,14 @@ h3 { font-size: 20px; }
 a { color: var(--primary); text-decoration: none; }
 img { max-width: 100%; }
 .container { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
+.navbar,
+.hero,
+.section,
+.section-sm,
+.stats-section,
+footer {
+  width: 100%;
+}
 .section { padding: 80px 0; }
 .section-sm { padding: 56px 0; }
 .section-tag {
