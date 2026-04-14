@@ -1,4 +1,4 @@
-import { Typography, Button, Card, Steps } from 'antd'
+import { Typography, Button, Card, Steps, App } from 'antd'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery } from '@tanstack/react-query'
@@ -12,6 +12,7 @@ const { Title } = Typography
 
 export function OrderConfirmPage() {
   const { t } = useTranslation()
+  const { message } = App.useApp()
   const navigate = useNavigate()
   const { isTwa } = useTwaEnvironment()
   const tariffCode = useOrderWizardStore((s) => s.tariffCode)
@@ -31,13 +32,20 @@ export function OrderConfirmPage() {
     onSuccess: (order) => {
       const url = order.confirmation_url
       const tg = window.Telegram?.WebApp
-      if (!url) return
+      if (!url) {
+        // Бесплатный тариф — сразу перейти к статусу
+        navigate(`/order/status/${order.id}`, { replace: true })
+        return
+      }
       if (isTwa && tg?.openLink) {
         tg.openLink(url)
         navigate(`/order/status/${order.id}`, { replace: true })
       } else {
         window.location.assign(url)
       }
+    },
+    onError: () => {
+      message.error('Не удалось инициировать платёж. Попробуйте ещё раз или свяжитесь с поддержкой.')
     },
   })
 

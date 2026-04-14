@@ -111,9 +111,17 @@ export function OrderDataPage() {
 
   const searchGeo = async () => {
     const q = form.getValues('birth_place')
-    const hits = await nominatimSearch(q)
-    setGeoHits(hits)
-    setGeoOpen(true)
+    if (!q.trim()) {
+      message.warning('Введите название места рождения')
+      return
+    }
+    try {
+      const hits = await nominatimSearch(q)
+      setGeoHits(hits)
+      setGeoOpen(true)
+    } catch {
+      message.error('Не удалось найти место. Введите координаты вручную.')
+    }
   }
 
   const pickHit = (h: GeocodeHit) => {

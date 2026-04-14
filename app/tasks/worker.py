@@ -25,8 +25,8 @@ celery_app.conf.update(
     timezone="UTC",
     enable_utc=True,
     task_track_started=True,
-    task_time_limit=30 * 60,
-    task_soft_time_limit=25 * 60,
+    task_time_limit=40 * 60,       # hard kill: 40 мин (LLM 300s × retries + PDF + email)
+    task_soft_time_limit=35 * 60,  # graceful: 35 мин → SoftTimeLimitExceeded перехватывается в задаче
     task_acks_late=True,
     worker_prefetch_multiplier=1,
     broker_transport_options={"visibility_timeout": 3600},

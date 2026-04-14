@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 from decimal import Decimal
 from typing import Optional
-from uuid import uuid4
+from datetime import datetime
 
 from app.db.session import get_db
 from app.api.deps import get_current_active_user, get_current_admin_user
@@ -317,7 +317,9 @@ async def retry_order_payment(
             user_email=receipt_email,
             metadata={"order_id": order.id, "tariff": order.tariff.code},
             save_payment_method=save_pm,
-            idempotency_key=f"{order.id}-retry-{uuid4()}",
+            # Детерминированный ключ: меняется раз в час → идемпотентен при двойном клике,
+            # но позволяет создать новый платёж если предыдущий истёк.
+            idempotency_key=f"retry-{order.id}-{datetime.utcnow().strftime('%Y%m%d%H')}",
         )
     except Exception as exc:
         logger.exception(

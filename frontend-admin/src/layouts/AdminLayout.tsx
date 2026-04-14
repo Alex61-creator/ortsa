@@ -67,8 +67,19 @@ const ROUTES = Object.keys(TITLE_MAP)
 export function AdminLayout() {
   const location = useLocation()
   const logout = useAuthStore((s) => s.logout)
-  const adminEmail = useAuthStore((s) => s.token)
+  const token = useAuthStore((s) => s.token)
   const theme = useUiStore((s) => s.theme)
+
+  // Декодируем payload JWT (без верификации — только для отображения)
+  const adminEmail = (() => {
+    if (!token) return null
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      return (payload.sub as string) ?? null
+    } catch {
+      return null
+    }
+  })()
   const toggleTheme = useUiStore((s) => s.toggleTheme)
 
   document.documentElement.setAttribute('data-theme', theme)
@@ -108,7 +119,7 @@ export function AdminLayout() {
 
         <div className="admin-sidebar-footer">
           <div className="admin-sidebar-ava">{adminInitial}</div>
-          <div className="admin-sidebar-name">admin@astrogen.ru</div>
+          <div className="admin-sidebar-name">{adminEmail ?? 'admin'}</div>
           <button
             onClick={() => logout()}
             title="Выйти"

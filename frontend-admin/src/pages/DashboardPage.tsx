@@ -297,7 +297,7 @@ export function DashboardPage() {
           title="Источники трафика"
           extra={
             <span className="ag-tag ag-tag-amber" style={{ fontSize: 10 }}>
-              UTM в разработке
+              DEMO · UTM в разработке
             </span>
           }
         >

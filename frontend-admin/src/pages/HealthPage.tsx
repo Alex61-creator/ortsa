@@ -78,10 +78,12 @@ export function HealthPage() {
         </div>
         <div className="admin-metric-card">
           <div className="admin-metric-label">Инцидентов</div>
-          <div className="admin-metric-value" style={{ color: 'var(--ag-warning)' }}>
-            {MOCK_INCIDENTS.length}
+          <div className="admin-metric-value" style={{ color: 'var(--ag-muted)' }}>
+            —
           </div>
-          <div className="admin-metric-delta admin-metric-delta--dim">за 7 дней</div>
+          <div className="admin-metric-delta admin-metric-delta--dim">
+            <span className="ag-tag ag-tag-amber" style={{ fontSize: 9 }}>DEMO</span>
+          </div>
         </div>
       </div>
 
@@ -132,8 +134,8 @@ export function HealthPage() {
       <Card
         title="Последние инциденты"
         extra={
-          <span style={{ fontSize: 11, color: 'var(--ag-muted)' }}>
-            Sentry · 7 дней
+          <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <span className="ag-tag ag-tag-amber" style={{ fontSize: 10 }}>DEMO · Sentry не подключён</span>
           </span>
         }
       >

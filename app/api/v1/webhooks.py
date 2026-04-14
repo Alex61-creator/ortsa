@@ -42,7 +42,10 @@ async def yookassa_webhook(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid body")
 
     idem = notification_idempotency_key(event)
-    if await cache.exists(idem):
+    # Атомарный SETNX: устанавливаем флаг ДО обработки, чтобы исключить race condition
+    # при параллельных одинаковых webhook'ах. Если вернул False — дубликат, пропускаем.
+    is_new = await cache.set_nx(idem, "processing", ttl=86400)
+    if not is_new:
         logger.info("Duplicate YooKassa webhook ignored", key=idem)
         return StatusOk()
 
@@ -89,5 +92,6 @@ async def yookassa_webhook(
     else:
         logger.info("Unhandled YooKassa event", event_type=event_type)
 
+    # Обновляем значение на "processed" после успешной обработки
     await cache.set(idem, "processed", ttl=86400)
     return StatusOk()
