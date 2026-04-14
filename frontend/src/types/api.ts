@@ -88,6 +88,7 @@ export interface OrderListItem {
 export interface OrderCreatePayload {
   tariff_code: string
   natal_data_id: number
+  report_delivery_email?: string | null
 }
 
 export interface OrderOut {

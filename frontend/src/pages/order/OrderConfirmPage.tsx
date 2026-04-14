@@ -8,6 +8,16 @@ import { listTariffs } from '@/api/tariffs'
 import { useOrderWizardStore } from '@/stores/orderWizardStore'
 import { useTwaEnvironment } from '@/hooks/useTwaEnvironment'
 
+const LS_DELIVERY_EMAIL = 'astrogen_delivery_email_override'
+
+function getDeliveryEmail(): string | null {
+  try {
+    return localStorage.getItem(LS_DELIVERY_EMAIL) || null
+  } catch {
+    return null
+  }
+}
+
 const { Title } = Typography
 
 export function OrderConfirmPage() {
@@ -27,7 +37,12 @@ export function OrderConfirmPage() {
   const pay = useMutation({
     mutationFn: async () => {
       if (!tariffCode || !natalDataId) throw new Error(t('order.incompleteDataError'))
-      return createOrder({ tariff_code: tariffCode, natal_data_id: natalDataId })
+      const deliveryEmail = getDeliveryEmail()
+      return createOrder({
+        tariff_code: tariffCode,
+        natal_data_id: natalDataId,
+        report_delivery_email: deliveryEmail,
+      })
     },
     onSuccess: (order) => {
       const url = order.confirmation_url

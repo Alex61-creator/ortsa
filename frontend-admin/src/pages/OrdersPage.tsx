@@ -15,7 +15,7 @@ import {
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { fetchOrder, fetchOrders, postRefund, postRetryReport } from '@/api/orders'
-import { downloadOrderChart, downloadOrderPdf } from '@/api/reports'
+import { downloadOrderChart, downloadOrderPdf, postResendEmail } from '@/api/reports'
 import type { AdminOrderRow } from '@/types/admin'
 import { isAxiosError } from 'axios'
 
@@ -66,6 +66,8 @@ export function OrdersPage() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [selected, setSelected]   = useState<AdminOrderRow | null>(null)
   const [drawerLoading, setDrawerLoading] = useState(false)
+  const [resendEmail, setResendEmail]   = useState('')
+  const [resendLoading, setResendLoading] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -91,6 +93,7 @@ export function OrdersPage() {
     setSelected(row)
     setDrawerOpen(true)
     setDrawerLoading(true)
+    setResendEmail('')
     try {
       const fresh = await fetchOrder(row.id)
       setSelected(fresh)
@@ -116,6 +119,24 @@ export function OrdersPage() {
       } else {
         message.error('Не удалось перезапустить отчёт')
       }
+    }
+  }
+
+  const handleResendEmail = async () => {
+    if (!selected) return
+    setResendLoading(true)
+    try {
+      const res = await postResendEmail(selected.id, resendEmail.trim() || null)
+      message.success(`Отчёт отправлен на ${res.sent_to}`)
+    } catch (e) {
+      if (isAxiosError(e)) {
+        const d = e.response?.data as { detail?: string }
+        message.error(d?.detail ?? 'Не удалось отправить письмо')
+      } else {
+        message.error('Не удалось отправить письмо')
+      }
+    } finally {
+      setResendLoading(false)
     }
   }
 
@@ -320,6 +341,29 @@ export function OrdersPage() {
                 <span className="v">{new Date(selected.updated_at).toLocaleString('ru-RU')}</span>
               </div>
             </div>
+
+            {selected.report_ready && (
+              <div className="ag-info-sect">
+                <div className="ag-info-sect-title">Отправить отчёт на email</div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                  <Input
+                    size="small"
+                    placeholder="Email (пусто — из заказа/аккаунта)"
+                    value={resendEmail}
+                    onChange={(e) => setResendEmail(e.target.value)}
+                    style={{ flex: 1 }}
+                  />
+                  <Button
+                    size="small"
+                    type="primary"
+                    loading={resendLoading}
+                    onClick={() => void handleResendEmail()}
+                  >
+                    Отправить
+                  </Button>
+                </div>
+              </div>
+            )}
 
             <Space wrap style={{ marginTop: 8 }}>
               <Button type="primary" size="small" onClick={() => void handleRetry()}>

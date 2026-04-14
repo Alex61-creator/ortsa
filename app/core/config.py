@@ -107,12 +107,15 @@ class Settings(BaseSettings):
     LLM_TEMPERATURE: float = 0.2
     LLM_TOP_P: float = 0.9
 
-    SMTP_HOST: str
+    SMTP_HOST: str = "localhost"
     SMTP_PORT: int = 587
-    SMTP_USER: str
-    SMTP_PASSWORD: str
-    SMTP_FROM: EmailStr
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: EmailStr = "noreply@astrogen.ru"
     SMTP_TLS: bool = True
+
+    # Unisender Transactional Email (основной провайдер для доставки отчётов)
+    UNISENDER_API_KEY: str = ""
 
     ADMIN_USERNAME: str
     ADMIN_PASSWORD: str
