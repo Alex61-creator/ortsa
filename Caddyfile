@@ -24,7 +24,7 @@ admin.yourdomain.com {
         X-Robots-Tag "noindex, nofollow, noarchive, nosnippet"
     }
 
-    handle = /robots.txt {
+    handle /robots.txt {
         respond "User-agent: *\nDisallow: /\n" 200
     }
 

@@ -1,0 +1,89 @@
+# Карта роутинга AstroGen
+
+Документ описывает текущую навигацию пользователя: какие URL доступны, какие редиректятся, какие требуют авторизацию и к каким экранам ведут.
+
+## 1) Базовые правила доступа
+
+- Публичный маршрут только один: `/` (лендинг).
+- Все маршруты внутри `ProtectedRoute` требуют токен (`authStore.token`).
+- Если токена нет и пользователь открывает защищённый путь, происходит редирект на `/`.
+- После OAuth-колбэка при успешном входе пользователь переходит в `/dashboard`.
+
+## 2) Основная таблица маршрутов (frontend)
+
+| URL | Что происходит | Экран/компонент |
+|---|---|---|
+| `/` | Открывается публичный главный экран | `LandingPage` |
+| `/privacy` | Редирект на `/` | `Navigate` |
+| `/oferta` | Редирект на `/` | `Navigate` |
+| `/sample-report.html` | Редирект на `/` | `Navigate` |
+| `/auth/callback?token=...` | Сохраняет токен и ведёт в кабинет | `AuthCallbackPage` |
+| `/auth/callback` без `token` | Ошибка + редирект на `/` | `AuthCallbackPage` |
+| `/cabinet` | Редирект в кабинет | `Navigate` -> `/dashboard` |
+| `*` (любой неизвестный путь) | Редирект на `/` | `Navigate` |
+
+## 3) Защищённые маршруты (только авторизованный пользователь)
+
+### Личный кабинет
+
+| URL | Что происходит | Экран/компонент |
+|---|---|---|
+| `/dashboard` | Главная кабинета | `DashboardHomePage` |
+| `/dashboard/orders` | Заказы пользователя | `OrdersPage` |
+| `/dashboard/reports` | Список отчётов | `ReportsPage` |
+| `/dashboard/natal` | Натальные данные | `NatalDataPage` |
+| `/dashboard/subscription` | Подписка | `SubscriptionPage` |
+| `/dashboard/settings` | Настройки | `SettingsPage` |
+| `/dashboard/support` | Поддержка | `SupportPage` |
+| `/dashboard/profile` | Редирект на настройки | `Navigate` -> `/dashboard/settings` |
+
+### Оформление заказа
+
+| URL | Что происходит | Экран/компонент |
+|---|---|---|
+| `/order` | Редирект на первый шаг | `Navigate` -> `/order/tariff` |
+| `/order/tariff` | Шаг 1: выбор тарифа | `OrderTariffPage` |
+| `/order/data` | Шаг 2: ввод данных | `OrderDataPage` |
+| `/order/confirm` | Шаг 3: подтверждение/оплата | `OrderConfirmPage` |
+| `/order/status/:orderId` | Статус заказа | `OrderStatusPage` |
+
+### Отчёт по заказу
+
+| URL | Что происходит | Экран/компонент |
+|---|---|---|
+| `/reports/:orderId` | Просмотр/загрузка отчёта | `ReportDownloadPage` |
+| `/cabinet/orders/:orderId` | Легаси-ссылка: редирект на отчёт | `CabinetOrdersRedirect` -> `/reports/:orderId` |
+| `/cabinet/orders/:orderId` без id | Защита от пустого id | `CabinetOrdersRedirect` -> `/dashboard/orders` |
+
+## 4) Ключевые пользовательские переходы
+
+### Гость (не авторизован)
+
+1. Открывает сайт -> `/` (`LandingPage`).
+2. Нажимает вход через OAuth.
+3. Провайдер возвращает на `/auth/callback?token=...`.
+4. Токен сохраняется -> переход в `/dashboard`.
+
+### Авторизованный пользователь: создать заказ из ЛК
+
+1. В кабинете нажимает `+ Новый заказ` -> `/order/tariff`.
+2. На шаге тарифа выбирает план -> `/order/data`.
+3. После заполнения данных -> `/order/confirm`.
+4. После создания заказа -> `/order/status/:orderId`.
+5. Из статуса может перейти к отчёту -> `/reports/:orderId`.
+
+## 5) Что делает защита роутов
+
+Логика `ProtectedRoute`:
+
+- Есть токен -> рендерится целевой защищённый маршрут.
+- Нет токена -> редирект на `/` c сохранением исходного пути в `state.from`.
+
+Это гарантирует, что `/order/*`, `/dashboard/*` и `/reports/:orderId` не открываются гостю напрямую.
+
+## 6) Дополнительно: серверные редиректы FastAPI
+
+В `app/main.py` есть legacy-редиректы для путей `/`, `/privacy`, `/oferta`, `/sample-report.html`, `/auth/callback`, `/cabinet`.
+
+Для прод-сценария с Caddy на основном домене обычно работает SPA-роутинг фронтенда (из `frontend/src/routes/AppRoutes.tsx`).  
+Если запускать напрямую через backend-маршруты без SPA-прослойки, поведение может отличаться из-за этих редиректов.

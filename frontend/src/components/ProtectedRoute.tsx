@@ -6,11 +6,7 @@ export function ProtectedRoute() {
   const loc = useLocation()
 
   if (!token) {
-    // Оформление заказа без входа: иначе Navigate на тот же /order/* не монтирует Outlet → белый экран.
-    if (loc.pathname.startsWith('/order')) {
-      return <Outlet />
-    }
-    return <Navigate to="/order/tariff" replace state={{ from: `${loc.pathname}${loc.search}` }} />
+    return <Navigate to="/" replace state={{ from: `${loc.pathname}${loc.search}` }} />
   }
   return <Outlet />
 }

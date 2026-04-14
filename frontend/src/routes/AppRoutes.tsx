@@ -15,6 +15,7 @@ import { OrderDataPage } from '@/pages/order/OrderDataPage'
 import { OrderConfirmPage } from '@/pages/order/OrderConfirmPage'
 import { OrderStatusPage } from '@/pages/order/OrderStatusPage'
 import { ReportDownloadPage } from '@/pages/ReportDownloadPage'
+import { LandingPage } from '@/pages/LandingPage'
 
 /** Совместимость со старыми ссылками из писем (`/cabinet/orders/:id`). */
 function CabinetOrdersRedirect() {
@@ -26,10 +27,10 @@ function CabinetOrdersRedirect() {
 export function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/order/tariff" replace />} />
-      <Route path="/privacy" element={<Navigate to="/order/tariff" replace />} />
-      <Route path="/oferta" element={<Navigate to="/order/tariff" replace />} />
-      <Route path="/sample-report.html" element={<Navigate to="/order/tariff" replace />} />
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/privacy" element={<Navigate to="/" replace />} />
+      <Route path="/oferta" element={<Navigate to="/" replace />} />
+      <Route path="/sample-report.html" element={<Navigate to="/" replace />} />
       <Route path="/cabinet" element={<Navigate to="/dashboard" replace />} />
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
       <Route element={<ProtectedRoute />}>
@@ -55,7 +56,7 @@ export function AppRoutes() {
         </Route>
         <Route path="/cabinet/orders/:orderId" element={<CabinetOrdersRedirect />} />
       </Route>
-      <Route path="*" element={<Navigate to="/order/tariff" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }
