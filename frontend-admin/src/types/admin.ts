@@ -1,6 +1,8 @@
 export interface TariffSummary {
   code: string
   name: string
+  billing_type: string
+  subscription_interval: string | null
 }
 
 export interface AdminOrderRow {
@@ -22,6 +24,13 @@ export interface AdminUserRow {
   is_admin: boolean
   created_at: string
   consent_given_at: string | null
+  // Enriched fields from backend
+  total_spent: string
+  orders_count: number
+  last_order_at: string | null
+  blocked: boolean
+  latest_tariff_name: string | null
+  latest_tariff_code: string | null
 }
 
 export interface AdminUserDetail extends AdminUserRow {
@@ -58,6 +67,11 @@ export type TariffPatch = Partial<{
   llm_tier: string
 }>
 
+export interface MrrPoint {
+  month: string
+  mrr: number
+}
+
 export interface DashboardSummary {
   order_metrics: {
     failed_orders_total: number
@@ -79,6 +93,7 @@ export interface DashboardSummary {
     avg_report_cost: number
     tokens_total: number
   }
+  mrr_history?: MrrPoint[]
 }
 
 export interface RetryReportResponse {

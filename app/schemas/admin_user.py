@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from typing import Optional
 
 from pydantic import BaseModel
@@ -11,9 +12,15 @@ class AdminUserListItem(BaseModel):
     is_admin: bool
     created_at: datetime
     consent_given_at: Optional[datetime] = None
+    # Enriched aggregated fields
+    total_spent: Decimal = Decimal("0.00")
+    orders_count: int = 0
+    last_order_at: Optional[datetime] = None
+    blocked: bool = False
+    latest_tariff_name: Optional[str] = None
+    latest_tariff_code: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class AdminUserOut(BaseModel):
@@ -25,5 +32,4 @@ class AdminUserOut(BaseModel):
     created_at: datetime
     consent_given_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
