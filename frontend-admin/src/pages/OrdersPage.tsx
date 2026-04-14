@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Button,
+  Card,
   Drawer,
   Input,
   InputNumber,
@@ -191,6 +192,7 @@ export function OrdersPage() {
 
   return (
     <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+      <div className="admin-page-title">Заказы</div>
       <Card title="Фильтры">
         <Space wrap align="start">
           <Select

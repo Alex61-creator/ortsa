@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Button, Card, Space, Tag, Typography } from 'antd'
+import { Button, Card, Space, Typography } from 'antd'
 import { Link } from 'react-router-dom'
 import { fetchDashboardSummary } from '@/api/dashboard'
 import type { DashboardSummary } from '@/types/admin'
@@ -26,7 +26,37 @@ export function DashboardPage() {
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
-      <Card loading={loading} title="Дашборд">
+      {summary && (
+        <div className="admin-kpi-grid">
+          <div className="admin-metric-card">
+            <div className="admin-metric-label">FAILED</div>
+            <div className="admin-metric-value">{summary.order_metrics.failed_orders_total}</div>
+            <div className="admin-metric-delta--down">Требуют ручной проверки</div>
+          </div>
+          <div className="admin-metric-card">
+            <div className="admin-metric-label">MRR</div>
+            <div className="admin-metric-value">{summary.business_metrics?.mrr ?? '—'}$</div>
+            <div className="admin-metric-delta--up">+{summary.business_metrics?.new_mrr ?? 0}$ new</div>
+          </div>
+          <div className="admin-metric-card">
+            <div className="admin-metric-label">Churn MRR</div>
+            <div className="admin-metric-value">{summary.business_metrics?.churn_mrr ?? '—'}$</div>
+            <div className="admin-metric-delta--down">Потери текущего периода</div>
+          </div>
+          <div className="admin-metric-card">
+            <div className="admin-metric-label">LTV</div>
+            <div className="admin-metric-value">{summary.business_metrics?.ltv ?? '—'}$</div>
+            <div className="admin-metric-label">Среднее значение</div>
+          </div>
+          <div className="admin-metric-card">
+            <div className="admin-metric-label">ROI LLM</div>
+            <div className="admin-metric-value">{summary.llm_metrics?.roi_pct ?? '—'}%</div>
+            <div className="admin-metric-label">Токены: {summary.llm_metrics?.tokens_total ?? '—'}</div>
+          </div>
+        </div>
+      )}
+      <div className="admin-two-col">
+      <Card loading={loading} title="Операционная сводка">
         {err && <Text type="danger">{err}</Text>}
         {summary && (
           <>
@@ -53,12 +83,17 @@ export function DashboardPage() {
           </>
         )}
       </Card>
-      <Card title="Аналитика (позже)">
-        <Tag color="orange">Заглушка</Tag>
-        <Paragraph style={{ marginTop: 8 }}>
-          Воронка, UTM, промокоды — см. <Text code>docs/ADMIN_PANEL_FUTURE.md</Text>
+      <Card title="LLM и экономика">
+        <Paragraph>
+          <strong>Затраты LLM:</strong> {summary?.llm_metrics?.llm_cost ?? '—'}$
+          <br />
+          <strong>Средняя стоимость отчета:</strong> {summary?.llm_metrics?.avg_report_cost ?? '—'}$
+        </Paragraph>
+        <Paragraph className="admin-muted">
+          Обновлено: {summary ? new Date(summary.order_metrics.checked_at).toLocaleString('ru-RU') : '—'}
         </Paragraph>
       </Card>
+      </div>
     </Space>
   )
 }

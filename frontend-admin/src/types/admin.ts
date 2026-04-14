@@ -64,8 +64,21 @@ export interface DashboardSummary {
     processing_stuck_over_2h: number
     checked_at: string
   }
-  analytics_stub: boolean
-  future_docs: string
+  analytics_stub?: boolean
+  future_docs?: string
+  business_metrics?: {
+    users_total: number
+    mrr: number
+    new_mrr: number
+    churn_mrr: number
+    ltv: number
+  }
+  llm_metrics?: {
+    llm_cost: number
+    roi_pct: number
+    avg_report_cost: number
+    tokens_total: number
+  }
 }
 
 export interface RetryReportResponse {
@@ -78,4 +91,71 @@ export interface RefundResponse {
   refund_id: string
   status: string
   amount: string
+}
+
+export interface FunnelStep {
+  key: string
+  title: string
+  count: number
+  conversion_pct: number
+}
+
+export interface FunnelSummary {
+  period: string
+  steps: FunnelStep[]
+  drop_offs?: Array<{
+    from_key: string
+    to_key: string
+    lost: number
+  }>
+  recommendations?: string[]
+}
+
+export interface AdminPaymentRow {
+  order_id: number
+  user_id: number
+  user_email: string
+  status: string
+  amount: string
+  tariff_name: string
+  created_at: string
+}
+
+export interface AdminTaskRow {
+  id: string
+  queue: string
+  name: string
+  status: string
+  created_at: string
+  updated_at: string
+}
+
+export interface PromoRow {
+  id: string
+  code: string
+  discount_percent: number
+  max_uses: number
+  used_count: number
+  active_until: string | null
+  is_active: boolean
+}
+
+export interface FeatureFlagRow {
+  key: string
+  description: string
+  enabled: boolean
+}
+
+export interface HealthWidget {
+  name: string
+  status: string
+  value: string
+}
+
+export interface AdminLogRow {
+  id: string
+  actor_email: string
+  action: string
+  entity: string
+  created_at: string
 }

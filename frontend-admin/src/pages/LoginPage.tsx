@@ -7,6 +7,11 @@ function googleAdminUrl(): string {
   return `${base}/api/v1/auth/google/authorize-admin`
 }
 
+function yandexUrl(): string {
+  const base = import.meta.env.VITE_API_BASE_URL ?? ''
+  return `${base}/api/v1/auth/yandex/authorize`
+}
+
 export function LoginPage() {
   return (
     <div
@@ -16,7 +21,7 @@ export function LoginPage() {
         alignItems: 'center',
         justifyContent: 'center',
         padding: 24,
-        background: '#f0f2f5',
+        background: 'var(--ag-bg)',
       }}
     >
       <Card style={{ maxWidth: 400, width: '100%' }}>
@@ -29,6 +34,9 @@ export function LoginPage() {
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
           <Button type="primary" block href={googleAdminUrl()}>
             Войти через Google
+          </Button>
+          <Button block href={yandexUrl()}>
+            Войти через Яндекс
           </Button>
           <Text type="secondary" style={{ fontSize: 12 }}>
             Telegram Mini App: откройте бота в Telegram и используйте тот же API{' '}

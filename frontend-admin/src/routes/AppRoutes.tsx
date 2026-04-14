@@ -8,6 +8,13 @@ import { OrdersPage } from '@/pages/OrdersPage'
 import { TariffsPage } from '@/pages/TariffsPage'
 import { UsersPage } from '@/pages/UsersPage'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
+import { FunnelPage } from '@/pages/FunnelPage'
+import { PaymentsPage } from '@/pages/PaymentsPage'
+import { TasksPage } from '@/pages/TasksPage'
+import { PromosPage } from '@/pages/PromosPage'
+import { FlagsPage } from '@/pages/FlagsPage'
+import { HealthPage } from '@/pages/HealthPage'
+import { ActionLogPage } from '@/pages/ActionLogPage'
 
 export function AppRoutes() {
   return (
@@ -18,9 +25,16 @@ export function AppRoutes() {
       <Route element={<ProtectedRoute />}>
         <Route element={<AdminLayout />}>
           <Route index element={<DashboardPage />} />
+          <Route path="funnel" element={<FunnelPage />} />
           <Route path="orders" element={<OrdersPage />} />
+          <Route path="payments" element={<PaymentsPage />} />
           <Route path="users" element={<UsersPage />} />
+          <Route path="tasks" element={<TasksPage />} />
+          <Route path="promos" element={<PromosPage />} />
           <Route path="tariffs" element={<TariffsPage />} />
+          <Route path="flags" element={<FlagsPage />} />
+          <Route path="health" element={<HealthPage />} />
+          <Route path="log" element={<ActionLogPage />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

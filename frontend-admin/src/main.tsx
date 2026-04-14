@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { ConfigProvider } from 'antd'
 import { BrowserRouter } from 'react-router-dom'
 import { AppRoutes } from '@/routes/AppRoutes'
+import '@/styles/admin.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

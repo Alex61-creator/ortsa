@@ -15,6 +15,7 @@ import {
 import type { ColumnsType } from 'antd/es/table'
 import { fetchTariffs, patchTariff } from '@/api/tariffs'
 import type { TariffPatch, TariffRow } from '@/types/admin'
+import { fetchTariffHistory, type TariffHistoryRow } from '@/api/tariffHistory'
 
 interface TariffFormValues {
   name: string
@@ -48,6 +49,7 @@ const SUB_INT = [
 
 export function TariffsPage() {
   const [rows, setRows] = useState<TariffRow[]>([])
+  const [history, setHistory] = useState<TariffHistoryRow[]>([])
   const [loading, setLoading] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [editing, setEditing] = useState<TariffRow | null>(null)
@@ -58,6 +60,8 @@ export function TariffsPage() {
     try {
       const data = await fetchTariffs()
       setRows(data)
+      const hist = await fetchTariffHistory()
+      setHistory(hist)
     } catch {
       message.error('Не удалось загрузить тарифы')
     } finally {
@@ -142,6 +146,7 @@ export function TariffsPage() {
 
   return (
     <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+      <div className="admin-page-title">Тарифы</div>
       <Card>
         <Button type="primary" onClick={() => void load()}>
           Обновить
@@ -154,6 +159,23 @@ export function TariffsPage() {
           columns={columns}
           dataSource={rows}
           pagination={false}
+        />
+      </Card>
+      <Card title="История изменений цен">
+        <Table<TariffHistoryRow>
+          rowKey="id"
+          columns={[
+            { title: 'Когда', dataIndex: 'created_at', render: (v: string) => new Date(v).toLocaleString('ru-RU') },
+            { title: 'Кто', dataIndex: 'actor' },
+            { title: 'Тариф', dataIndex: 'tariff_id' },
+            {
+              title: 'Изменение',
+              dataIndex: 'payload',
+              render: (v: Record<string, unknown>) => JSON.stringify(v),
+            },
+          ]}
+          dataSource={history}
+          pagination={{ pageSize: 10 }}
         />
       </Card>
       <Modal

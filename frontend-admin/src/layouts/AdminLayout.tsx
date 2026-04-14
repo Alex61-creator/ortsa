@@ -1,43 +1,80 @@
-import { Layout, Menu, Typography } from 'antd'
+import { Button, Layout, Menu, Space, Typography } from 'antd'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
+import { useUiStore } from '@/stores/uiStore'
+import { exportFirstTableAsCsv } from '@/utils/exportTableCsv'
 
 const { Header, Sider, Content } = Layout
 
 const items = [
-  { key: '/', label: <Link to="/">Дашборд</Link> },
-  { key: '/orders', label: <Link to="/orders">Заказы</Link> },
-  { key: '/users', label: <Link to="/users">Пользователи</Link> },
-  { key: '/tariffs', label: <Link to="/tariffs">Тарифы</Link> },
+  { type: 'group', label: 'Аналитика', key: 'g-analytics', children: [
+    { key: '/', label: <Link to="/">Дашборд</Link> },
+    { key: '/funnel', label: <Link to="/funnel">Воронка</Link> },
+  ] },
+  { type: 'group', label: 'Пользователи', key: 'g-users', children: [
+    { key: '/users', label: <Link to="/users">Пользователи</Link> },
+    { key: '/payments', label: <Link to="/payments">Платежи</Link> },
+    { key: '/orders', label: <Link to="/orders">Заказы</Link> },
+  ] },
+  { type: 'group', label: 'Инструменты', key: 'g-tools', children: [
+    { key: '/tasks', label: <Link to="/tasks">Задачи Celery</Link> },
+    { key: '/promos', label: <Link to="/promos">Промокоды</Link> },
+    { key: '/tariffs', label: <Link to="/tariffs">Тарифы</Link> },
+    { key: '/flags', label: <Link to="/flags">Feature Flags</Link> },
+  ] },
+  { type: 'group', label: 'Система', key: 'g-system', children: [
+    { key: '/health', label: <Link to="/health">Мониторинг</Link> },
+    { key: '/log', label: <Link to="/log">Лог действий</Link> },
+  ] },
 ]
 
 export function AdminLayout() {
   const location = useLocation()
   const logout = useAuthStore((s) => s.logout)
-  const selected = items.find((i) =>
-    i.key === '/' ? location.pathname === '/' : location.pathname.startsWith(i.key)
-  )?.key
+  const theme = useUiStore((s) => s.theme)
+  const toggleTheme = useUiStore((s) => s.toggleTheme)
+  const selected = ['/', '/funnel', '/users', '/payments', '/orders', '/tasks', '/promos', '/tariffs', '/flags', '/health', '/log']
+    .find((key) => (key === '/' ? location.pathname === '/' : location.pathname.startsWith(key)))
+  document.documentElement.setAttribute('data-theme', theme)
+  const titleMap: Record<string, string> = {
+    '/': 'Дашборд',
+    '/funnel': 'Воронка',
+    '/users': 'Пользователи',
+    '/payments': 'Платежи',
+    '/orders': 'Заказы',
+    '/tasks': 'Задачи Celery',
+    '/promos': 'Промокоды',
+    '/tariffs': 'Тарифы',
+    '/flags': 'Feature Flags',
+    '/health': 'Мониторинг',
+    '/log': 'Лог действий',
+  }
+  const topbarTitle = selected ? titleMap[selected] : 'Админка'
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Sider breakpoint="lg" collapsedWidth={0} theme="light" style={{ borderRight: '1px solid #f0f0f0' }}>
-        <div style={{ padding: 16, fontWeight: 600 }}>AstroGen Admin</div>
+    <Layout className="admin-shell">
+      <Sider breakpoint="lg" collapsedWidth={0} theme={theme} className="admin-sider">
+        <div className="admin-brand">
+          AstroGen Admin
+          <span className="admin-badge">ADMIN</span>
+        </div>
         <Menu mode="inline" selectedKeys={selected ? [selected] : []} items={items} />
       </Sider>
       <Layout>
-        <Header
-          style={{
-            background: '#fff',
-            padding: '0 24px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            borderBottom: '1px solid #f0f0f0',
-          }}
-        >
-          <Typography.Link onClick={() => logout()}>Выйти</Typography.Link>
+        <Header className="admin-header">
+          <div className="admin-topbar-title">{topbarTitle}</div>
+          <div className="admin-header-actions">
+            <Button onClick={() => toggleTheme()}>{theme === 'light' ? 'Темная' : 'Светлая'}</Button>
+            <Button type="primary" onClick={() => exportFirstTableAsCsv(`admin-${topbarTitle}.csv`)}>
+              Экспорт CSV
+            </Button>
+            <Space size={4}>
+              <span className="admin-muted">ADMIN</span>
+              <Typography.Link onClick={() => logout()}>Выйти</Typography.Link>
+            </Space>
+          </div>
         </Header>
-        <Content style={{ padding: 24, background: '#f5f5f5' }}>
+        <Content className="admin-content">
           <Outlet />
         </Content>
       </Layout>

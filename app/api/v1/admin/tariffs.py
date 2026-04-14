@@ -1,15 +1,22 @@
+from datetime import datetime
+from uuid import uuid4
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin_user
+from app.api.v1.admin.logs import append_admin_log
+from app.core.cache import cache
 from app.db.session import get_db
 from app.models.tariff import Tariff
 from app.models.user import User
+from app.schemas.admin_extra import TariffHistoryRow
 from app.schemas.admin_tariff import TariffAdminOut, TariffAdminPatch
 from app.services.tariff import TariffService
 
 router = APIRouter()
+TARIFF_HISTORY_KEY = "admin:tariffs:history"
 
 
 def _validate_patch(body: TariffAdminPatch) -> None:
@@ -48,7 +55,7 @@ async def patch_tariff_admin(
     tariff_id: int,
     body: TariffAdminPatch,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_admin_user),
+    actor: User = Depends(get_current_admin_user),
 ):
     _validate_patch(body)
     result = await db.execute(select(Tariff).where(Tariff.id == tariff_id))
@@ -62,4 +69,26 @@ async def patch_tariff_admin(
     await db.commit()
     await db.refresh(t)
     await TariffService.invalidate_cache()
+    history = await cache.get(TARIFF_HISTORY_KEY)
+    rows = history if isinstance(history, list) else []
+    rows.insert(
+        0,
+        TariffHistoryRow(
+            id=str(uuid4()),
+            tariff_id=t.id,
+            actor=actor.email or f"user:{actor.id}",
+            payload=data,
+            created_at=datetime.utcnow(),
+        ).model_dump(mode="json"),
+    )
+    await cache.set(TARIFF_HISTORY_KEY, rows[:100])
+    await append_admin_log(actor.email or f"user:{actor.id}", "tariff_patch", f"tariff:{t.id}")
     return t
+
+
+@router.get("/history/list", response_model=list[TariffHistoryRow], summary="История изменений тарифов")
+async def tariff_history(_: User = Depends(get_current_admin_user)):
+    rows = await cache.get(TARIFF_HISTORY_KEY)
+    if not isinstance(rows, list):
+        return []
+    return [TariffHistoryRow(**row) for row in rows]
