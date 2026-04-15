@@ -136,6 +136,8 @@ async def _generate_report_async(order_id: int, task_id: str):
                 "birth_place": natal_data.birth_place,
                 "chart_img_path": f"/app/storage/{chart_filename}",
                 "interpretation": interpretation.raw_content,
+                "interpretation_sections": interpretation.sections,
+                "chart_data": chart_data,
                 "tariff_name": tariff.name,
                 "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
             }

@@ -1,43 +1,531 @@
 <!DOCTYPE html>
-<html>
+<html lang="{{ locale }}">
 <head>
-    <meta charset="UTF-8">
-    <style>
-        body { font-family: 'DejaVu Serif', serif; margin: 1.2cm; font-size: 11pt; }
-        h1 { color: #2c3e50; font-size: 16pt; margin-bottom: 8px; }
-        h2 { color: #34495e; font-size: 12pt; margin-top: 12px; }
-        .chart { text-align: center; margin: 12px 0; }
-        .chart img { max-height: 280px; }
-        .footer { margin-top: 16px; font-size: 0.75em; color: #7f8c8d; text-align: center; }
-    </style>
+<meta charset="UTF-8">
+<style>
+/* ═══ Palette ═══════════════════════════════════════════════════════════════ */
+:root {
+  --navy:       #1a1f3c;
+  --navy-2:     #252b50;
+  --gold:       #c9a96e;
+  --gold-light: #e8d5a3;
+  --cream:      #f5f0e8;
+  --cream-2:    #ede8de;
+  --white:      #ffffff;
+  --text:       #1a1f3c;
+  --text-2:     #5a5f7c;
+  --fire:       #c94e2b;
+  --earth:      #6b8c3a;
+  --air:        #3a7fa5;
+  --water:      #3a6fa0;
+}
+
+/* ═══ Page ══════════════════════════════════════════════════════════════════ */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DejaVu Serif', Georgia, serif;
+  font-size: 9pt;
+  color: var(--text);
+  background: var(--cream);
+}
+
+/* ═══ Cover (compact) ═══════════════════════════════════════════════════════ */
+.cover {
+  background: var(--navy);
+  width: 100%;
+}
+.cover-stripe {
+  height: 4px;
+  background: var(--gold);
+}
+.cover-body {
+  padding: 20px 28px 18px;
+}
+.cover-label {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 6.5pt;
+  letter-spacing: 2.5px;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.cover-name {
+  font-family: 'DejaVu Serif', Georgia, serif;
+  font-size: 17pt;
+  font-weight: bold;
+  color: var(--white);
+  margin-bottom: 4px;
+  line-height: 1.2;
+}
+.cover-subtitle {
+  font-size: 9pt;
+  color: var(--gold-light);
+  font-style: italic;
+  margin-bottom: 14px;
+}
+.cover-rule {
+  width: 40px;
+  height: 2px;
+  background: var(--gold);
+  margin-bottom: 12px;
+}
+.cover-meta-table {
+  border-collapse: collapse;
+}
+.cover-meta-table td {
+  padding: 2px 0;
+  vertical-align: top;
+}
+.cover-meta-label {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 6.5pt;
+  letter-spacing: 1.5px;
+  color: var(--gold);
+  text-transform: uppercase;
+  padding-right: 14px;
+  white-space: nowrap;
+  width: 70px;
+}
+.cover-meta-value {
+  font-size: 8.5pt;
+  color: var(--white);
+  font-weight: 600;
+}
+.cover-bot-stripe {
+  height: 3px;
+  background: var(--gold);
+  opacity: 0.5;
+}
+
+/* ═══ Preview badge ═════════════════════════════════════════════════════════ */
+.preview-badge {
+  background: var(--gold);
+  color: var(--navy);
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 7pt;
+  font-weight: bold;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 4px 0;
+}
+
+/* ═══ Main container ════════════════════════════════════════════════════════ */
+.main {
+  padding: 16px 24px 24px;
+}
+
+/* ═══ Two-column layout ═════════════════════════════════════════════════════ */
+.two-col {
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 14px;
+}
+.col-chart {
+  display: table-cell;
+  width: 48%;
+  vertical-align: top;
+  padding-right: 12px;
+}
+.col-planets {
+  display: table-cell;
+  width: 52%;
+  vertical-align: top;
+}
+
+/* ═══ Chart ═════════════════════════════════════════════════════════════════ */
+.chart-wrap {
+  text-align: center;
+  background: var(--white);
+  border: 1px solid var(--cream-2);
+  padding: 10px 6px 8px;
+}
+.chart-wrap-label {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 6.5pt;
+  letter-spacing: 2px;
+  color: var(--text-2);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.chart-wrap img {
+  max-width: 100%;
+  max-height: 220px;
+}
+
+/* ═══ Planet mini-table ═════════════════════════════════════════════════════ */
+.planet-mini {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 7.5pt;
+}
+.planet-mini th {
+  background: var(--navy);
+  color: var(--gold);
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 6pt;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  padding: 4px 5px;
+  text-align: left;
+  font-weight: 600;
+}
+.planet-mini td {
+  padding: 3px 5px;
+  border-bottom: 1px solid var(--cream-2);
+  vertical-align: middle;
+}
+.planet-mini tr:last-child td { border-bottom: none; }
+.planet-mini tr.row-even td { background: var(--white); }
+.planet-mini tr.row-odd  td { background: var(--cream); }
+.pm-name  { font-weight: 700; color: var(--navy); }
+.pm-sign  { font-style: italic; }
+.pm-house {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 7.5pt;
+  font-weight: 700;
+  text-align: center;
+  color: var(--navy);
+}
+.el-fire  { color: var(--fire); }
+.el-earth { color: var(--earth); }
+.el-air   { color: var(--air); }
+.el-water { color: var(--water); }
+.retro-mark {
+  color: #b03020;
+  font-size: 7pt;
+  font-weight: bold;
+  display: block;
+  text-align: center;
+}
+
+/* ═══ Angles bar (thin) ═════════════════════════════════════════════════════ */
+.angles-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 12px;
+}
+.angles-table td {
+  background: var(--navy-2);
+  color: var(--white);
+  text-align: center;
+  padding: 5px 4px;
+  border-right: 1px solid #1a1f3c;
+  width: 25%;
+}
+.angles-table td:last-child { border-right: none; }
+.angle-lbl {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 6pt;
+  letter-spacing: 1px;
+  color: var(--gold);
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 2px;
+}
+.angle-sign {
+  font-size: 8pt;
+  font-weight: bold;
+  display: block;
+}
+.angle-deg {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 7pt;
+  color: var(--gold-light);
+  display: block;
+}
+
+/* ═══ Section heading ═══════════════════════════════════════════════════════ */
+.sect-heading {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 7pt;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-2);
+  padding-bottom: 3px;
+  border-bottom: 1.5px solid var(--gold);
+  margin: 14px 0 8px;
+}
+
+/* ═══ Interpretation sections ═══════════════════════════════════════════════ */
+.interp-block {
+  margin-bottom: 10px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.interp-hdr {
+  background: var(--navy);
+  padding: 5px 10px;
+  display: table;
+  width: 100%;
+}
+.interp-hdr-inner {
+  display: table-row;
+}
+.interp-num-cell {
+  display: table-cell;
+  vertical-align: middle;
+  width: 22px;
+  padding-right: 8px;
+}
+.interp-num {
+  display: inline-block;
+  width: 17px;
+  height: 17px;
+  line-height: 17px;
+  text-align: center;
+  background: var(--gold);
+  color: var(--navy);
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 7pt;
+  font-weight: bold;
+  border-radius: 50%;
+}
+.interp-title-cell {
+  display: table-cell;
+  vertical-align: middle;
+}
+.interp-title {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 8pt;
+  font-weight: bold;
+  color: var(--white);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.interp-body {
+  background: var(--white);
+  padding: 8px 10px;
+  border: 1px solid var(--cream-2);
+  border-top: none;
+}
+.interp-body p {
+  margin-bottom: 5px;
+  line-height: 1.55;
+  color: var(--text);
+}
+.interp-body p:last-child { margin-bottom: 0; }
+.interp-body ul {
+  padding-left: 14px;
+  margin-bottom: 5px;
+}
+.interp-body li {
+  margin-bottom: 2px;
+  line-height: 1.5;
+}
+.interp-body strong { color: var(--navy); }
+
+/* Upgrade CTA */
+.upgrade-box {
+  background: var(--navy);
+  border: 1.5px solid var(--gold);
+  padding: 12px 16px;
+  margin-top: 16px;
+  text-align: center;
+}
+.upgrade-box-title {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 8.5pt;
+  font-weight: bold;
+  color: var(--gold);
+  margin-bottom: 5px;
+  letter-spacing: 0.5px;
+}
+.upgrade-box-text {
+  font-size: 8pt;
+  color: var(--gold-light);
+  line-height: 1.5;
+}
+
+/* ═══ Footer ════════════════════════════════════════════════════════════════ */
+.footer-rule {
+  height: 1px;
+  background: var(--gold);
+  margin-top: 18px;
+  margin-bottom: 6px;
+  opacity: 0.6;
+}
+.footer-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.footer-table td {
+  vertical-align: middle;
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 6pt;
+  color: var(--text-2);
+  padding: 0;
+}
+.footer-brand {
+  font-size: 7.5pt;
+  font-weight: bold;
+  color: var(--navy);
+  letter-spacing: 1px;
+}
+.footer-note { text-align: right; line-height: 1.4; }
+</style>
 </head>
 <body>
-    {% if locale == 'en' %}
-    <h1>Natal chart snapshot</h1>
-    <p><strong>Name:</strong> {{ full_name }}</p>
-    <p><strong>Birth:</strong> {{ birth_data }}, {{ birth_place }}</p>
-    <p><strong>Plan:</strong> {{ tariff_name }}</p>
-    {% else %}
-    <h1>Краткий разбор натальной карты</h1>
-    <p><strong>Имя:</strong> {{ full_name }}</p>
-    <p><strong>Рождение:</strong> {{ birth_data }}, {{ birth_place }}</p>
-    <p><strong>Тариф:</strong> {{ tariff_name }}</p>
-    {% endif %}
 
-    <div class="chart">
-        <img src="{{ chart_img_path }}" alt="Chart">
+<!-- ══════════════════════════════ COVER ══════════════════════════════════── -->
+<div class="cover">
+  <div class="cover-stripe"></div>
+  <div class="cover-body">
+    <div class="cover-label">
+      {% if locale == 'en' %}Natal Chart Preview · AstroGen{% else %}Обзор Натальной Карты · AstroGen{% endif %}
+    </div>
+    <div class="cover-name">{{ full_name }}</div>
+    <div class="cover-subtitle">
+      {% if locale == 'en' %}Free natal chart snapshot{% else %}Бесплатный краткий разбор{% endif %}
+    </div>
+    <div class="cover-rule"></div>
+    <table class="cover-meta-table">
+      <tr>
+        <td class="cover-meta-label">{% if locale == 'en' %}Birth{% else %}Рождение{% endif %}</td>
+        <td class="cover-meta-value">{{ birth_data }}</td>
+      </tr>
+      <tr>
+        <td class="cover-meta-label">{% if locale == 'en' %}Place{% else %}Место{% endif %}</td>
+        <td class="cover-meta-value">{{ birth_place }}</td>
+      </tr>
+      <tr>
+        <td class="cover-meta-label">{% if locale == 'en' %}Generated{% else %}Создан{% endif %}</td>
+        <td class="cover-meta-value">{{ generated_at }}</td>
+      </tr>
+    </table>
+  </div>
+  <div class="cover-bot-stripe"></div>
+</div>
+<div class="preview-badge">
+  {% if locale == 'en' %}Free Preview — Upgrade for Full Report{% else %}Бесплатный превью — Полный отчёт доступен на платном тарифе{% endif %}
+</div>
+
+<!-- ══════════════════════════════ MAIN ═══════════════════════════════════── -->
+<div class="main">
+
+  <!-- ── Two-column: chart + planets ─────────────────────────────────────── -->
+  <div class="two-col">
+    <div class="col-chart">
+      <div class="chart-wrap">
+        <div class="chart-wrap-label">
+          {% if locale == 'en' %}Natal Wheel{% else %}Натальная Карта{% endif %}
+        </div>
+        <img src="{{ chart_img_path }}" alt="Natal Chart">
+      </div>
     </div>
 
-    <div class="interpretation">{{ interpretation | safe }}</div>
+    <div class="col-planets">
+      {% if chart_data and chart_data.planets %}
+      <table class="planet-mini">
+        <thead>
+          <tr>
+            <th>{% if locale == 'en' %}Planet{% else %}Планета{% endif %}</th>
+            <th>{% if locale == 'en' %}Sign{% else %}Знак{% endif %}</th>
+            <th>{% if locale == 'en' %}Hse{% else %}Дом{% endif %}</th>
+            <th>R</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for planet in chart_data.planets %}
+          <tr class="{{ 'row-even' if loop.index is even else 'row-odd' }}">
+            <td class="pm-name">{{ planet.name | planet_name_ru }}</td>
+            <td class="pm-sign">
+              {{ planet.sign | sign_name_ru }}
+              {% if planet.element == 'Fire' %}<span class="el-fire"> ●</span>
+              {% elif planet.element == 'Earth' %}<span class="el-earth"> ●</span>
+              {% elif planet.element == 'Air' %}<span class="el-air"> ●</span>
+              {% elif planet.element == 'Water' %}<span class="el-water"> ●</span>
+              {% endif %}
+            </td>
+            <td class="pm-house">{{ planet.house | house_roman }}</td>
+            <td>{% if planet.retrograde %}<span class="retro-mark">℞</span>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+    </div>
+  </div>
 
-    <div class="footer">
+  <!-- ── Angles bar ──────────────────────────────────────────────────────── -->
+  {% if chart_data and chart_data.angles %}
+  <table class="angles-table">
+    <tr>
+      {% for angle in chart_data.angles %}
+      <td>
+        <span class="angle-lbl">{{ angle.name }}</span>
+        <span class="angle-sign">{{ angle.sign | sign_name_ru }}</span>
+        <span class="angle-deg">{{ "%.0f"|format(angle.position) }}°</span>
+      </td>
+      {% endfor %}
+    </tr>
+  </table>
+  {% endif %}
+
+  <!-- ── Interpretation sections ─────────────────────────────────────────── -->
+  <div class="sect-heading">
+    {% if locale == 'en' %}Interpretation{% else %}Интерпретация{% endif %}
+  </div>
+
+  {% if interpretation_sections %}
+    {% for section_name, section_text in interpretation_sections.items() %}
+    <div class="interp-block">
+      <div class="interp-hdr">
+        <div class="interp-hdr-inner">
+          <div class="interp-num-cell">
+            <span class="interp-num">{{ loop.index }}</span>
+          </div>
+          <div class="interp-title-cell">
+            <span class="interp-title">{{ section_name }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="interp-body">
+        {{ section_text | md_to_html | safe }}
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+  <div class="interp-body" style="border: 1px solid var(--cream-2);">
+    {{ interpretation | md_to_html | safe }}
+  </div>
+  {% endif %}
+
+  <!-- ── Upgrade CTA ─────────────────────────────────────────────────────── -->
+  <div class="upgrade-box">
+    <div class="upgrade-box-title">
+      {% if locale == 'en' %}Want the full picture?{% else %}Хотите полный разбор?{% endif %}
+    </div>
+    <div class="upgrade-box-text">
+      {% if locale == 'en' %}
+        Upgrade to the Full Report plan to unlock all 12 interpretation sections,
+        aspects analysis, nodal axis, karma, and personal recommendations.
+      {% else %}
+        Оформите тариф «Полный отчёт», чтобы получить все 12 разделов интерпретации:
+        аспекты, нодальную ось, карму и персональные рекомендации.
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ── Footer ──────────────────────────────────────────────────────────── -->
+  <div class="footer-rule"></div>
+  <table class="footer-table">
+    <tr>
+      <td>
+        <span class="footer-brand">AstroGen</span>
+      </td>
+      <td class="footer-note">
         {% if locale == 'en' %}
-        One-page preview. For informational purposes only.<br>
-        AstroGen © 2024.
+          Free preview. For informational purposes only. AstroGen © 2024.
         {% else %}
-        Одностраничный превью-отчёт. Информация носит ознакомительный характер.<br>
-        AstroGen © 2024.
+          Бесплатный превью-отчёт. Информация носит ознакомительный характер. AstroGen © 2024.
         {% endif %}
-    </div>
+      </td>
+    </tr>
+  </table>
+
+</div>
 </body>
 </html>
