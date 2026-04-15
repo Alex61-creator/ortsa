@@ -4,6 +4,7 @@ import {
   AppstoreOutlined,
   CalendarOutlined,
   FileTextOutlined,
+  HeartOutlined,
   MenuOutlined,
   QuestionCircleOutlined,
   SettingOutlined,
@@ -20,6 +21,7 @@ import { useTwaEnvironment } from '@/hooks/useTwaEnvironment'
 import { fetchMe } from '@/api/users'
 import { fetchMySubscription } from '@/api/subscriptions'
 import { listOrders } from '@/api/orders'
+import { getSynastryQuota } from '@/api/synastry'
 import '@/styles/cabinet-mockup.css'
 
 const TITLE_KEYS: Record<string, string> = {
@@ -27,6 +29,7 @@ const TITLE_KEYS: Record<string, string> = {
   '/dashboard/orders': 'dashboard.navOrders',
   '/dashboard/reports': 'dashboard.navReports',
   '/dashboard/natal': 'dashboard.navNatal',
+  '/dashboard/synastry': 'dashboard.navSynastry',
   '/dashboard/subscription': 'dashboard.navSubscription',
   '/dashboard/settings': 'dashboard.navSettings',
   '/dashboard/support': 'dashboard.navSupport',
@@ -102,6 +105,7 @@ export function DashboardLayout() {
   const { data: me } = useQuery({ queryKey: ['me'], queryFn: fetchMe })
   const { data: subscription } = useQuery({ queryKey: ['subscription'], queryFn: fetchMySubscription })
   const { data: orders } = useQuery({ queryKey: ['orders'], queryFn: listOrders })
+  const { data: synastryQuota } = useQuery({ queryKey: ['synastry-quota'], queryFn: getSynastryQuota })
 
   const topTitle = useMemo(() => {
     const k = TITLE_KEYS[location.pathname]
@@ -159,6 +163,17 @@ export function DashboardLayout() {
               <CalendarOutlined />
               {t('dashboard.navNatal')}
             </NavLink>
+            {synastryQuota?.has_access && (
+              <NavLink to="/dashboard/synastry" className={navClass} onClick={closeMobile}>
+                <HeartOutlined />
+                Синастрия
+                {synastryQuota.pairs_used > 0 && (
+                  <span className="nav-badge" style={{ background: 'var(--rose-light, #f0d0da)', color: '#c96e8c' }}>
+                    {synastryQuota.pairs_used}
+                  </span>
+                )}
+              </NavLink>
+            )}
 
             <div className="nav-section-label">{t('dashboard.sectionAccount')}</div>
             <NavLink

@@ -10,6 +10,7 @@ import { OrdersPage } from '@/pages/dashboard/OrdersPage'
 import { ReportsPage } from '@/pages/dashboard/ReportsPage'
 import { SubscriptionPage } from '@/pages/dashboard/SubscriptionPage'
 import { SupportPage } from '@/pages/dashboard/SupportPage'
+import { SynastryPage } from '@/pages/dashboard/SynastryPage'
 import { OrderTariffPage } from '@/pages/order/OrderTariffPage'
 import { OrderDataPage } from '@/pages/order/OrderDataPage'
 import { OrderConfirmPage } from '@/pages/order/OrderConfirmPage'
@@ -39,6 +40,7 @@ export function AppRoutes() {
           <Route path="orders" element={<OrdersPage />} />
           <Route path="reports" element={<ReportsPage />} />
           <Route path="natal" element={<NatalDataPage />} />
+          <Route path="synastry" element={<SynastryPage />} />
           <Route path="subscription" element={<SubscriptionPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="support" element={<SupportPage />} />

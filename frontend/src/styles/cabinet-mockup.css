@@ -734,3 +734,57 @@
   .cabinet-content { padding: 16px; }
   .natal-form-grid { grid-template-columns: 1fr; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SYNASTRY PAGE
+═══════════════════════════════════════════════════════════════════════════ */
+.synastry-locked-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 24px;
+  background: var(--ag-bg-container);
+  border: 1px solid var(--ag-border);
+  border-radius: 12px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.synastry-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 48px 24px;
+  background: var(--ag-bg-container);
+  border: 1px dashed var(--ag-border);
+  border-radius: 12px;
+}
+
+.synastry-card {
+  background: var(--ag-bg-container);
+  border: 1px solid var(--ag-border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  transition: border-color 0.15s;
+}
+.synastry-card:hover {
+  border-color: #c96e8c44;
+}
+
+.synastry-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.synastry-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
