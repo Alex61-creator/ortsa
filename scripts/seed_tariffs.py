@@ -55,15 +55,27 @@ DEFAULT_TARIFFS: list[dict] = [
     },
     {
         "code": "bundle",
-        "name": "Набор из 3 отчётов (резерв под Phase 2)",
+        "name": "Набор из 3 отчётов",
         "price": Decimal("2490.00"),
         "price_usd": Decimal("25.00"),
-        "features": {"max_natal_profiles": 3},
+        "features": {"max_natal_profiles": 3, "synastry_included": 1},
         "retention_days": 365,
         "billing_type": "one_time",
         "subscription_interval": None,
         "llm_tier": "natal_full",
         "priority": 15,
+    },
+    {
+        "code": "synastry_addon",
+        "name": "Дополнительная синастрия",
+        "price": Decimal("190.00"),
+        "price_usd": Decimal("2.00"),
+        "features": {"synastry_credits": 1},
+        "retention_days": 365,
+        "billing_type": "one_time",
+        "subscription_interval": None,
+        "llm_tier": "natal_full",
+        "priority": 99,   # служебный тариф, не показывается на лендинге
     },
 ]
 

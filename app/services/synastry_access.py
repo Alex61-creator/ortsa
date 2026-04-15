@@ -1,19 +1,24 @@
 """
 Сервис контроля доступа к синастрии.
 
-Логика анти-абьюза:
-1. has_synastry_access — пользователь должен иметь активный тариф с синастрией
-2. check_pair_quota    — не превышен лимит активных синастрий
-3. check_regen_cooldown — не нарушен cooldown между регенерациями
-4. input_hash_unchanged — данные не изменились → вернуть кэш
-5. check_bundle_regen_limit — для bundle: не более 2 генераций
+Логика доступа (упрощена — cooldown убран, т.к. регистрация платная):
+1. get_synastry_tariff_code   — определяет активный тариф с синастрией
+2. get_synastry_override      — проверяет per-user override от администратора
+3. require_synastry_access    — возвращает тариф или бросает HTTP 403
+4. check_generating_lock      — анти-DDoS: нельзя создать новую, пока идёт генерация
+5. get_synastry_repeat_price  — читает цену доп. синастрии из app_settings
+
+Тарифная модель:
+- sub_monthly / sub_annual / pro  → безлимитные синастрии
+- bundle                          → 1 бесплатная, далее за деньги
+- free / report                   → нет доступа (только через admin override)
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 from typing import Optional
 
 from fastapi import HTTPException, status
@@ -22,16 +27,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.constants.tariffs import (
     SYNASTRY_ACCESS_CODES,
-    SYNASTRY_MAX_REGEN_BUNDLE,
-    has_synastry_access,
-    synastry_max_pairs,
-    synastry_regen_cooldown_hours,
+    SYNASTRY_REPEAT_PRICE_DEFAULT,
+    SYNASTRY_REPEAT_PRICE_KEY,
+    is_synastry_unlimited,
+    synastry_free_count,
 )
+from app.models.app_settings import AppSettings
 from app.models.natal_data import NatalData
-from app.models.synastry_report import SynastryReport
-from app.models.subscription import Subscription
 from app.models.order import Order, OrderStatus
+from app.models.subscription import Subscription
+from app.models.synastry_report import SynastryReport, SynastryStatus
 from app.models.tariff import Tariff
+from app.models.user_synastry_override import UserSynastryOverride
 
 
 # ── Хэш входных данных ────────────────────────────────────────────────────────
@@ -60,6 +67,16 @@ def compute_input_hash(nd1: NatalData, nd2: NatalData) -> str:
     }
     raw = json.dumps(data, sort_keys=True)
     return hashlib.md5(raw.encode()).hexdigest()
+
+
+# ── Per-user override ─────────────────────────────────────────────────────────
+
+async def get_synastry_override(user_id: int, db: AsyncSession) -> Optional[UserSynastryOverride]:
+    """Возвращает override-запись для пользователя или None."""
+    result = await db.execute(
+        select(UserSynastryOverride).where(UserSynastryOverride.user_id == user_id)
+    )
+    return result.scalar_one_or_none()
 
 
 # ── Определение активного тарифа ─────────────────────────────────────────────
@@ -113,90 +130,157 @@ async def get_synastry_tariff_code(user_id: int, db: AsyncSession) -> Optional[s
     return None
 
 
+# ── Цена повторной синастрии ──────────────────────────────────────────────────
+
+async def get_synastry_repeat_price(db: AsyncSession) -> Decimal:
+    """Читает цену дополнительной синастрии из app_settings."""
+    result = await db.execute(
+        select(AppSettings).where(AppSettings.key == SYNASTRY_REPEAT_PRICE_KEY)
+    )
+    row = result.scalar_one_or_none()
+    if row:
+        try:
+            return Decimal(row.value)
+        except Exception:
+            pass
+    return Decimal(SYNASTRY_REPEAT_PRICE_DEFAULT)
+
+
 # ── Проверки доступа ──────────────────────────────────────────────────────────
 
 async def require_synastry_access(user_id: int, db: AsyncSession) -> str:
     """
-    Возвращает код тарифа или выбрасывает HTTP 403.
+    Возвращает код тарифа или бросает HTTP 403.
+    Учитывает per-user override от администратора.
     """
+    # Проверяем per-user override
+    override = await get_synastry_override(user_id, db)
+    if override and override.synastry_enabled:
+        # Возвращаем код виртуального "admin_override" тарифа
+        return "admin_override"
+
     code = await get_synastry_tariff_code(user_id, db)
     if not code:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Синастрия доступна на тарифах: Набор 3, Astro Pro месяц, Astro Pro год.",
+            detail=(
+                "Синастрия доступна на тарифах: Набор 3, Astro Pro (месяц), Astro Pro (год). "
+                "Вы также можете купить дополнительные синастрии отдельно."
+            ),
         )
     return code
 
 
-async def check_pair_quota(user_id: int, tariff_code: str, db: AsyncSession) -> None:
+async def check_generating_lock(user_id: int, db: AsyncSession) -> None:
     """
-    Проверяет лимит активных синастрий.
-    Выбрасывает HTTP 429 при превышении.
+    Анти-DDoS: запрещает создание новой синастрии, пока идёт генерация текущей.
+    Бросает HTTP 409 при нарушении.
     """
-    max_pairs = synastry_max_pairs(tariff_code)
-    if max_pairs == 0:
-        raise HTTPException(status_code=403, detail="Синастрия недоступна для вашего тарифа.")
-
-    count_stmt = select(func.count()).where(
+    active_stmt = select(func.count()).where(
         SynastryReport.user_id == user_id,
+        SynastryReport.status.in_([SynastryStatus.PENDING, SynastryStatus.PROCESSING]),
     )
-    count_result = await db.execute(count_stmt)
-    count = count_result.scalar_one()
+    active_result = await db.execute(active_stmt)
+    active_count = active_result.scalar_one()
 
-    if count >= max_pairs:
+    if active_count > 0:
         raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            status_code=status.HTTP_409_CONFLICT,
             detail=(
-                f"Лимит синастрий для вашего тарифа: {max_pairs}. "
-                "Удалите одну из существующих, чтобы создать новую."
+                "Дождитесь завершения текущей генерации синастрии, "
+                "прежде чем создавать новую."
             ),
         )
 
 
-async def check_regen_cooldown(report: SynastryReport, tariff_code: str) -> None:
+async def get_purchased_synastry_credits(user_id: int, db: AsyncSession) -> int:
     """
-    Проверяет cooldown для регенерации.
-    Выбрасывает HTTP 429 с деталями ожидания.
+    Считает кредиты синастрии, купленные через тариф synastry_addon.
+    Каждый завершённый заказ с кодом synastry_addon = +1 синастрия.
     """
-    if report.next_regen_allowed_at is None:
-        return
-
-    now = datetime.now(timezone.utc)
-    # Нормализуем timezone
-    nra = report.next_regen_allowed_at
-    if nra.tzinfo is None:
-        nra = nra.replace(tzinfo=timezone.utc)
-
-    if now < nra:
-        wait_seconds = int((nra - now).total_seconds())
-        wait_hours = max(1, wait_seconds // 3600)
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=(
-                f"Следующая регенерация будет доступна через ~{wait_hours} ч. "
-                f"(через {wait_seconds} сек.)"
-            ),
-            headers={"Retry-After": str(wait_seconds)},
+    stmt = (
+        select(func.count())
+        .select_from(Order)
+        .join(Tariff, Tariff.id == Order.tariff_id)
+        .where(
+            Order.user_id == user_id,
+            Order.status == OrderStatus.COMPLETED,
+            Tariff.code == "synastry_addon",
         )
+    )
+    result = await db.execute(stmt)
+    return result.scalar_one()
 
 
-def check_bundle_regen_limit(report: SynastryReport, tariff_code: str) -> None:
+async def get_synastry_quota_info(
+    user_id: int,
+    db: AsyncSession,
+) -> dict:
     """
-    Для bundle: ограничение на общее число генераций.
+    Возвращает полную информацию о квоте синастрий для пользователя.
+
+    Возвращаемый словарь:
+    - tariff_code: str         — код тарифа (или "" если нет)
+    - has_access: bool         — есть ли доступ
+    - is_unlimited: bool       — безлимитный доступ (подписки)
+    - synastries_created: int  — сколько синастрий создано
+    - free_total: int          — бесплатных по тарифу (-1 = unlimited)
+    - admin_extra_free: int    — дополнительные бесплатные от администратора
+    - purchased_credits: int   — куплено через synastry_addon заказы
+    - total_allowed: int       — free_total + admin_extra_free + purchased_credits
+    - requires_payment: bool   — нужна оплата для следующей синастрии
+    - repeat_price: str        — цена следующей синастрии ("190.00")
+    - is_generating: bool      — идёт ли сейчас генерация
     """
-    if tariff_code != "bundle":
-        return
-    if report.generation_count >= SYNASTRY_MAX_REGEN_BUNDLE:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=(
-                f"На тарифе «Набор 3» допустимо не более {SYNASTRY_MAX_REGEN_BUNDLE} "
-                "генераций синастрии для одной пары."
-            ),
+    override = await get_synastry_override(user_id, db)
+    override_enabled = bool(override and override.synastry_enabled)
+    admin_extra_free = override.free_synastries_granted if override else 0
+
+    tariff_code = await get_synastry_tariff_code(user_id, db)
+    has_access = bool(tariff_code) or override_enabled
+
+    effective_code = tariff_code or ("admin_override" if override_enabled else "")
+    unlimited = is_synastry_unlimited(effective_code) or (override_enabled and not tariff_code)
+    free_total = synastry_free_count(effective_code) if effective_code else 0
+
+    # Купленные дополнительные кредиты (synastry_addon orders)
+    purchased_credits = await get_purchased_synastry_credits(user_id, db)
+
+    # Счётчик созданных синастрий
+    count_result = await db.execute(
+        select(func.count()).where(SynastryReport.user_id == user_id)
+    )
+    synastries_created = count_result.scalar_one()
+
+    # Активная генерация
+    gen_result = await db.execute(
+        select(func.count()).where(
+            SynastryReport.user_id == user_id,
+            SynastryReport.status.in_([SynastryStatus.PENDING, SynastryStatus.PROCESSING]),
         )
+    )
+    is_generating = gen_result.scalar_one() > 0
 
+    repeat_price = await get_synastry_repeat_price(db)
 
-def next_regen_allowed(tariff_code: str) -> datetime:
-    """Вычисляет время следующей допустимой регенерации."""
-    hours = synastry_regen_cooldown_hours(tariff_code)
-    return datetime.now(timezone.utc) + timedelta(hours=hours)
+    # Для unlimited тарифов total_allowed = -1
+    if unlimited:
+        total_allowed = -1
+        requires_payment = False
+    else:
+        total_allowed = free_total + admin_extra_free + purchased_credits
+        requires_payment = has_access and (synastries_created >= total_allowed)
+
+    return {
+        "tariff_code": effective_code,
+        "has_access": has_access,
+        "is_unlimited": unlimited,
+        "synastries_created": synastries_created,
+        "free_total": free_total,
+        "admin_extra_free": admin_extra_free,
+        "purchased_credits": purchased_credits,
+        "total_allowed": total_allowed,
+        "requires_payment": requires_payment,
+        "repeat_price": str(repeat_price),
+        "is_generating": is_generating,
+    }

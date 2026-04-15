@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+import structlog
+from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
@@ -15,17 +16,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_active_user
 from app.db.session import get_db
 from app.models.natal_data import NatalData
+from app.models.order import Order, OrderStatus
 from app.models.synastry_report import SynastryReport, SynastryStatus
+from app.models.tariff import Tariff
 from app.models.user import User
+from app.services.payment import YookassaPaymentService
 from app.services.synastry_access import (
-    check_bundle_regen_limit,
-    check_pair_quota,
-    check_regen_cooldown,
+    check_generating_lock,
     compute_input_hash,
-    next_regen_allowed,
+    get_synastry_quota_info,
     require_synastry_access,
 )
 from app.tasks.synastry_generation import generate_synastry_task
+
+logger = structlog.get_logger(__name__)
 
 router = APIRouter()
 
@@ -48,7 +52,6 @@ class SynastryOut(BaseModel):
     locale: str
     generation_count: int
     last_generated_at: Optional[datetime] = None
-    next_regen_allowed_at: Optional[datetime] = None
     pdf_ready: bool
     created_at: datetime
     updated_at: datetime
@@ -59,9 +62,21 @@ class SynastryOut(BaseModel):
 
 class SynastryQuotaOut(BaseModel):
     tariff_code: str
-    pairs_used: int
-    pairs_max: int
     has_access: bool
+    is_unlimited: bool
+    synastries_created: int
+    free_total: int          # -1 = безлимитно, 0 = нет, N = количество
+    admin_extra_free: int    # дополнительные от администратора
+    purchased_credits: int   # куплено через synastry_addon
+    total_allowed: int       # free_total + admin_extra_free + purchased_credits (-1 = unlimited)
+    requires_payment: bool   # нужна оплата для следующей синастрии
+    repeat_price: str        # цена дополнительной синастрии (строка "190.00")
+    is_generating: bool      # идёт ли сейчас генерация
+
+
+class SynastryPurchaseOut(BaseModel):
+    order_id: int
+    payment_url: str
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -97,7 +112,6 @@ def _enrich_out(report: SynastryReport, nd1: NatalData | None, nd2: NatalData | 
         locale=report.locale,
         generation_count=report.generation_count,
         last_generated_at=report.last_generated_at,
-        next_regen_allowed_at=report.next_regen_allowed_at,
         pdf_ready=bool(report.pdf_path and report.status == SynastryStatus.COMPLETED),
         created_at=report.created_at,
         updated_at=report.updated_at,
@@ -112,25 +126,8 @@ async def get_synastry_quota(
     db: AsyncSession = Depends(get_db),
 ):
     """Проверить доступ и лимиты синастрии для текущего пользователя."""
-    from app.services.synastry_access import get_synastry_tariff_code
-    from app.constants.tariffs import synastry_max_pairs, has_synastry_access
-    from sqlalchemy import func
-
-    tariff_code = await get_synastry_tariff_code(current_user.id, db)
-    has_access = tariff_code is not None
-
-    count_result = await db.execute(
-        select(func.count()).where(SynastryReport.user_id == current_user.id)
-    )
-    pairs_used = count_result.scalar_one()
-    pairs_max = synastry_max_pairs(tariff_code) if tariff_code else 0
-
-    return SynastryQuotaOut(
-        tariff_code=tariff_code or "",
-        pairs_used=pairs_used,
-        pairs_max=pairs_max,
-        has_access=has_access,
-    )
+    info = await get_synastry_quota_info(current_user.id, db)
+    return SynastryQuotaOut(**info)
 
 
 @router.get("", response_model=List[SynastryOut])
@@ -149,13 +146,85 @@ async def list_synastry_reports(
 
     out = []
     for rep in reports:
-        # Загружаем имена
         nd1_stmt = select(NatalData).where(NatalData.id == rep.natal_data_id_1)
         nd2_stmt = select(NatalData).where(NatalData.id == rep.natal_data_id_2)
         nd1 = (await db.execute(nd1_stmt)).scalar_one_or_none()
         nd2 = (await db.execute(nd2_stmt)).scalar_one_or_none()
         out.append(_enrich_out(rep, nd1, nd2))
     return out
+
+
+@router.post("/purchase", response_model=SynastryPurchaseOut)
+async def purchase_synastry(
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Оплатить дополнительную синастрию (190 ₽) через ЮKassa.
+
+    Доступно пользователям с тарифом bundle, исчерпавшим бесплатные синастрии.
+    Возвращает ссылку на оплату. После успешной оплаты webhook отмечает заказ
+    как COMPLETED, и кредит автоматически учитывается в quota.
+    """
+    # Проверяем наличие доступа (без него покупка бессмысленна)
+    await require_synastry_access(current_user.id, db)
+
+    # Загружаем тариф synastry_addon
+    tariff_result = await db.execute(
+        select(Tariff).where(Tariff.code == "synastry_addon")
+    )
+    tariff = tariff_result.scalar_one_or_none()
+    if not tariff:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Тариф synastry_addon не найден. Обратитесь в поддержку.",
+        )
+
+    # Создаём заказ
+    order = Order(
+        user_id=current_user.id,
+        natal_data_id=None,
+        tariff_id=tariff.id,
+        status=OrderStatus.PENDING,
+        amount=tariff.price,
+        report_delivery_email=current_user.email,
+    )
+    db.add(order)
+    await db.commit()
+    await db.refresh(order)
+
+    # Инициируем оплату
+    payment_service = YookassaPaymentService()
+    try:
+        payment = await payment_service.create_payment(
+            order_id=order.id,
+            amount=order.amount,
+            description="Дополнительная синастрия — AstroGen",
+            user_email=current_user.email,
+            metadata={"order_id": str(order.id)},
+        )
+    except Exception as exc:
+        logger.exception(
+            "YooKassa create_payment failed for synastry purchase",
+            order_id=order.id,
+            user_id=current_user.id,
+            error=str(exc),
+        )
+        order.status = OrderStatus.FAILED_TO_INIT_PAYMENT
+        await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Не удалось инициировать платёж. Попробуйте ещё раз.",
+        )
+
+    payment_url = payment.get("confirmation_url", "")
+    if not payment_url:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Платёжный сервис не вернул ссылку на оплату.",
+        )
+
+    return SynastryPurchaseOut(order_id=order.id, payment_url=payment_url)
 
 
 @router.post("", response_model=SynastryOut, status_code=status.HTTP_201_CREATED)
@@ -167,8 +236,25 @@ async def create_synastry(
     """
     Создать новую синастрию.
     Запускает Celery-задачу генерации.
+
+    Блокирует создание, если уже идёт генерация другой синастрии (анти-DDoS).
+    Блокирует создание, если нужна оплата (bundle + лимит исчерпан).
     """
     tariff_code = await require_synastry_access(current_user.id, db)
+
+    # Проверяем квоту: если нужна оплата — отказываем с HTTP 402
+    quota = await get_synastry_quota_info(current_user.id, db)
+    if quota["requires_payment"]:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail={
+                "message": (
+                    "Бесплатные синастрии по вашему тарифу исчерпаны. "
+                    "Оплатите дополнительную синастрию, чтобы продолжить."
+                ),
+                "repeat_price": quota["repeat_price"],
+            },
+        )
 
     if payload.natal_data_id_1 == payload.natal_data_id_2:
         raise HTTPException(
@@ -196,8 +282,8 @@ async def create_synastry(
             detail="Синастрия для этой пары уже существует. Используйте /regenerate для обновления.",
         )
 
-    # Проверяем квоту
-    await check_pair_quota(current_user.id, tariff_code, db)
+    # Анти-DDoS: блокируем, пока идёт генерация
+    await check_generating_lock(current_user.id, db)
 
     locale = payload.locale or "ru"
 
@@ -213,7 +299,6 @@ async def create_synastry(
     await db.commit()
     await db.refresh(report)
 
-    # Запускаем задачу
     generate_synastry_task.delay(report.id, tariff_code)
 
     return _enrich_out(report, nd1, nd2)
@@ -250,10 +335,8 @@ async def regenerate_synastry(
     """
     Запросить регенерацию синастрии.
 
-    Anti-abuse checks:
-    1. Данные не изменились → возвращаем статус completed, без новой генерации
-    2. Cooldown не истёк → HTTP 429 с Retry-After
-    3. Bundle лимит → HTTP 429 при исчерпании
+    Единственная защита: данные не изменились (hash-dedup) и анти-DDoS блокировка.
+    Cooldown убран — регистрация платная, ограничений по времени нет.
     """
     tariff_code = await require_synastry_access(current_user.id, db)
 
@@ -265,13 +348,12 @@ async def regenerate_synastry(
     if not report:
         raise HTTPException(status_code=404, detail="Синастрия не найдена.")
 
-    if report.status == SynastryStatus.PROCESSING:
+    if report.status in (SynastryStatus.PROCESSING, SynastryStatus.PENDING):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Генерация уже выполняется. Пожалуйста, подождите.",
         )
 
-    # Загружаем данные пар
     nd1_stmt = select(NatalData).where(NatalData.id == report.natal_data_id_1)
     nd2_stmt = select(NatalData).where(NatalData.id == report.natal_data_id_2)
     nd1 = (await db.execute(nd1_stmt)).scalar_one_or_none()
@@ -280,12 +362,9 @@ async def regenerate_synastry(
     if not nd1 or not nd2:
         raise HTTPException(status_code=404, detail="Натальные данные не найдены.")
 
-    # ── Anti-abuse ─────────────────────────────────────────────────────────
-
-    # 1. Hash dedup — данные не изменились?
+    # Hash-dedup: данные не изменились
     current_hash = compute_input_hash(nd1, nd2)
     if report.input_hash == current_hash and report.pdf_path:
-        # Возвращаем текущий статус — нет смысла регенерировать
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=(
@@ -294,13 +373,6 @@ async def regenerate_synastry(
             ),
         )
 
-    # 2. Cooldown
-    await check_regen_cooldown(report, tariff_code)
-
-    # 3. Bundle лимит генераций
-    check_bundle_regen_limit(report, tariff_code)
-
-    # ── Запуск генерации ───────────────────────────────────────────────────
     report.status = SynastryStatus.PENDING
     await db.commit()
     await db.refresh(report)
@@ -349,7 +421,7 @@ async def delete_synastry(
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Удалить синастрию (освобождает слот квоты)."""
+    """Удалить синастрию."""
     stmt = select(SynastryReport).where(
         SynastryReport.id == synastry_id,
         SynastryReport.user_id == current_user.id,

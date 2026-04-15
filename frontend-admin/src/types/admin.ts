@@ -159,3 +159,32 @@ export interface AdminLogRow {
   entity: string
   created_at: string
 }
+
+export interface SynastryOverrideRow {
+  user_id: number
+  synastry_enabled: boolean
+  free_synastries_granted: number
+  admin_note: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface AdminSynastryReportRow {
+  id: number
+  natal_data_id_1: number
+  natal_data_id_2: number
+  person1_name: string | null
+  person2_name: string | null
+  status: string
+  generation_count: number
+  pdf_ready: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface AppSettingRow {
+  key: string
+  value: string
+  description: string | null
+  updated_at: string
+}

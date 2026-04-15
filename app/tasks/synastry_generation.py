@@ -14,7 +14,7 @@ from app.services.astrology import AstrologyService
 from app.services.email import EmailService
 from app.services.pdf import PDFGenerator
 from app.services.storage import StorageService
-from app.services.synastry_access import compute_input_hash, next_regen_allowed
+from app.services.synastry_access import compute_input_hash
 from app.services.synastry_llm import SynastryLLMService
 from app.core.config import settings
 
@@ -135,7 +135,6 @@ async def _generate_synastry_async(synastry_id: int, tariff_code: str, task_id: 
             report.input_hash = current_hash
             report.generation_count = (report.generation_count or 0) + 1
             report.last_generated_at = datetime.now(timezone.utc)
-            report.next_regen_allowed_at = next_regen_allowed(tariff_code)
             await db.commit()
 
             logger.info(

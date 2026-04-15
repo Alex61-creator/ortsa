@@ -192,7 +192,8 @@ export function SubscriptionPage() {
           <ul className="sub-compare-list">
             <li>Всё из Бесплатного</li>
             <li>Транзиты + личный календарь</li>
-            <li>Синастрия и прогрессии</li>
+            <li>Синастрия — безлимитно</li>
+            <li>Прогрессии на год</li>
             <li>До 5 профилей в кабинете</li>
           </ul>
           <Link to="/order/tariff" className="btn btn-primary btn-sm">

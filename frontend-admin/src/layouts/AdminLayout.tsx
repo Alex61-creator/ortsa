@@ -25,6 +25,7 @@ const items = [
   { type: 'group', label: 'Система', key: 'g-system', children: [
     { key: '/health', label: <Link to="/health">Мониторинг</Link> },
     { key: '/log', label: <Link to="/log">Лог действий</Link> },
+    { key: '/settings', label: <Link to="/settings">Настройки</Link> },
   ] },
 ]
 
@@ -33,7 +34,7 @@ export function AdminLayout() {
   const logout = useAuthStore((s) => s.logout)
   const theme = useUiStore((s) => s.theme)
   const toggleTheme = useUiStore((s) => s.toggleTheme)
-  const selected = ['/', '/funnel', '/users', '/payments', '/orders', '/tasks', '/promos', '/tariffs', '/flags', '/health', '/log']
+  const selected = ['/', '/funnel', '/users', '/payments', '/orders', '/tasks', '/promos', '/tariffs', '/flags', '/health', '/log', '/settings']
     .find((key) => (key === '/' ? location.pathname === '/' : location.pathname.startsWith(key)))
   document.documentElement.setAttribute('data-theme', theme)
   const titleMap: Record<string, string> = {
@@ -48,6 +49,7 @@ export function AdminLayout() {
     '/flags': 'Feature Flags',
     '/health': 'Мониторинг',
     '/log': 'Лог действий',
+    '/settings': 'Настройки',
   }
   const topbarTitle = selected ? titleMap[selected] : 'Админка'
 

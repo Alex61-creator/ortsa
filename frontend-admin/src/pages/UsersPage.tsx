@@ -1,12 +1,204 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Button, Card, Drawer, Input, Popconfirm, Segmented, Space, Table, Tabs, Tag, Typography, message } from 'antd'
+import {
+  Button,
+  Card,
+  Drawer,
+  Input,
+  InputNumber,
+  Popconfirm,
+  Segmented,
+  Space,
+  Switch,
+  Table,
+  Tabs,
+  Tag,
+  Typography,
+  message,
+} from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { deleteUser, fetchUsers } from '@/api/users'
-import type { AdminUserRow } from '@/types/admin'
+import { deleteUser, fetchUsers, fetchSynastryOverride, patchSynastryOverride, fetchUserSynastryReports, deleteUserSynastryReport } from '@/api/users'
+import type { AdminUserRow, AdminSynastryReportRow, SynastryOverrideRow } from '@/types/admin'
 import { isAxiosError } from 'axios'
 import { addUserNote, blockUser, listUserNotes, patchUserEmail, unblockUser, type UserNoteRow } from '@/api/support'
 import { fetchOrders } from '@/api/orders'
 import type { AdminOrderRow } from '@/types/admin'
+import dayjs from 'dayjs'
+
+// ── Вкладка Синастрия ─────────────────────────────────────────────────────────
+
+function SynastryTab({ userId }: { userId: number }) {
+  const [override, setOverride] = useState<SynastryOverrideRow | null>(null)
+  const [reports, setReports] = useState<AdminSynastryReportRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [noteValue, setNoteValue] = useState('')
+  const [freeCount, setFreeCount] = useState(0)
+
+  useEffect(() => {
+    setLoading(true)
+    Promise.all([
+      fetchSynastryOverride(userId),
+      fetchUserSynastryReports(userId),
+    ])
+      .then(([ov, reps]) => {
+        setOverride(ov)
+        setNoteValue(ov.admin_note ?? '')
+        setFreeCount(ov.free_synastries_granted)
+        setReports(reps)
+      })
+      .catch(() => message.error('Не удалось загрузить данные синастрии'))
+      .finally(() => setLoading(false))
+  }, [userId])
+
+  const save = async (patch: Parameters<typeof patchSynastryOverride>[1]) => {
+    setSaving(true)
+    try {
+      const updated = await patchSynastryOverride(userId, patch)
+      setOverride(updated)
+      setFreeCount(updated.free_synastries_granted)
+      message.success('Сохранено')
+    } catch {
+      message.error('Ошибка сохранения')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDeleteReport = async (reportId: number) => {
+    try {
+      await deleteUserSynastryReport(userId, reportId)
+      setReports((prev) => prev.filter((r) => r.id !== reportId))
+      message.success('Синастрия удалена')
+    } catch {
+      message.error('Не удалось удалить')
+    }
+  }
+
+  function statusTag(s: string) {
+    switch (s) {
+      case 'completed': return <Tag color="green">Готово</Tag>
+      case 'processing': return <Tag color="blue">Генерация</Tag>
+      case 'pending':    return <Tag color="orange">Ожидание</Tag>
+      case 'failed':     return <Tag color="red">Ошибка</Tag>
+      default: return <Tag>{s}</Tag>
+    }
+  }
+
+  if (loading) return <Typography.Text type="secondary">Загрузка...</Typography.Text>
+
+  return (
+    <Space direction="vertical" style={{ width: '100%' }} size="middle">
+
+      {/* ── Override: включить/выключить ── */}
+      <div className="admin-drawer-block">
+        <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>
+          Доступ к синастрии
+        </Typography.Text>
+        <Space align="center">
+          <Switch
+            checked={override?.synastry_enabled ?? false}
+            loading={saving}
+            onChange={(checked) => void save({ synastry_enabled: checked })}
+          />
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            {override?.synastry_enabled
+              ? 'Включено (независимо от тарифа)'
+              : 'По тарифу (стандартно)'}
+          </Typography.Text>
+        </Space>
+      </div>
+
+      {/* ── Дополнительные бесплатные синастрии ── */}
+      <div className="admin-drawer-block">
+        <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>
+          Дополнительные бесплатные синастрии
+        </Typography.Text>
+        <Space>
+          <InputNumber
+            min={0}
+            max={999}
+            value={freeCount}
+            onChange={(v) => setFreeCount(v ?? 0)}
+            style={{ width: 100 }}
+          />
+          <Button
+            type="primary"
+            loading={saving}
+            onClick={() => void save({ free_synastries_granted: freeCount })}
+          >
+            Сохранить
+          </Button>
+        </Space>
+        <div style={{ fontSize: 11, color: '#8c8c8c', marginTop: 4 }}>
+          Добавляется к тарифным лимитам (для подписок не учитывается — там безлимит)
+        </div>
+      </div>
+
+      {/* ── Заметка администратора ── */}
+      <div className="admin-drawer-block">
+        <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>
+          Внутренняя заметка
+        </Typography.Text>
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <Input.TextArea
+            value={noteValue}
+            onChange={(e) => setNoteValue(e.target.value)}
+            rows={2}
+            placeholder="Причина выдачи доступа, дата и т.п."
+          />
+          <Button
+            loading={saving}
+            onClick={() => void save({ admin_note: noteValue || null })}
+          >
+            Сохранить заметку
+          </Button>
+        </Space>
+      </div>
+
+      {/* ── Синастрии пользователя ── */}
+      <div>
+        <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>
+          Синастрии ({reports.length})
+        </Typography.Text>
+
+        {reports.length === 0 ? (
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            У пользователя нет синастрий
+          </Typography.Text>
+        ) : (
+          reports.map((r) => (
+            <div key={r.id} className="admin-drawer-block" style={{ marginBottom: 8 }}>
+              <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                <div>
+                  <Typography.Text strong style={{ fontSize: 13 }}>
+                    {r.person1_name ?? `#${r.natal_data_id_1}`} ✦ {r.person2_name ?? `#${r.natal_data_id_2}`}
+                  </Typography.Text>
+                  <div style={{ fontSize: 11, color: '#8c8c8c', marginTop: 2 }}>
+                    ID #{r.id} · Генераций: {r.generation_count} · {dayjs(r.created_at).format('DD.MM.YYYY')}
+                    {r.pdf_ready && <Tag color="green" style={{ marginLeft: 6, fontSize: 10 }}>PDF готов</Tag>}
+                  </div>
+                </div>
+                <Space>
+                  {statusTag(r.status)}
+                  <Popconfirm
+                    title="Удалить синастрию?"
+                    okText="Удалить"
+                    okButtonProps={{ danger: true }}
+                    onConfirm={() => void handleDeleteReport(r.id)}
+                  >
+                    <Button danger size="small">Удалить</Button>
+                  </Popconfirm>
+                </Space>
+              </Space>
+            </div>
+          ))
+        )}
+      </div>
+    </Space>
+  )
+}
+
+// ── Основная страница ─────────────────────────────────────────────────────────
 
 export function UsersPage() {
   const [page, setPage] = useState(1)
@@ -85,11 +277,6 @@ export function UsersPage() {
       },
     },
     {
-      title: 'Админ',
-      dataIndex: 'is_admin',
-      render: (v: boolean) => (v ? <Tag color="blue">да</Tag> : <Tag>нет</Tag>),
-    },
-    {
       title: 'Создан',
       dataIndex: 'created_at',
       render: (t: string) => new Date(t).toLocaleString('ru-RU'),
@@ -97,7 +284,7 @@ export function UsersPage() {
     {
       title: '',
       key: 'actions',
-      width: 120,
+      width: 100,
       render: (_, record) => (
         <Popconfirm
           title="Удалить пользователя и связанные данные?"
@@ -130,9 +317,14 @@ export function UsersPage() {
           <Button type="primary" onClick={() => void load()}>
             Обновить
           </Button>
-          <Segmented options={['Все', 'Google', 'Telegram', 'Yandex']} value={providerFilter} onChange={(v) => setProviderFilter(String(v))} />
+          <Segmented
+            options={['Все', 'Google', 'Telegram', 'Yandex']}
+            value={providerFilter}
+            onChange={(v) => setProviderFilter(String(v))}
+          />
         </Space>
       </Card>
+
       <Card title="Пользователи">
         <Table<AdminUserRow>
           rowKey="id"
@@ -155,14 +347,17 @@ export function UsersPage() {
               setDrawerOpen(true)
               setActiveTab('profile')
               void listUserNotes(record.id).then(setNotes).catch(() => setNotes([]))
-              void fetchOrders({ page: 1, page_size: 20, user_id: record.id }).then(setUserOrders).catch(() => setUserOrders([]))
+              void fetchOrders({ page: 1, page_size: 20, user_id: record.id })
+                .then(setUserOrders)
+                .catch(() => setUserOrders([]))
             },
           })}
         />
       </Card>
+
       <Drawer
-        title={selected ? `Пользователь #${selected.id}` : 'Пользователь'}
-        width={460}
+        title={selected ? `Пользователь #${selected.id} — ${selected.email ?? 'без email'}` : 'Пользователь'}
+        width={500}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
       >
@@ -201,14 +396,22 @@ export function UsersPage() {
                         title="Заблокировать пользователя?"
                         okText="Блокировать"
                         okButtonProps={{ danger: true }}
-                        onConfirm={() => void blockUser(selected.id).then(() => message.success('Пользователь заблокирован'))}
+                        onConfirm={() =>
+                          void blockUser(selected.id).then(() =>
+                            message.success('Пользователь заблокирован')
+                          )
+                        }
                       >
                         <Button danger>Блокировать</Button>
                       </Popconfirm>
                       <Popconfirm
                         title="Разблокировать пользователя?"
                         okText="Разблокировать"
-                        onConfirm={() => void unblockUser(selected.id).then(() => message.success('Пользователь разблокирован'))}
+                        onConfirm={() =>
+                          void unblockUser(selected.id).then(() =>
+                            message.success('Пользователь разблокирован')
+                          )
+                        }
                       >
                         <Button>Разблокировать</Button>
                       </Popconfirm>
@@ -218,7 +421,7 @@ export function UsersPage() {
               },
               {
                 key: 'orders',
-                label: 'Заказы и возврат',
+                label: 'Заказы',
                 children: (
                   <Space direction="vertical" style={{ width: '100%' }}>
                     {userOrders.map((o) => (
@@ -227,12 +430,21 @@ export function UsersPage() {
                           <Typography.Text>Заказ #{o.id}</Typography.Text>
                           <Tag>{o.status}</Tag>
                         </Space>
-                        <Typography.Text type="secondary">Сумма: {o.amount}</Typography.Text>
+                        <Typography.Text type="secondary">
+                          {o.tariff?.name ?? '—'} · {o.amount} ₽
+                        </Typography.Text>
                       </div>
                     ))}
-                    {userOrders.length === 0 && <Typography.Text type="secondary">У пользователя нет заказов.</Typography.Text>}
+                    {userOrders.length === 0 && (
+                      <Typography.Text type="secondary">Нет заказов.</Typography.Text>
+                    )}
                   </Space>
                 ),
+              },
+              {
+                key: 'synastry',
+                label: 'Синастрия',
+                children: <SynastryTab userId={selected.id} />,
               },
               {
                 key: 'sub',
@@ -240,11 +452,22 @@ export function UsersPage() {
                 children: (
                   <Space direction="vertical" style={{ width: '100%' }}>
                     <div className="admin-drawer-block">
-                      <Typography.Text>Статус: none</Typography.Text>
+                      <Typography.Text>Статус: —</Typography.Text>
                     </div>
                     <Space>
-                      <Button onClick={() => message.info('Отмена подписки в этом контуре пока недоступна')}>Cancel at period end</Button>
-                      <Button type="primary" onClick={() => message.success('Пользователю выдан Pro (локальный action)')}>
+                      <Button
+                        onClick={() =>
+                          message.info('Отмена подписки в этом контуре пока недоступна')
+                        }
+                      >
+                        Cancel at period end
+                      </Button>
+                      <Button
+                        type="primary"
+                        onClick={() =>
+                          message.success('Пользователю выдан Pro (локальный action)')
+                        }
+                      >
                         Выдать Pro
                       </Button>
                     </Space>
@@ -264,7 +487,9 @@ export function UsersPage() {
                         </Space>
                       </div>
                     ))}
-                    <Button onClick={() => message.success('Retry пайплайна отправлен в очередь')}>Retry pipeline</Button>
+                    <Button onClick={() => message.success('Retry пайплайна отправлен в очередь')}>
+                      Retry pipeline
+                    </Button>
                   </Space>
                 ),
               },
@@ -278,7 +503,7 @@ export function UsersPage() {
                         placeholder="Добавить заметку"
                         value={newNote}
                         onChange={(e) => setNewNote(e.target.value)}
-                        style={{ width: 300 }}
+                        style={{ width: 280 }}
                       />
                       <Button
                         type="primary"

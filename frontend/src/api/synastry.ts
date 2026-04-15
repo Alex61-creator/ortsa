@@ -10,7 +10,6 @@ export interface SynastryOut {
   locale: string
   generation_count: number
   last_generated_at: string | null
-  next_regen_allowed_at: string | null
   pdf_ready: boolean
   created_at: string
   updated_at: string
@@ -18,9 +17,21 @@ export interface SynastryOut {
 
 export interface SynastryQuota {
   tariff_code: string
-  pairs_used: number
-  pairs_max: number
   has_access: boolean
+  is_unlimited: boolean
+  synastries_created: number
+  free_total: number        // -1 = безлимит, 0 = нет, N = количество
+  admin_extra_free: number  // дополнительные от администратора
+  purchased_credits: number // куплено через synastry_addon
+  total_allowed: number     // итоговый лимит (-1 = безлимит)
+  requires_payment: boolean // нужна оплата для следующей
+  repeat_price: string      // "190.00"
+  is_generating: boolean    // идёт ли генерация
+}
+
+export interface SynastryPurchaseOut {
+  order_id: number
+  payment_url: string
 }
 
 export interface SynastryCreatePayload {
@@ -56,6 +67,11 @@ export async function regenerateSynastry(id: number): Promise<SynastryOut> {
 
 export async function deleteSynastry(id: number): Promise<void> {
   await api.delete(`/synastry/${id}`)
+}
+
+export async function purchaseSynastry(): Promise<SynastryPurchaseOut> {
+  const { data } = await api.post<SynastryPurchaseOut>('/synastry/purchase')
+  return data
 }
 
 import { getApiBaseUrl } from './client'
