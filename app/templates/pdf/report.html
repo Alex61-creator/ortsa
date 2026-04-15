@@ -1,43 +1,495 @@
 <!DOCTYPE html>
-<html>
+<html lang="{{ locale }}">
 <head>
-    <meta charset="UTF-8">
-    <style>
-        body { font-family: 'DejaVu Serif', serif; margin: 2cm; }
-        h1, h2 { color: #2c3e50; }
-        .chart { text-align: center; margin: 20px 0; }
-        .footer { margin-top: 50px; font-size: 0.8em; color: #7f8c8d; text-align: center; }
-    </style>
+<meta charset="UTF-8">
+<style>
+/* ═══ Palette ═══════════════════════════════════════════════════════════════ */
+:root {
+  --navy:       #1a1f3c;
+  --navy-2:     #252b50;
+  --gold:       #c9a96e;
+  --gold-light: #e8d5a3;
+  --cream:      #f5f0e8;
+  --cream-2:    #ede8de;
+  --white:      #ffffff;
+  --text:       #1a1f3c;
+  --text-2:     #5a5f7c;
+  --fire:       #c94e2b;
+  --earth:      #6b8c3a;
+  --air:        #3a7fa5;
+  --water:      #3a6fa0;
+  --retro:      #b03020;
+}
+
+/* ═══ Page ══════════════════════════════════════════════════════════════════ */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DejaVu Serif', Georgia, serif;
+  font-size: 9.5pt;
+  color: var(--text);
+  background: var(--cream);
+}
+
+/* ═══ Cover ═════════════════════════════════════════════════════════════════ */
+.cover {
+  background: var(--navy);
+  width: 100%;
+  padding: 0;
+}
+.cover-stripe-top {
+  height: 5px;
+  background: var(--gold);
+}
+.cover-body {
+  padding: 30px 36px 26px;
+}
+.cover-label {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 7pt;
+  letter-spacing: 3px;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.cover-name {
+  font-family: 'DejaVu Serif', Georgia, serif;
+  font-size: 22pt;
+  font-weight: bold;
+  color: var(--white);
+  margin-bottom: 6px;
+  line-height: 1.15;
+}
+.cover-subtitle {
+  font-family: 'DejaVu Serif', Georgia, serif;
+  font-size: 11pt;
+  color: var(--gold-light);
+  margin-bottom: 20px;
+  font-style: italic;
+}
+.cover-rule {
+  width: 56px;
+  height: 2px;
+  background: var(--gold);
+  margin-bottom: 18px;
+}
+.cover-meta-table {
+  border-collapse: collapse;
+  width: 100%;
+  max-width: 420px;
+}
+.cover-meta-table td {
+  padding: 3px 0;
+  vertical-align: top;
+}
+.cover-meta-label {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 7pt;
+  letter-spacing: 1.5px;
+  color: var(--gold);
+  text-transform: uppercase;
+  white-space: nowrap;
+  padding-right: 16px;
+  width: 80px;
+}
+.cover-meta-value {
+  font-size: 9pt;
+  color: var(--white);
+  font-weight: 600;
+}
+.cover-stripe-bot {
+  height: 3px;
+  background: var(--gold);
+  opacity: 0.6;
+}
+
+/* ═══ Main container ════════════════════════════════════════════════════════ */
+.main {
+  padding: 20px 28px 30px;
+}
+
+/* ═══ Chart section ═════════════════════════════════════════════════════════ */
+.chart-wrap {
+  text-align: center;
+  padding: 14px 0 10px;
+  background: var(--white);
+  border: 1px solid var(--cream-2);
+  margin-bottom: 14px;
+}
+.chart-wrap-label {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 7pt;
+  letter-spacing: 2px;
+  color: var(--text-2);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.chart-wrap img {
+  max-width: 310px;
+  max-height: 310px;
+}
+
+/* ═══ Angles bar ════════════════════════════════════════════════════════════ */
+.angles-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 14px;
+}
+.angles-table td {
+  background: var(--navy);
+  color: var(--white);
+  text-align: center;
+  padding: 7px 6px;
+  border-right: 1px solid var(--navy-2);
+  width: 25%;
+}
+.angles-table td:last-child {
+  border-right: none;
+}
+.angle-lbl {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 6.5pt;
+  letter-spacing: 1.5px;
+  color: var(--gold);
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 3px;
+}
+.angle-sign {
+  font-size: 9pt;
+  font-weight: bold;
+  display: block;
+}
+.angle-deg {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 8pt;
+  color: var(--gold-light);
+  display: block;
+}
+
+/* ═══ Section heading ═══════════════════════════════════════════════════════ */
+.sect-heading {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 7.5pt;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--text-2);
+  padding-bottom: 4px;
+  border-bottom: 1.5px solid var(--gold);
+  margin: 16px 0 8px;
+}
+
+/* ═══ Planet table ══════════════════════════════════════════════════════════ */
+.planet-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8.5pt;
+  margin-bottom: 16px;
+}
+.planet-table th {
+  background: var(--navy);
+  color: var(--gold);
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 6.5pt;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 6px 7px;
+  text-align: left;
+  font-weight: 600;
+}
+.planet-table th.center { text-align: center; }
+.planet-table td {
+  padding: 4px 7px;
+  border-bottom: 1px solid var(--cream-2);
+  vertical-align: middle;
+}
+.planet-table tr:last-child td {
+  border-bottom: none;
+}
+.planet-table tr.row-even td { background: var(--white); }
+.planet-table tr.row-odd  td { background: var(--cream); }
+.p-name  { font-weight: 700; color: var(--navy); }
+.p-sign  { font-style: italic; }
+.p-deg   {
+  font-family: 'DejaVu Sans Mono', 'Courier New', monospace;
+  font-size: 8pt;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.p-house {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 8.5pt;
+  font-weight: 700;
+  text-align: center;
+  color: var(--navy);
+}
+.el-fire  { color: var(--fire);  font-weight: 600; }
+.el-earth { color: var(--earth); font-weight: 600; }
+.el-air   { color: var(--air);   font-weight: 600; }
+.el-water { color: var(--water); font-weight: 600; }
+.retro-mark {
+  color: var(--retro);
+  font-size: 8pt;
+  font-weight: bold;
+  text-align: center;
+  display: block;
+}
+
+/* ═══ Interpretation sections ═══════════════════════════════════════════════ */
+.interp-block {
+  margin-bottom: 14px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.interp-hdr {
+  background: var(--navy);
+  padding: 7px 12px;
+  display: table;
+  width: 100%;
+}
+.interp-hdr-inner {
+  display: table-row;
+}
+.interp-num-cell {
+  display: table-cell;
+  vertical-align: middle;
+  width: 24px;
+  padding-right: 10px;
+}
+.interp-num {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  line-height: 20px;
+  text-align: center;
+  background: var(--gold);
+  color: var(--navy);
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 8pt;
+  font-weight: bold;
+  border-radius: 50%;
+}
+.interp-title-cell {
+  display: table-cell;
+  vertical-align: middle;
+}
+.interp-title {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 8.5pt;
+  font-weight: bold;
+  color: var(--white);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.interp-body {
+  background: var(--white);
+  padding: 10px 12px;
+  border: 1px solid var(--cream-2);
+  border-top: none;
+}
+.interp-body p {
+  margin-bottom: 7px;
+  line-height: 1.6;
+  color: var(--text);
+}
+.interp-body p:last-child { margin-bottom: 0; }
+.interp-body ul {
+  padding-left: 16px;
+  margin-bottom: 7px;
+}
+.interp-body li {
+  margin-bottom: 3px;
+  line-height: 1.55;
+}
+.interp-body strong { color: var(--navy); }
+.interp-body em { color: var(--text-2); }
+
+/* Fallback raw text */
+.raw-interp {
+  background: var(--white);
+  padding: 12px 14px;
+  border: 1px solid var(--cream-2);
+  line-height: 1.6;
+}
+
+/* ═══ Footer ════════════════════════════════════════════════════════════════ */
+.footer-rule {
+  height: 1px;
+  background: var(--gold);
+  margin-top: 24px;
+  margin-bottom: 8px;
+  opacity: 0.7;
+}
+.footer-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.footer-table td {
+  vertical-align: middle;
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 6.5pt;
+  color: var(--text-2);
+  padding: 0;
+}
+.footer-brand {
+  font-size: 8pt;
+  font-weight: bold;
+  color: var(--navy);
+  letter-spacing: 1px;
+}
+.footer-note {
+  text-align: right;
+  line-height: 1.5;
+}
+</style>
 </head>
 <body>
-    {% if locale == 'en' %}
-    <h1>Personal natal chart</h1>
-    <p><strong>Name:</strong> {{ full_name }}</p>
-    <p><strong>Date and place of birth:</strong> {{ birth_data }}, {{ birth_place }}</p>
-    <p><strong>Plan:</strong> {{ tariff_name }}</p>
-    <p><strong>Generated:</strong> {{ generated_at }}</p>
-    {% else %}
-    <h1>Персональная натальная карта</h1>
-    <p><strong>Имя:</strong> {{ full_name }}</p>
-    <p><strong>Дата и место рождения:</strong> {{ birth_data }}, {{ birth_place }}</p>
-    <p><strong>Тариф:</strong> {{ tariff_name }}</p>
-    <p><strong>Сгенерировано:</strong> {{ generated_at }}</p>
-    {% endif %}
 
-    <div class="chart">
-        <img src="{{ chart_img_path }}" alt="Natal Chart">
+<!-- ══════════════════════════════════════ COVER ══════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-stripe-top"></div>
+  <div class="cover-body">
+    <div class="cover-label">
+      {% if locale == 'en' %}Personal Natal Chart · AstroGen{% else %}Персональная Натальная Карта · AstroGen{% endif %}
     </div>
+    <div class="cover-name">{{ full_name }}</div>
+    <div class="cover-subtitle">
+      {% if locale == 'en' %}Natal Chart Interpretation{% else %}Разбор натальной карты{% endif %}
+    </div>
+    <div class="cover-rule"></div>
+    <table class="cover-meta-table">
+      <tr>
+        <td class="cover-meta-label">{% if locale == 'en' %}Birth{% else %}Рождение{% endif %}</td>
+        <td class="cover-meta-value">{{ birth_data }}</td>
+      </tr>
+      <tr>
+        <td class="cover-meta-label">{% if locale == 'en' %}Place{% else %}Место{% endif %}</td>
+        <td class="cover-meta-value">{{ birth_place }}</td>
+      </tr>
+      <tr>
+        <td class="cover-meta-label">{% if locale == 'en' %}Plan{% else %}Тариф{% endif %}</td>
+        <td class="cover-meta-value">{{ tariff_name }}</td>
+      </tr>
+      <tr>
+        <td class="cover-meta-label">{% if locale == 'en' %}Generated{% else %}Создан{% endif %}</td>
+        <td class="cover-meta-value">{{ generated_at }}</td>
+      </tr>
+    </table>
+  </div>
+  <div class="cover-stripe-bot"></div>
+</div>
 
-    {{ interpretation | safe }}
+<!-- ══════════════════════════════════════ MAIN ═══════════════════════════════════════ -->
+<div class="main">
 
-    <div class="footer">
+  <!-- ── Natal wheel ─────────────────────────────────────────────────────── -->
+  <div class="chart-wrap">
+    <div class="chart-wrap-label">
+      {% if locale == 'en' %}Natal Wheel{% else %}Натальная Карта{% endif %}
+    </div>
+    <img src="{{ chart_img_path }}" alt="Natal Chart">
+  </div>
+
+  <!-- ── Angles bar ──────────────────────────────────────────────────────── -->
+  {% if chart_data and chart_data.angles %}
+  <table class="angles-table">
+    <tr>
+      {% for angle in chart_data.angles %}
+      <td>
+        <span class="angle-lbl">{{ angle.name }}</span>
+        <span class="angle-sign">{{ angle.sign | sign_name_ru }}</span>
+        <span class="angle-deg">{{ "%.0f"|format(angle.position) }}°</span>
+      </td>
+      {% endfor %}
+    </tr>
+  </table>
+  {% endif %}
+
+  <!-- ── Planet positions ────────────────────────────────────────────────── -->
+  {% if chart_data and chart_data.planets %}
+  <div class="sect-heading">
+    {% if locale == 'en' %}Planet Positions{% else %}Положение Планет{% endif %}
+  </div>
+  <table class="planet-table">
+    <thead>
+      <tr>
+        <th>{% if locale == 'en' %}Planet{% else %}Планета{% endif %}</th>
+        <th>{% if locale == 'en' %}Sign{% else %}Знак{% endif %}</th>
+        <th>{% if locale == 'en' %}Degree{% else %}Градус{% endif %}</th>
+        <th class="center">{% if locale == 'en' %}House{% else %}Дом{% endif %}</th>
+        <th>{% if locale == 'en' %}Element{% else %}Стихия{% endif %}</th>
+        <th class="center">R</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for planet in chart_data.planets %}
+      <tr class="{{ 'row-even' if loop.index is even else 'row-odd' }}">
+        <td class="p-name">{{ planet.name | planet_name_ru }}</td>
+        <td class="p-sign">{{ planet.sign | sign_name_ru }}</td>
+        <td class="p-deg">{{ "%.1f"|format(planet.position) }}°</td>
+        <td class="p-house">{{ planet.house | house_roman }}</td>
+        <td>
+          {% if planet.element == 'Fire' %}<span class="el-fire">{{ planet.element | element_ru }}</span>
+          {% elif planet.element == 'Earth' %}<span class="el-earth">{{ planet.element | element_ru }}</span>
+          {% elif planet.element == 'Air' %}<span class="el-air">{{ planet.element | element_ru }}</span>
+          {% elif planet.element == 'Water' %}<span class="el-water">{{ planet.element | element_ru }}</span>
+          {% else %}<span>{{ planet.element | element_ru }}</span>{% endif %}
+        </td>
+        <td>{% if planet.retrograde %}<span class="retro-mark">℞</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <!-- ── Interpretation sections ─────────────────────────────────────────── -->
+  <div class="sect-heading">
+    {% if locale == 'en' %}Interpretation{% else %}Интерпретация{% endif %}
+  </div>
+
+  {% if interpretation_sections %}
+    {% for section_name, section_text in interpretation_sections.items() %}
+    <div class="interp-block">
+      <div class="interp-hdr">
+        <div class="interp-hdr-inner">
+          <div class="interp-num-cell">
+            <span class="interp-num">{{ loop.index }}</span>
+          </div>
+          <div class="interp-title-cell">
+            <span class="interp-title">{{ section_name }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="interp-body">
+        {{ section_text | md_to_html | safe }}
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+  <div class="raw-interp">
+    {{ interpretation | md_to_html | safe }}
+  </div>
+  {% endif %}
+
+  <!-- ── Footer ──────────────────────────────────────────────────────────── -->
+  <div class="footer-rule"></div>
+  <table class="footer-table">
+    <tr>
+      <td>
+        <span class="footer-brand">AstroGen</span>
+      </td>
+      <td class="footer-note">
         {% if locale == 'en' %}
-        This report was generated automatically. For informational purposes only.<br>
-        AstroGen © 2024. All rights reserved.
+          Report generated automatically. For informational purposes only.
+          AstroGen © 2024. All rights reserved.
         {% else %}
-        Отчёт сгенерирован автоматически. Информация носит ознакомительный характер.<br>
-        AstroGen © 2024. Все права защищены.
+          Отчёт сгенерирован автоматически. Информация носит ознакомительный характер.
+          AstroGen © 2024. Все права защищены.
         {% endif %}
-    </div>
+      </td>
+    </tr>
+  </table>
+
+</div>
 </body>
 </html>

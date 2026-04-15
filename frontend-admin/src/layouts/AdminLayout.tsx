@@ -7,46 +7,26 @@ import { exportFirstTableAsCsv } from '@/utils/exportTableCsv'
 const { Sider, Content } = Layout
 
 const items = [
-  {
-    type: 'group' as const,
-    label: 'Аналитика',
-    key: 'g-analytics',
-    children: [
-      { key: '/', label: <Link to="/">Дашборд</Link> },
-      { key: '/funnel', label: <Link to="/funnel">Воронка</Link> },
-    ],
-  },
-  {
-    type: 'group' as const,
-    label: 'Пользователи',
-    key: 'g-users',
-    children: [
-      { key: '/users', label: <Link to="/users">Пользователи</Link> },
-      { key: '/payments', label: <Link to="/payments">Платежи</Link> },
-      { key: '/orders', label: <Link to="/orders">Заказы</Link> },
-    ],
-  },
-  {
-    type: 'group' as const,
-    label: 'Инструменты',
-    key: 'g-tools',
-    children: [
-      { key: '/tasks', label: <Link to="/tasks">Задачи Celery</Link> },
-      { key: '/promos', label: <Link to="/promos">Промокоды</Link> },
-      { key: '/tariffs', label: <Link to="/tariffs">Тарифы</Link> },
-      { key: '/prompts', label: <Link to="/prompts">Промпты LLM</Link> },
-      { key: '/flags', label: <Link to="/flags">Feature Flags</Link> },
-    ],
-  },
-  {
-    type: 'group' as const,
-    label: 'Система',
-    key: 'g-system',
-    children: [
-      { key: '/health', label: <Link to="/health">Мониторинг</Link> },
-      { key: '/log', label: <Link to="/log">Лог действий</Link> },
-    ],
-  },
+  { type: 'group', label: 'Аналитика', key: 'g-analytics', children: [
+    { key: '/', label: <Link to="/">Дашборд</Link> },
+    { key: '/funnel', label: <Link to="/funnel">Воронка</Link> },
+  ] },
+  { type: 'group', label: 'Пользователи', key: 'g-users', children: [
+    { key: '/users', label: <Link to="/users">Пользователи</Link> },
+    { key: '/payments', label: <Link to="/payments">Платежи</Link> },
+    { key: '/orders', label: <Link to="/orders">Заказы</Link> },
+  ] },
+  { type: 'group', label: 'Инструменты', key: 'g-tools', children: [
+    { key: '/tasks', label: <Link to="/tasks">Задачи Celery</Link> },
+    { key: '/promos', label: <Link to="/promos">Промокоды</Link> },
+    { key: '/tariffs', label: <Link to="/tariffs">Тарифы</Link> },
+    { key: '/flags', label: <Link to="/flags">Feature Flags</Link> },
+  ] },
+  { type: 'group', label: 'Система', key: 'g-system', children: [
+    { key: '/health', label: <Link to="/health">Мониторинг</Link> },
+    { key: '/log', label: <Link to="/log">Лог действий</Link> },
+    { key: '/settings', label: <Link to="/settings">Настройки</Link> },
+  ] },
 ]
 
 const TITLE_MAP: Record<string, string> = {
@@ -83,14 +63,24 @@ export function AdminLayout() {
     }
   })()
   const toggleTheme = useUiStore((s) => s.toggleTheme)
-
+  const selected = ['/', '/funnel', '/users', '/payments', '/orders', '/tasks', '/promos', '/tariffs', '/flags', '/health', '/log', '/settings']
+    .find((key) => (key === '/' ? location.pathname === '/' : location.pathname.startsWith(key)))
   document.documentElement.setAttribute('data-theme', theme)
-
-  const selected = ROUTES.find((key) =>
-    key === '/' ? location.pathname === '/' : location.pathname.startsWith(key)
-  )
-  const topbarTitle = selected ? TITLE_MAP[selected] : 'Администрирование'
-  const adminInitial = adminEmail ? adminEmail.slice(0, 1).toUpperCase() : 'A'
+  const titleMap: Record<string, string> = {
+    '/': 'Дашборд',
+    '/funnel': 'Воронка',
+    '/users': 'Пользователи',
+    '/payments': 'Платежи',
+    '/orders': 'Заказы',
+    '/tasks': 'Задачи Celery',
+    '/promos': 'Промокоды',
+    '/tariffs': 'Тарифы',
+    '/flags': 'Feature Flags',
+    '/health': 'Мониторинг',
+    '/log': 'Лог действий',
+    '/settings': 'Настройки',
+  }
+  const topbarTitle = selected ? titleMap[selected] : 'Админка'
 
   return (
     <Layout className="admin-shell" style={{ minHeight: '100vh' }}>

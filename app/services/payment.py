@@ -226,9 +226,23 @@ class YookassaPaymentService:
                 pm_id = _payment_method_id_from_yookassa(payment_obj)
                 if order.tariff.billing_type == "subscription" and pm_id:
                     await self._upsert_subscription_from_order(db, order, pm_id)
-                from app.tasks.report_generation import generate_report_task
 
-                generate_report_task.delay(paid_order_id)
+                # Тарифы-кредиты (synastry_addon и подобные) не требуют генерации отчёта —
+                # сразу переводим заказ в COMPLETED, чтобы кредит учёлся при проверке квоты.
+                if order.tariff.code == "synastry_addon":
+                    async with db.begin():
+                        await db.execute(
+                            update(Order)
+                            .where(Order.id == paid_order_id)
+                            .values(status=OrderStatus.COMPLETED)
+                        )
+                    logger.info(
+                        "synastry_addon order completed (no report generation)",
+                        order_id=paid_order_id,
+                    )
+                else:
+                    from app.tasks.report_generation import generate_report_task
+                    generate_report_task.delay(paid_order_id)
             else:
                 chk = await db.execute(select(Order.id).where(Order.id == order_id))
                 if chk.scalar_one_or_none() is None:

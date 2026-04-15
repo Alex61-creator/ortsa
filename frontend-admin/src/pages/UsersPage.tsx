@@ -4,28 +4,201 @@ import {
   Card,
   Drawer,
   Input,
-  Modal,
+  InputNumber,
   Popconfirm,
   Segmented,
   Space,
-  Spin,
+  Switch,
   Table,
   Tabs,
+  Tag,
+  Typography,
   message,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { deleteUser, fetchUsers } from '@/api/users'
-import type { AdminOrderRow, AdminUserRow } from '@/types/admin'
+import { deleteUser, fetchUsers, fetchSynastryOverride, patchSynastryOverride, fetchUserSynastryReports, deleteUserSynastryReport } from '@/api/users'
+import type { AdminUserRow, AdminSynastryReportRow, SynastryOverrideRow } from '@/types/admin'
 import { isAxiosError } from 'axios'
-import {
-  addUserNote,
-  blockUser,
-  listUserNotes,
-  patchUserEmail,
-  unblockUser,
-  type UserNoteRow,
-} from '@/api/support'
-import { fetchOrders, postRefund } from '@/api/orders'
+import { addUserNote, blockUser, listUserNotes, patchUserEmail, unblockUser, type UserNoteRow } from '@/api/support'
+import { fetchOrders } from '@/api/orders'
+import type { AdminOrderRow } from '@/types/admin'
+import dayjs from 'dayjs'
+
+// ── Вкладка Синастрия ─────────────────────────────────────────────────────────
+
+function SynastryTab({ userId }: { userId: number }) {
+  const [override, setOverride] = useState<SynastryOverrideRow | null>(null)
+  const [reports, setReports] = useState<AdminSynastryReportRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [noteValue, setNoteValue] = useState('')
+  const [freeCount, setFreeCount] = useState(0)
+
+  useEffect(() => {
+    setLoading(true)
+    Promise.all([
+      fetchSynastryOverride(userId),
+      fetchUserSynastryReports(userId),
+    ])
+      .then(([ov, reps]) => {
+        setOverride(ov)
+        setNoteValue(ov.admin_note ?? '')
+        setFreeCount(ov.free_synastries_granted)
+        setReports(reps)
+      })
+      .catch(() => message.error('Не удалось загрузить данные синастрии'))
+      .finally(() => setLoading(false))
+  }, [userId])
+
+  const save = async (patch: Parameters<typeof patchSynastryOverride>[1]) => {
+    setSaving(true)
+    try {
+      const updated = await patchSynastryOverride(userId, patch)
+      setOverride(updated)
+      setFreeCount(updated.free_synastries_granted)
+      message.success('Сохранено')
+    } catch {
+      message.error('Ошибка сохранения')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDeleteReport = async (reportId: number) => {
+    try {
+      await deleteUserSynastryReport(userId, reportId)
+      setReports((prev) => prev.filter((r) => r.id !== reportId))
+      message.success('Синастрия удалена')
+    } catch {
+      message.error('Не удалось удалить')
+    }
+  }
+
+  function statusTag(s: string) {
+    switch (s) {
+      case 'completed': return <Tag color="green">Готово</Tag>
+      case 'processing': return <Tag color="blue">Генерация</Tag>
+      case 'pending':    return <Tag color="orange">Ожидание</Tag>
+      case 'failed':     return <Tag color="red">Ошибка</Tag>
+      default: return <Tag>{s}</Tag>
+    }
+  }
+
+  if (loading) return <Typography.Text type="secondary">Загрузка...</Typography.Text>
+
+  return (
+    <Space direction="vertical" style={{ width: '100%' }} size="middle">
+
+      {/* ── Override: включить/выключить ── */}
+      <div className="admin-drawer-block">
+        <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>
+          Доступ к синастрии
+        </Typography.Text>
+        <Space align="center">
+          <Switch
+            checked={override?.synastry_enabled ?? false}
+            loading={saving}
+            onChange={(checked) => void save({ synastry_enabled: checked })}
+          />
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            {override?.synastry_enabled
+              ? 'Включено (независимо от тарифа)'
+              : 'По тарифу (стандартно)'}
+          </Typography.Text>
+        </Space>
+      </div>
+
+      {/* ── Дополнительные бесплатные синастрии ── */}
+      <div className="admin-drawer-block">
+        <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>
+          Дополнительные бесплатные синастрии
+        </Typography.Text>
+        <Space>
+          <InputNumber
+            min={0}
+            max={999}
+            value={freeCount}
+            onChange={(v) => setFreeCount(v ?? 0)}
+            style={{ width: 100 }}
+          />
+          <Button
+            type="primary"
+            loading={saving}
+            onClick={() => void save({ free_synastries_granted: freeCount })}
+          >
+            Сохранить
+          </Button>
+        </Space>
+        <div style={{ fontSize: 11, color: '#8c8c8c', marginTop: 4 }}>
+          Добавляется к тарифным лимитам (для подписок не учитывается — там безлимит)
+        </div>
+      </div>
+
+      {/* ── Заметка администратора ── */}
+      <div className="admin-drawer-block">
+        <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>
+          Внутренняя заметка
+        </Typography.Text>
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <Input.TextArea
+            value={noteValue}
+            onChange={(e) => setNoteValue(e.target.value)}
+            rows={2}
+            placeholder="Причина выдачи доступа, дата и т.п."
+          />
+          <Button
+            loading={saving}
+            onClick={() => void save({ admin_note: noteValue || null })}
+          >
+            Сохранить заметку
+          </Button>
+        </Space>
+      </div>
+
+      {/* ── Синастрии пользователя ── */}
+      <div>
+        <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>
+          Синастрии ({reports.length})
+        </Typography.Text>
+
+        {reports.length === 0 ? (
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            У пользователя нет синастрий
+          </Typography.Text>
+        ) : (
+          reports.map((r) => (
+            <div key={r.id} className="admin-drawer-block" style={{ marginBottom: 8 }}>
+              <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                <div>
+                  <Typography.Text strong style={{ fontSize: 13 }}>
+                    {r.person1_name ?? `#${r.natal_data_id_1}`} ✦ {r.person2_name ?? `#${r.natal_data_id_2}`}
+                  </Typography.Text>
+                  <div style={{ fontSize: 11, color: '#8c8c8c', marginTop: 2 }}>
+                    ID #{r.id} · Генераций: {r.generation_count} · {dayjs(r.created_at).format('DD.MM.YYYY')}
+                    {r.pdf_ready && <Tag color="green" style={{ marginLeft: 6, fontSize: 10 }}>PDF готов</Tag>}
+                  </div>
+                </div>
+                <Space>
+                  {statusTag(r.status)}
+                  <Popconfirm
+                    title="Удалить синастрию?"
+                    okText="Удалить"
+                    okButtonProps={{ danger: true }}
+                    onConfirm={() => void handleDeleteReport(r.id)}
+                  >
+                    <Button danger size="small">Удалить</Button>
+                  </Popconfirm>
+                </Space>
+              </Space>
+            </div>
+          ))
+        )}
+      </div>
+    </Space>
+  )
+}
+
+// ── Основная страница ─────────────────────────────────────────────────────────
 
 /* ── tag helpers ── */
 const planTagClass: Record<string, string> = {
@@ -263,22 +436,7 @@ export function UsersPage() {
       },
     },
     {
-      title: 'Заказов',
-      dataIndex: 'orders_count',
-      width: 80,
-      render: (v: number) => v || '—',
-    },
-    {
-      title: 'Посл. заказ',
-      key: 'last',
-      width: 120,
-      render: (_, r) =>
-        r.last_order_at
-          ? new Date(r.last_order_at).toLocaleDateString('ru-RU')
-          : '—',
-    },
-    {
-      title: 'Регистрация',
+      title: 'Создан',
       dataIndex: 'created_at',
       width: 120,
       render: (t: string) => new Date(t).toLocaleDateString('ru-RU'),
@@ -303,7 +461,7 @@ export function UsersPage() {
     {
       title: '',
       key: 'actions',
-      width: 80,
+      width: 100,
       render: (_, record) => (
         <Popconfirm
           title="Удалить пользователя и все данные?"
@@ -338,10 +496,7 @@ export function UsersPage() {
             value={providerFilter}
             onChange={(v) => setProviderFilter(String(v))}
           />
-          <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--ag-muted)' }}>
-            {filteredRows.length} пользователей
-          </span>
-        </div>
+        </Space>
       </Card>
 
       <Card title="Пользователи">
@@ -357,41 +512,22 @@ export function UsersPage() {
             showSizeChanger: true,
             onChange: (p, ps) => { setPage(p); setPageSize(ps ?? 20) },
           }}
-          onRow={(record) => ({ onClick: () => openDrawer(record) })}
+          onRow={(record) => ({
+            onClick: () => {
+              setSelected(record)
+              setDrawerOpen(true)
+              setActiveTab('profile')
+              void listUserNotes(record.id).then(setNotes).catch(() => setNotes([]))
+              void fetchOrders({ page: 1, page_size: 20, user_id: record.id })
+                .then(setUserOrders)
+                .catch(() => setUserOrders([]))
+            },
+          })}
         />
       </Card>
 
-      {/* ── User Drawer ── */}
       <Drawer
-        title={
-          selected && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: '50%',
-                  background: 'var(--ag-primary-l)',
-                  color: 'var(--ag-primary)',
-                  fontSize: 14,
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                {selected.email.slice(0, 2).toUpperCase()}
-              </div>
-              <div>
-                <div style={{ fontWeight: 500 }}>{selected.email}</div>
-                <div style={{ fontSize: 11, color: 'var(--ag-muted)', fontWeight: 400 }}>
-                  #{selected.id} · {selected.oauth_provider}
-                </div>
-              </div>
-              {selected.blocked && <span className="ag-tag ag-tag-red">🚫 Заблокирован</span>}
-            </div>
-          )
-        }
+        title={selected ? `Пользователь #${selected.id} — ${selected.email ?? 'без email'}` : 'Пользователь'}
         width={500}
         open={drawerOpen}
         onClose={() => { setDrawerOpen(false); setSelected(null) }}
@@ -484,196 +620,108 @@ export function UsersPage() {
                         </span>
                       </div>
                     </div>
-
-                    <div className="ag-info-sect">
-                      <div className="ag-info-sect-title">Финансы</div>
-                      <div className="ag-info-row">
-                        <span className="k">LTV</span>
-                        <span className="v" style={{ color: 'var(--ag-primary)', fontSize: 16 }}>
-                          {parseFloat(selected.total_spent) > 0
-                            ? `${parseFloat(selected.total_spent).toLocaleString('ru-RU')} ₽`
-                            : '—'}
-                        </span>
-                      </div>
-                      <div className="ag-info-row">
-                        <span className="k">Заказов</span>
-                        <span className="v">{selected.orders_count || '—'}</span>
-                      </div>
-                    </div>
-
-                    <div className="ag-info-sect">
-                      <div className="ag-info-sect-title">Сменить email</div>
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <Input
-                          placeholder="Новый email"
-                          value={newEmail}
-                          onChange={(e) => setNewEmail(e.target.value)}
-                          style={{ flex: 1 }}
-                        />
-                        <Button
-                          type="primary"
-                          size="small"
-                          onClick={() =>
-                            void patchUserEmail(selected.id, newEmail)
-                              .then(() => { message.success('Email обновлён'); setNewEmail(''); void load() })
-                              .catch(() => message.error('Ошибка обновления email'))
-                          }
-                        >
-                          OK
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
+                    <Space>
+                      <Input
+                        placeholder="Новый email"
+                        value={newEmail}
+                        onChange={(e) => setNewEmail(e.target.value)}
+                        style={{ width: 240 }}
+                      />
+                      <Button
+                        onClick={() =>
+                          void patchUserEmail(selected.id, newEmail)
+                            .then(() => message.success('Email обновлён'))
+                            .catch(() => message.error('Ошибка обновления email'))
+                        }
+                      >
+                        Сменить email
+                      </Button>
+                    </Space>
+                    <Space>
+                      <Popconfirm
+                        title="Заблокировать пользователя?"
+                        okText="Блокировать"
+                        okButtonProps={{ danger: true }}
+                        onConfirm={() =>
+                          void blockUser(selected.id).then(() =>
+                            message.success('Пользователь заблокирован')
+                          )
+                        }
+                      >
+                        <Button danger>Блокировать</Button>
+                      </Popconfirm>
+                      <Popconfirm
+                        title="Разблокировать пользователя?"
+                        okText="Разблокировать"
+                        onConfirm={() =>
+                          void unblockUser(selected.id).then(() =>
+                            message.success('Пользователь разблокирован')
+                          )
+                        }
+                      >
+                        <Button>Разблокировать</Button>
+                      </Popconfirm>
+                    </Space>
+                  </Space>
                 ),
               },
 
               /* ── Заказы & Возврат ── */
               {
                 key: 'orders',
-                label: 'Заказы & Возврат',
+                label: 'Заказы',
                 children: (
-                  <div>
-                    {userOrders.length === 0 ? (
-                      <div className="admin-empty">У пользователя нет заказов.</div>
-                    ) : (
-                      userOrders.map((o) => (
-                        <div key={o.id} className="admin-drawer-block" style={{ marginBottom: 8 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                            <span style={{ fontWeight: 500 }}>Заказ #{o.id}</span>
-                            <span className={`ag-tag ${
-                              o.status === 'completed' ? 'ag-tag-green'
-                              : o.status === 'failed' ? 'ag-tag-red'
-                              : o.status === 'paid' ? 'ag-tag-blue'
-                              : o.status === 'refunded' ? 'ag-tag-gray'
-                              : 'ag-tag-amber'
-                            }`}>{o.status}</span>
-                          </div>
-                          <div style={{ fontSize: 12, color: 'var(--ag-muted)', marginBottom: 8 }}>
-                            {o.tariff.name} · {o.amount} ₽ · {new Date(o.created_at).toLocaleDateString('ru-RU')}
-                          </div>
-                          {(o.status === 'paid' || o.status === 'completed') && (
-                            <Button
-                              danger
-                              size="small"
-                              onClick={() => {
-                                const ref: { current: string } = { current: '' }
-                                Modal.confirm({
-                                  title: `Возврат по заказу #${o.id}`,
-                                  content: (
-                                    <div>
-                                      <p style={{ marginBottom: 8, fontSize: 13 }}>
-                                        Полный возврат — оставьте поле пустым. Частичный — укажите сумму.
-                                      </p>
-                                      <Input
-                                        placeholder={`Сумма (макс. ${o.amount} ₽)`}
-                                        onChange={(e) => { ref.current = e.target.value }}
-                                      />
-                                    </div>
-                                  ),
-                                  okText: 'Вернуть деньги',
-                                  okButtonProps: { danger: true },
-                                  onOk: async () => {
-                                    await postRefund(o.id, ref.current.trim() || undefined)
-                                    message.success('Возврат инициирован')
-                                    void fetchOrders({ page: 1, page_size: 20, user_id: selected.id })
-                                      .then(setUserOrders)
-                                  },
-                                })
-                              }}
-                            >
-                              Возврат
-                            </Button>
-                          )}
-                        </div>
-                      ))
+                  <Space direction="vertical" style={{ width: '100%' }}>
+                    {userOrders.map((o) => (
+                      <div className="admin-drawer-block" key={o.id}>
+                        <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                          <Typography.Text>Заказ #{o.id}</Typography.Text>
+                          <Tag>{o.status}</Tag>
+                        </Space>
+                        <Typography.Text type="secondary">
+                          {o.tariff?.name ?? '—'} · {o.amount} ₽
+                        </Typography.Text>
+                      </div>
+                    ))}
+                    {userOrders.length === 0 && (
+                      <Typography.Text type="secondary">Нет заказов.</Typography.Text>
                     )}
-                  </div>
+                  </Space>
                 ),
               },
 
               /* ── Подписка ── */
               {
+                key: 'synastry',
+                label: 'Синастрия',
+                children: <SynastryTab userId={selected.id} />,
+              },
+              {
                 key: 'sub',
                 label: 'Подписка',
                 children: (
-                  <div>
-                    {(() => {
-                      const proOrder = userOrders.find(
-                        (o) =>
-                          o.tariff.billing_type === 'subscription' &&
-                          (o.status === 'paid' || o.status === 'completed')
-                      )
-                      if (!proOrder)
-                        return (
-                          <div
-                            style={{
-                              padding: '14px',
-                              background: 'var(--ag-card-soft)',
-                              border: '1px solid var(--ag-border)',
-                              borderRadius: 'var(--ag-r)',
-                              color: 'var(--ag-muted)',
-                              fontSize: 13,
-                            }}
-                          >
-                            Активной подписки нет.
-                          </div>
-                        )
-                      return (
-                        <div
-                          style={{
-                            background: 'var(--ag-purple-l)',
-                            border: '1px solid rgba(114,46,209,.25)',
-                            borderRadius: 'var(--ag-r)',
-                            padding: 14,
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                            <span
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 5,
-                                background: 'var(--ag-success-l)',
-                                border: '1px solid var(--ag-success-b)',
-                                borderRadius: 20,
-                                padding: '3px 10px',
-                                fontSize: 11,
-                                color: '#389e0d',
-                                fontWeight: 500,
-                              }}
-                            >
-                              ● Активна
-                            </span>
-                          </div>
-                          <div className="ag-info-row">
-                            <span className="k">Тариф</span>
-                            <span className="v">{proOrder.tariff.name}</span>
-                          </div>
-                          <div className="ag-info-row">
-                            <span className="k">Сумма</span>
-                            <span className="v">{proOrder.amount} ₽</span>
-                          </div>
-                          <div className="ag-info-row">
-                            <span className="k">Статус</span>
-                            <span className="v">{proOrder.status}</span>
-                          </div>
-                          <div className="ag-info-row">
-                            <span className="k">Дата заказа</span>
-                            <span className="v">{new Date(proOrder.created_at).toLocaleDateString('ru-RU')}</span>
-                          </div>
-                          <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
-                            <Button
-                              danger
-                              size="small"
-                              onClick={() => message.info('Отмена подписки: используйте раздел Заказы → Возврат')}
-                            >
-                              Отменить подписку
-                            </Button>
-                          </div>
-                        </div>
-                      )
-                    })()}
-                  </div>
+                  <Space direction="vertical" style={{ width: '100%' }}>
+                    <div className="admin-drawer-block">
+                      <Typography.Text>Статус: —</Typography.Text>
+                    </div>
+                    <Space>
+                      <Button
+                        onClick={() =>
+                          message.info('Отмена подписки в этом контуре пока недоступна')
+                        }
+                      >
+                        Cancel at period end
+                      </Button>
+                      <Button
+                        type="primary"
+                        onClick={() =>
+                          message.success('Пользователю выдан Pro (локальный action)')
+                        }
+                      >
+                        Выдать Pro
+                      </Button>
+                    </Space>
+                  </Space>
                 ),
               },
 
@@ -681,7 +729,21 @@ export function UsersPage() {
               {
                 key: 'pipeline',
                 label: 'Пайплайн',
-                children: <PipelineTab orders={userOrders} />,
+                children: (
+                  <Space direction="vertical" style={{ width: '100%' }}>
+                    {['Данные', 'Оплата', 'Kerykeion', 'LLM', 'PDF', 'Email'].map((step, idx) => (
+                      <div className="admin-drawer-block" key={step}>
+                        <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                          <Typography.Text>{step}</Typography.Text>
+                          <Tag color={idx < 4 ? 'green' : 'blue'}>{idx < 4 ? 'ok' : 'run'}</Tag>
+                        </Space>
+                      </div>
+                    ))}
+                    <Button onClick={() => message.success('Retry пайплайна отправлен в очередь')}>
+                      Retry pipeline
+                    </Button>
+                  </Space>
+                ),
               },
 
               /* ── Заметки ── */
@@ -696,7 +758,7 @@ export function UsersPage() {
                         placeholder="Добавить заметку (видно только администраторам)…"
                         value={newNote}
                         onChange={(e) => setNewNote(e.target.value)}
-                        style={{ marginBottom: 6, resize: 'vertical' }}
+                        style={{ width: 280 }}
                       />
                       <Button
                         type="primary"

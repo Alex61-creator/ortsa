@@ -165,25 +165,23 @@ async def _generate_report_async(order_id: int, task_id: str):
                     p_rec = p_res.scalar_one_or_none()
                     sp_override = p_rec.system_prompt if p_rec else None
 
-                interpretation = await llm_service.generate_interpretation(
-                    chart_data, tariff, locale=nd_locale,
-                    system_prompt_override=sp_override,
-                )
-
-                context = {
-                    "locale": nd_locale,
-                    "full_name": natal_data.full_name,
-                    "birth_data": f"{natal_data.birth_date.strftime('%d.%m.%Y')} {natal_data.birth_time.strftime('%H:%M')}",
-                    "birth_place": natal_data.birth_place,
-                    "chart_img_path": f"/app/storage/{chart_filename}",
-                    "interpretation": interpretation.raw_content,
-                    "tariff_name": tariff.name,
-                    "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
-                }
-                suffix = f"_slot{slot_idx}" if slot_idx > 0 else ""
-                pdf_filename = f"reports/report_{order_id}{suffix}.pdf"
-                pdf_path = await pdf_generator.generate(pdf_template, context, pdf_filename)
-                generated_pdf_paths.append(pdf_path)
+            pdf_generator = PDFGenerator()
+            tier = resolve_llm_tier(tariff.code, getattr(tariff, "llm_tier", None))
+            pdf_template = "report_free.html" if tier == LlmTier.FREE else "report.html"
+            context = {
+                "locale": report_locale,
+                "full_name": natal_data.full_name,
+                "birth_data": f"{natal_data.birth_date.strftime('%d.%m.%Y')} {natal_data.birth_time.strftime('%H:%M')}",
+                "birth_place": natal_data.birth_place,
+                "chart_img_path": f"/app/storage/{chart_filename}",
+                "interpretation": interpretation.raw_content,
+                "interpretation_sections": interpretation.sections,
+                "chart_data": chart_data,
+                "tariff_name": tariff.name,
+                "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+            }
+            pdf_filename = f"reports/report_{order_id}.pdf"
+            pdf_path = await pdf_generator.generate(pdf_template, context, pdf_filename)
 
             # Сохраняем Report (первый PDF как основной)
             report_stmt = select(Report).where(Report.order_id == order.id)

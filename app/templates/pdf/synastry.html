@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="{{ locale }}">
+<head>
+<meta charset="UTF-8">
+<style>
+/* ═══ Palette ═══════════════════════════════════════════════════════════════ */
+:root {
+  --navy:        #1a1f3c;
+  --navy-2:      #252b50;
+  --gold:        #c9a96e;
+  --gold-light:  #e8d5a3;
+  --rose:        #c96e8c;
+  --rose-light:  #f0d0da;
+  --cream:       #f5f0e8;
+  --cream-2:     #ede8de;
+  --white:       #ffffff;
+  --text:        #1a1f3c;
+  --text-2:      #5a5f7c;
+  --fire:        #c94e2b;
+  --earth:       #6b8c3a;
+  --air:         #3a7fa5;
+  --water:       #3a6fa0;
+  --harmony:     #4a9a6a;   /* зелёный — гармоничные аспекты */
+  --tension:     #c94040;   /* красный — напряжённые аспекты */
+  --neutral:     #8888aa;   /* нейтральные аспекты */
+}
+
+/* ═══ Page ══════════════════════════════════════════════════════════════════ */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DejaVu Serif', Georgia, serif;
+  font-size: 9.5pt;
+  color: var(--text);
+  background: var(--cream);
+}
+
+/* ═══ Cover ═════════════════════════════════════════════════════════════════ */
+.cover {
+  background: var(--navy);
+  width: 100%;
+}
+.cover-stripe {
+  height: 5px;
+  background: linear-gradient(90deg, var(--gold) 0%, var(--rose) 50%, var(--gold) 100%);
+}
+.cover-body {
+  padding: 28px 36px 24px;
+}
+.cover-label {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 7pt;
+  letter-spacing: 3px;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.cover-title-row {
+  display: table;
+  width: 100%;
+  margin-bottom: 10px;
+}
+.cover-title-cell {
+  display: table-cell;
+  vertical-align: middle;
+}
+.cover-name {
+  font-family: 'DejaVu Serif', Georgia, serif;
+  font-size: 18pt;
+  font-weight: bold;
+  color: var(--white);
+  line-height: 1.2;
+}
+.cover-name-p1 { color: var(--gold-light); }
+.cover-name-amp {
+  font-size: 16pt;
+  color: var(--rose);
+  margin: 0 8px;
+}
+.cover-name-p2 { color: var(--rose-light); }
+.cover-subtitle {
+  font-size: 9.5pt;
+  color: var(--gold-light);
+  font-style: italic;
+  margin-bottom: 18px;
+}
+.cover-rule {
+  width: 56px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--gold), var(--rose));
+  margin-bottom: 16px;
+}
+.cover-meta-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.cover-meta-table td {
+  padding: 2px 0;
+  vertical-align: top;
+}
+.cover-meta-label {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 6.5pt;
+  letter-spacing: 1.5px;
+  color: var(--gold);
+  text-transform: uppercase;
+  white-space: nowrap;
+  padding-right: 14px;
+  width: 75px;
+}
+.cover-meta-value {
+  font-size: 8.5pt;
+  color: var(--white);
+  font-weight: 600;
+}
+.cover-meta-value.p2 { color: var(--rose-light); }
+.cover-bot-stripe {
+  height: 3px;
+  background: linear-gradient(90deg, var(--gold) 0%, var(--rose) 50%, var(--gold) 100%);
+  opacity: 0.6;
+}
+
+/* ═══ Main container ════════════════════════════════════════════════════════ */
+.main {
+  padding: 18px 28px 28px;
+}
+
+/* ═══ Double wheel chart ════════════════════════════════════════════════════ */
+.chart-wrap {
+  text-align: center;
+  padding: 12px 0 10px;
+  background: var(--white);
+  border: 1px solid var(--cream-2);
+  margin-bottom: 14px;
+}
+.chart-wrap-label {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 7pt;
+  letter-spacing: 2px;
+  color: var(--text-2);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.chart-wrap img {
+  max-width: 330px;
+  max-height: 330px;
+}
+
+/* ═══ People comparison table ═══════════════════════════════════════════════ */
+.people-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 16px;
+}
+.people-table th {
+  padding: 8px 10px;
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 8pt;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: left;
+}
+.people-table th.p1-hdr {
+  background: var(--navy);
+  color: var(--gold-light);
+  border-right: 2px solid var(--gold);
+}
+.people-table th.p2-hdr {
+  background: var(--navy-2);
+  color: var(--rose-light);
+}
+.people-table td {
+  padding: 4px 10px;
+  font-size: 8.5pt;
+  border-bottom: 1px solid var(--cream-2);
+  vertical-align: top;
+}
+.people-table tr:last-child td { border-bottom: none; }
+.people-table tr.row-even td { background: var(--white); }
+.people-table tr.row-odd  td { background: var(--cream); }
+.people-table .col-planet {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 7.5pt;
+  color: var(--text-2);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  width: 80px;
+  border-right: 1px solid var(--cream-2);
+}
+.people-table .col-p1 { border-right: 2px solid var(--gold); }
+.people-table .col-p2 {}
+.sign-val { font-style: italic; }
+.house-val {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 8pt;
+  font-weight: bold;
+}
+.retro { color: var(--tension); font-size: 7.5pt; }
+
+/* ═══ Aspects table ═════════════════════════════════════════════════════════ */
+.aspects-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8pt;
+  margin-bottom: 16px;
+}
+.aspects-table th {
+  background: var(--navy);
+  color: var(--gold);
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 6.5pt;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 5px 7px;
+  text-align: left;
+}
+.aspects-table td {
+  padding: 3px 7px;
+  border-bottom: 1px solid var(--cream-2);
+  vertical-align: middle;
+}
+.aspects-table tr:last-child td { border-bottom: none; }
+.aspects-table tr.row-even td { background: var(--white); }
+.aspects-table tr.row-odd  td { background: var(--cream); }
+.asp-type {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 8pt;
+  font-weight: bold;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+.asp-harmony { color: var(--harmony); }
+.asp-tension  { color: var(--tension); }
+.asp-neutral  { color: var(--neutral); }
+.asp-orb {
+  font-family: 'DejaVu Sans Mono', monospace;
+  font-size: 7.5pt;
+  color: var(--text-2);
+}
+
+/* ═══ Section heading ═══════════════════════════════════════════════════════ */
+.sect-heading {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 7.5pt;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--text-2);
+  padding-bottom: 4px;
+  border-bottom: 1.5px solid;
+  border-image: linear-gradient(90deg, var(--gold), var(--rose)) 1;
+  margin: 16px 0 8px;
+}
+
+/* ═══ Interpretation sections ═══════════════════════════════════════════════ */
+.interp-block {
+  margin-bottom: 12px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.interp-hdr {
+  padding: 7px 12px;
+  display: table;
+  width: 100%;
+}
+.interp-hdr.odd  { background: var(--navy); }
+.interp-hdr.even { background: var(--navy-2); }
+.interp-hdr-inner { display: table-row; }
+.interp-num-cell {
+  display: table-cell;
+  vertical-align: middle;
+  width: 24px;
+  padding-right: 10px;
+}
+.interp-num {
+  display: inline-block;
+  width: 19px;
+  height: 19px;
+  line-height: 19px;
+  text-align: center;
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 7.5pt;
+  font-weight: bold;
+  border-radius: 50%;
+}
+.odd  .interp-num { background: var(--gold);  color: var(--navy); }
+.even .interp-num { background: var(--rose);  color: var(--white); }
+.interp-title-cell {
+  display: table-cell;
+  vertical-align: middle;
+}
+.interp-title {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 8.5pt;
+  font-weight: bold;
+  color: var(--white);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.interp-body {
+  background: var(--white);
+  padding: 10px 12px;
+  border: 1px solid var(--cream-2);
+  border-top: none;
+}
+.interp-body p {
+  margin-bottom: 7px;
+  line-height: 1.6;
+  color: var(--text);
+}
+.interp-body p:last-child { margin-bottom: 0; }
+.interp-body ul {
+  padding-left: 16px;
+  margin-bottom: 7px;
+}
+.interp-body li { margin-bottom: 3px; line-height: 1.5; }
+.interp-body strong { color: var(--navy); }
+
+/* ═══ Footer ════════════════════════════════════════════════════════════════ */
+.footer-rule {
+  height: 1px;
+  margin-top: 24px;
+  margin-bottom: 8px;
+  background: linear-gradient(90deg, var(--gold), var(--rose));
+  opacity: 0.7;
+}
+.footer-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.footer-table td {
+  vertical-align: middle;
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 6.5pt;
+  color: var(--text-2);
+  padding: 0;
+}
+.footer-brand {
+  font-size: 8pt;
+  font-weight: bold;
+  color: var(--navy);
+  letter-spacing: 1px;
+}
+.footer-note { text-align: right; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════ COVER ══════════════════════════════════── -->
+<div class="cover">
+  <div class="cover-stripe"></div>
+  <div class="cover-body">
+    <div class="cover-label">
+      {% if locale == 'en' %}Synastry Report · AstroGen{% else %}Синастрия · AstroGen{% endif %}
+    </div>
+    <div style="margin-bottom: 6px;">
+      <span class="cover-name cover-name-p1">{{ person1_name }}</span>
+      <span class="cover-name cover-name-amp">✦</span>
+      <span class="cover-name cover-name-p2">{{ person2_name }}</span>
+    </div>
+    <div class="cover-subtitle">
+      {% if locale == 'en' %}Astrological Compatibility Analysis{% else %}Астрологический анализ совместности{% endif %}
+    </div>
+    <div class="cover-rule"></div>
+    <table class="cover-meta-table">
+      <tr>
+        <td class="cover-meta-label">
+          {% if locale == 'en' %}Person 1{% else %}Человек 1{% endif %}
+        </td>
+        <td class="cover-meta-value">{{ person1_name }} · {{ person1_birth_data }} · {{ person1_birth_place }}</td>
+      </tr>
+      <tr>
+        <td class="cover-meta-label">
+          {% if locale == 'en' %}Person 2{% else %}Человек 2{% endif %}
+        </td>
+        <td class="cover-meta-value p2">{{ person2_name }} · {{ person2_birth_data }} · {{ person2_birth_place }}</td>
+      </tr>
+      <tr>
+        <td class="cover-meta-label">
+          {% if locale == 'en' %}Generated{% else %}Создан{% endif %}
+        </td>
+        <td class="cover-meta-value">{{ generated_at }}</td>
+      </tr>
+    </table>
+  </div>
+  <div class="cover-bot-stripe"></div>
+</div>
+
+<!-- ══════════════════════════════ MAIN ═══════════════════════════════════── -->
+<div class="main">
+
+  <!-- ── Двойное колесо ──────────────────────────────────────────────────── -->
+  <div class="chart-wrap">
+    <div class="chart-wrap-label">
+      {% if locale == 'en' %}Synastry Double Wheel{% else %}Двойное колесо синастрии{% endif %}
+    </div>
+    <img src="{{ chart_img_path }}" alt="Synastry Chart">
+  </div>
+
+  <!-- ── Сравнительная таблица планет ────────────────────────────────────── -->
+  {% if chart_data and chart_data.subject1 and chart_data.subject2 %}
+  <div class="sect-heading">
+    {% if locale == 'en' %}Planet Positions Comparison{% else %}Сравнение положений планет{% endif %}
+  </div>
+  <table class="people-table">
+    <thead>
+      <tr>
+        <th style="background: var(--navy-2); color: var(--text-2); font-size: 6.5pt; padding: 5px 10px;"></th>
+        <th class="p1-hdr">{{ person1_name }}</th>
+        <th class="p2-hdr">{{ person2_name }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% set p1_planets = chart_data.subject1.planets %}
+      {% set p2_planets = chart_data.subject2.planets %}
+      {% for p1 in p1_planets %}
+        {% set p2 = p2_planets[loop.index0] if loop.index0 < p2_planets | length else None %}
+        <tr class="{{ 'row-even' if loop.index is even else 'row-odd' }}">
+          <td class="col-planet">{{ p1.name | planet_name_ru }}</td>
+          <td class="col-p1">
+            <span class="sign-val">{{ p1.sign | sign_name_ru }}</span>
+            {{ "%.0f"|format(p1.position) }}°
+            <span class="house-val"> · {{ p1.house | house_roman }}</span>
+            {% if p1.retrograde %}<span class="retro"> ℞</span>{% endif %}
+          </td>
+          <td class="col-p2">
+            {% if p2 %}
+            <span class="sign-val">{{ p2.sign | sign_name_ru }}</span>
+            {{ "%.0f"|format(p2.position) }}°
+            <span class="house-val"> · {{ p2.house | house_roman }}</span>
+            {% if p2.retrograde %}<span class="retro"> ℞</span>{% endif %}
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <!-- ── Ключевые аспекты синастрии ──────────────────────────────────────── -->
+  {% if chart_data and chart_data.aspects and chart_data.aspects | length > 0 %}
+  <div class="sect-heading">
+    {% if locale == 'en' %}Key Synastry Aspects{% else %}Ключевые аспекты синастрии{% endif %}
+  </div>
+  <table class="aspects-table">
+    <thead>
+      <tr>
+        <th>{% if locale == 'en' %}P1 Planet{% else %}Планета 1{% endif %}</th>
+        <th>{% if locale == 'en' %}Aspect{% else %}Аспект{% endif %}</th>
+        <th>{% if locale == 'en' %}P2 Planet{% else %}Планета 2{% endif %}</th>
+        <th>{% if locale == 'en' %}Orb{% else %}Орбис{% endif %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for asp in chart_data.aspects[:20] %}
+      <tr class="{{ 'row-even' if loop.index is even else 'row-odd' }}">
+        <td>{{ asp.p1_name | planet_name_ru if asp.p1_name else (asp.get('p1_name', '') | planet_name_ru) }}</td>
+        <td>
+          {% set asp_name = asp.aspect if asp.aspect is defined else asp.get('aspect', '') %}
+          {% if asp_name in ('conjunction', 'trine', 'sextile') %}
+            <span class="asp-type asp-harmony">{{ asp_name }}</span>
+          {% elif asp_name in ('opposition', 'square') %}
+            <span class="asp-type asp-tension">{{ asp_name }}</span>
+          {% else %}
+            <span class="asp-type asp-neutral">{{ asp_name }}</span>
+          {% endif %}
+        </td>
+        <td>{{ asp.p2_name | planet_name_ru if asp.p2_name is defined else asp.get('p2_name', '') | planet_name_ru }}</td>
+        <td class="asp-orb">
+          {% set orb = asp.orbit if asp.orbit is defined else asp.get('orbit', 0) %}
+          {{ "%.1f"|format(orb) }}°
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <!-- ── Интерпретация ───────────────────────────────────────────────────── -->
+  <div class="sect-heading">
+    {% if locale == 'en' %}Interpretation{% else %}Интерпретация{% endif %}
+  </div>
+
+  {% if interpretation_sections %}
+    {% for section_name, section_text in interpretation_sections.items() %}
+    <div class="interp-block">
+      <div class="interp-hdr {{ 'odd' if loop.index is odd else 'even' }}">
+        <div class="interp-hdr-inner">
+          <div class="interp-num-cell">
+            <span class="interp-num">{{ loop.index }}</span>
+          </div>
+          <div class="interp-title-cell">
+            <span class="interp-title">{{ section_name }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="interp-body">
+        {{ section_text | md_to_html | safe }}
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+  <div class="interp-body" style="border: 1px solid var(--cream-2);">
+    {{ interpretation | md_to_html | safe }}
+  </div>
+  {% endif %}
+
+  <!-- ── Footer ──────────────────────────────────────────────────────────── -->
+  <div class="footer-rule"></div>
+  <table class="footer-table">
+    <tr>
+      <td><span class="footer-brand">AstroGen</span></td>
+      <td class="footer-note">
+        {% if locale == 'en' %}
+          Report generated automatically. For informational purposes only. AstroGen © 2024.
+        {% else %}
+          Отчёт сгенерирован автоматически. Информация носит ознакомительный характер. AstroGen © 2024.
+        {% endif %}
+      </td>
+    </tr>
+  </table>
+
+</div>
+</body>
+</html>

@@ -99,7 +99,7 @@ export function OrderTariffPage() {
           { label: t('order.planBundleFeat2'), enabled: true },
           { label: t('order.planBundleFeat3'), enabled: true },
           { label: t('order.planBundleFeat4'), enabled: true },
-          { label: t('order.planBundleFeat5'), enabled: false },
+          { label: t('order.planBundleFeat5'), enabled: true },
         ],
       },
     ],
