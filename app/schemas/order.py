@@ -1,12 +1,19 @@
 from pydantic import BaseModel, Field, EmailStr
 from decimal import Decimal
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 
 class OrderCreate(BaseModel):
     tariff_code: str
     natal_data_id: int
+    # Для тарифа bundle: список всех natal_data_id (включая primary).
+    # Если передан — natal_data_id игнорируется в пользу первого элемента списка.
+    # Допустимо 1–3 элемента. Для прочих тарифов поле игнорируется.
+    natal_data_ids: Optional[List[int]] = Field(
+        default=None,
+        description="Список ID натальных профилей для тарифа bundle (1–3 штуки).",
+    )
     report_delivery_email: Optional[EmailStr] = Field(
         default=None,
         description="Email для PDF и фискального чека; обязателен, если у аккаунта нет реальной почты (Telegram / OAuth без email).",
@@ -52,4 +59,3 @@ class OrderListItem(BaseModel):
 
     class Config:
         from_attributes = True
-

@@ -27,6 +27,12 @@ class RedisCache:
     async def exists(self, key: str) -> bool:
         return await self.redis.exists(key) > 0
 
+    async def set_nx(self, key: str, value: Any, ttl: int) -> bool:
+        """Атомарный SET NX EX — возвращает True если ключ был установлен (новый), False если уже существовал."""
+        serialized = json.dumps(value, default=str)
+        result = await self.redis.set(key, serialized, nx=True, ex=ttl)
+        return result is not None
+
     async def incr(self, key: str) -> int:
         """Атомарный INCR (счётчики лимитов; ключ без префикса cache:)."""
         return int(await self.redis.incr(key))

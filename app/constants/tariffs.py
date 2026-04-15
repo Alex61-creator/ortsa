@@ -11,7 +11,12 @@ class LlmTier(StrEnum):
 
 FEATURE_KEY_MAX_NATAL_PROFILES = "max_natal_profiles"
 
-# Допустимые коды тарифов в БД и API: free, report, bundle, pro
+# Допустимые коды тарифов в БД и API
+# free        — бесплатный (1 профиль)
+# report      — полный разовый отчёт (1 профиль)
+# bundle      — набор 3 отчётов (до 3 профилей)
+# sub_monthly — помесячная подписка (до 5 профилей)
+# sub_annual  — подписка на год (до 5 профилей)
 CODE_TO_LLM_TIER: dict[str, LlmTier] = {
     "free": LlmTier.FREE,
     "report": LlmTier.NATAL_FULL,
@@ -20,6 +25,12 @@ CODE_TO_LLM_TIER: dict[str, LlmTier] = {
     "sub_annual": LlmTier.PRO,
     "pro": LlmTier.PRO,  # backward-compat alias
 }
+
+# Коды подписочных тарифов (billing_type = subscription)
+SUBSCRIPTION_CODES = frozenset({"sub_monthly", "sub_annual", "pro"})
+
+# Максимум натальных профилей по умолчанию (если features.max_natal_profiles не задан)
+DEFAULT_MAX_NATAL_PROFILES = 1
 
 
 def resolve_llm_tier(code: str, stored_tier: str | None) -> LlmTier:

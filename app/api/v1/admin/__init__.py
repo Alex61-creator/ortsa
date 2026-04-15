@@ -1,6 +1,8 @@
 from fastapi import APIRouter
 
+claude/busy-mahavira
 from . import dashboard, flags, funnel, health, logs, orders, payments, promos, reports, settings, support, tariffs, tasks, users
+
 
 router = APIRouter()
 router.include_router(dashboard.router, prefix="/dashboard")
@@ -16,4 +18,6 @@ router.include_router(flags.router, prefix="/flags")
 router.include_router(health.router, prefix="/health")
 router.include_router(logs.router, prefix="/logs")
 router.include_router(support.router, prefix="/support")
+claude/busy-mahavira
 router.include_router(settings.router, prefix="/settings")
+

@@ -4,13 +4,14 @@ from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 from decimal import Decimal
 from typing import Optional
-from uuid import uuid4
+from datetime import datetime
 
 from app.db.session import get_db
 from app.api.deps import get_current_active_user, get_current_admin_user
 from app.models.user import User
 from app.models.order import Order, OrderStatus
 from app.models.natal_data import NatalData
+from app.models.order_natal_item import OrderNatalItem
 from app.models.report import ReportStatus
 from app.services.payment import YookassaPaymentService
 from app.services.refund import RefundService
@@ -128,14 +129,34 @@ async def create_order(
     if not tariff:
         raise HTTPException(status_code=404, detail="Tariff not found")
 
+    # Для bundle: primary = first из natal_data_ids (если передан), иначе natal_data_id
+    is_bundle = tariff.code == "bundle"
+    if is_bundle and order_in.natal_data_ids:
+        raw_ids = order_in.natal_data_ids[:3]  # не более 3
+        primary_id = raw_ids[0]
+    else:
+        primary_id = order_in.natal_data_id
+        raw_ids = [primary_id]
+
     natal_stmt = select(NatalData).where(
-        NatalData.id == order_in.natal_data_id,
+        NatalData.id == primary_id,
         NatalData.user_id == current_user.id,
     )
     natal_result = await db.execute(natal_stmt)
     natal_data = natal_result.scalar_one_or_none()
     if not natal_data:
         raise HTTPException(status_code=404, detail="Natal data not found")
+
+    # Валидация дополнительных профилей для bundle
+    extra_ids = raw_ids[1:] if is_bundle else []
+    extra_natal_data: list[NatalData] = []
+    for eid in extra_ids:
+        stmt_e = select(NatalData).where(NatalData.id == eid, NatalData.user_id == current_user.id)
+        res_e = await db.execute(stmt_e)
+        nd = res_e.scalar_one_or_none()
+        if not nd:
+            raise HTTPException(status_code=404, detail=f"Natal data {eid} not found")
+        extra_natal_data.append(nd)
 
     price = tariff.price if isinstance(tariff.price, Decimal) else Decimal(str(tariff.price))
     delivery_email = (
@@ -168,6 +189,9 @@ async def create_order(
             report_delivery_email=delivery_email,
         )
         db.add(order)
+        await db.flush()  # получаем order.id до commit
+        for idx, nd in enumerate(extra_natal_data, start=2):
+            db.add(OrderNatalItem(order_id=order.id, natal_data_id=nd.id, slot_index=idx))
         await db.commit()
         await db.refresh(order)
         _queue_free_report(order.id)
@@ -197,6 +221,9 @@ async def create_order(
         report_delivery_email=delivery_email,
     )
     db.add(order)
+    await db.flush()
+    for idx, nd in enumerate(extra_natal_data, start=2):
+        db.add(OrderNatalItem(order_id=order.id, natal_data_id=nd.id, slot_index=idx))
     await db.commit()
     await db.refresh(order)
 
@@ -317,7 +344,9 @@ async def retry_order_payment(
             user_email=receipt_email,
             metadata={"order_id": order.id, "tariff": order.tariff.code},
             save_payment_method=save_pm,
-            idempotency_key=f"{order.id}-retry-{uuid4()}",
+            # Детерминированный ключ: меняется раз в час → идемпотентен при двойном клике,
+            # но позволяет создать новый платёж если предыдущий истёк.
+            idempotency_key=f"retry-{order.id}-{datetime.utcnow().strftime('%Y%m%d%H')}",
         )
     except Exception as exc:
         logger.exception(

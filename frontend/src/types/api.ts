@@ -28,6 +28,8 @@ export interface TariffPublic {
   features: Record<string, unknown>
   retention_days: number
   priority: number
+  billing_type?: string
+  subscription_interval?: string | null
 }
 
 export interface NatalDataOut {
@@ -88,6 +90,9 @@ export interface OrderListItem {
 export interface OrderCreatePayload {
   tariff_code: string
   natal_data_id: number
+  /** Для тарифа bundle: список всех выбранных natal_data_id (1–3 штуки). */
+  natal_data_ids?: number[] | null
+  report_delivery_email?: string | null
 }
 
 export interface OrderOut {

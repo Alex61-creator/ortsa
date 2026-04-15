@@ -13,6 +13,8 @@ import {
   List,
   Steps,
   App,
+  Card,
+  Radio,
 } from 'antd'
 import dayjs, { type Dayjs } from 'dayjs'
 import { useNavigate } from 'react-router-dom'
@@ -21,15 +23,19 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm } from 'react-hook-form'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createNatalData } from '@/api/natal'
+import { createNatalData, listNatalData } from '@/api/natal'
 import { fetchMe } from '@/api/users'
 import { nominatimSearch, type GeocodeHit } from '@/lib/geocoder'
 import { getSelectableTimezones } from '@/lib/timezones'
 import { HOUSE_SYSTEMS, canChooseHouseSystem } from '@/lib/tariff'
 import { useOrderWizardStore } from '@/stores/orderWizardStore'
+import type { NatalDataOut } from '@/types/api'
 import { useEffect, useState } from 'react'
 
 const { Title } = Typography
+
+const IS_BUNDLE = (code: string | null) => code === 'bundle'
+const BUNDLE_MAX = 3
 
 const schema = z.object({
   full_name: z.string().min(1).max(80),
@@ -52,10 +58,29 @@ export function OrderDataPage() {
   const qc = useQueryClient()
   const tariffCode = useOrderWizardStore((s) => s.tariffCode)
   const setNatalId = useOrderWizardStore((s) => s.setNatalDataId)
+  const setNatalIds = useOrderWizardStore((s) => s.setNatalDataIds)
+  const isBundle = IS_BUNDLE(tariffCode)
+
   const [geoHits, setGeoHits] = useState<GeocodeHit[]>([])
   const [geoOpen, setGeoOpen] = useState(false)
+  const [showNewForm, setShowNewForm] = useState(false)
+
+  // For bundle: checked IDs; for single: selected single ID
+  const [checkedIds, setCheckedIds] = useState<number[]>([])
+  const [selectedId, setSelectedId] = useState<number | null>(null)
 
   const { data: me } = useQuery({ queryKey: ['me'], queryFn: fetchMe })
+  const { data: existingProfiles = [] } = useQuery({
+    queryKey: ['natal-data'],
+    queryFn: listNatalData,
+  })
+
+  // Auto-select single profile if only one exists and not bundle
+  useEffect(() => {
+    if (!isBundle && existingProfiles.length === 1 && selectedId === null) {
+      setSelectedId(existingProfiles[0].id)
+    }
+  }, [existingProfiles, isBundle, selectedId])
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -104,16 +129,35 @@ export function OrderDataPage() {
     onSuccess: (natal) => {
       void qc.invalidateQueries({ queryKey: ['natal-data'] })
       void qc.invalidateQueries({ queryKey: ['me'] })
-      setNatalId(natal.id)
-      navigate('/order/confirm')
+      if (isBundle) {
+        // Добавляем новый профиль к выбранным для bundle
+        const next = [...checkedIds, natal.id].slice(0, BUNDLE_MAX)
+        setCheckedIds(next)
+        setShowNewForm(false)
+        if (next.length >= 1) {
+          setNatalIds(next)
+          navigate('/order/confirm')
+        }
+      } else {
+        setNatalId(natal.id)
+        navigate('/order/confirm')
+      }
     },
   })
 
   const searchGeo = async () => {
     const q = form.getValues('birth_place')
-    const hits = await nominatimSearch(q)
-    setGeoHits(hits)
-    setGeoOpen(true)
+    if (!q.trim()) {
+      message.warning('Введите название места рождения')
+      return
+    }
+    try {
+      const hits = await nominatimSearch(q)
+      setGeoHits(hits)
+      setGeoOpen(true)
+    } catch {
+      message.error('Не удалось найти место. Введите координаты вручную.')
+    }
   }
 
   const pickHit = (h: GeocodeHit) => {
@@ -121,6 +165,40 @@ export function OrderDataPage() {
     form.setValue('lat', parseFloat(h.lat))
     form.setValue('lon', parseFloat(h.lon))
     setGeoOpen(false)
+  }
+
+  const handleContinueWithExisting = () => {
+    if (isBundle) {
+      if (checkedIds.length === 0) {
+        message.warning('Выберите хотя бы один профиль')
+        return
+      }
+      setNatalIds(checkedIds)
+    } else {
+      if (!selectedId) {
+        message.warning('Выберите профиль')
+        return
+      }
+      setNatalId(selectedId)
+    }
+    navigate('/order/confirm')
+  }
+
+  const toggleBundle = (id: number) => {
+    setCheckedIds((prev) =>
+      prev.includes(id)
+        ? prev.filter((x) => x !== id)
+        : prev.length < BUNDLE_MAX
+          ? [...prev, id]
+          : prev
+    )
+  }
+
+  const formatDate = (nd: NatalDataOut) => {
+    try {
+      const d = new Date(nd.birth_date)
+      return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    } catch { return nd.birth_date }
   }
 
   if (!tariffCode) {
@@ -134,6 +212,13 @@ export function OrderDataPage() {
     )
   }
 
+  const hasProfiles = existingProfiles.length > 0
+  const showNewFormToggle = !showNewForm && (
+    !hasProfiles ||
+    (isBundle && checkedIds.length < BUNDLE_MAX) ||
+    (!isBundle && !selectedId)
+  )
+
   return (
     <div className="order-step-shell">
       <Steps
@@ -145,104 +230,198 @@ export function OrderDataPage() {
         ]}
         style={{ marginBottom: 24 }}
       />
+
       <div className="order-data-grid">
         <div className="order-data-intro">
           <div className="order-intro-step">Шаг 2 из 3</div>
           <h3>{t('order.dataTitle')}</h3>
-          <p>Точные дата, время и место рождения - основа расчета. Данные хранятся в защищенном виде.</p>
+          {isBundle ? (
+            <p>
+              Тариф «Набор 3» — выберите до {BUNDLE_MAX} натальных профилей.
+              Для каждого будет сгенерирован отдельный PDF-отчёт.
+            </p>
+          ) : (
+            <p>Точные дата, время и место рождения — основа расчёта. Данные хранятся в защищённом виде.</p>
+          )}
           <div className="order-intro-list">
-            <div>1. Заполните форму</div>
+            <div>1. Выберите или создайте профиль</div>
             <div>2. Проверьте заказ</div>
             <div>3. Оплатите через ЮKassa</div>
           </div>
         </div>
 
         <div className="order-data-form">
-          <Form layout="vertical">
-            <Form.Item label={t('natal.labelFullName')} required>
-              <Controller name="full_name" control={form.control} render={({ field }) => <Input {...field} />} />
-            </Form.Item>
-            <Form.Item label={t('natal.labelBirthDate')} required>
-              <Controller name="birth_date" control={form.control} render={({ field }) => <DatePicker style={{ width: '100%' }} {...field} />} />
-            </Form.Item>
-            <Form.Item label={t('natal.labelBirthTime')} required>
-              <Controller
-                name="birth_time"
-                control={form.control}
-                render={({ field }) => <TimePicker style={{ width: '100%' }} format="HH:mm" {...field} />}
-              />
-            </Form.Item>
-            <Form.Item label={t('natal.labelPlace')} required>
-              <Space.Compact style={{ width: '100%' }}>
-                <Controller name="birth_place" control={form.control} render={({ field }) => <Input {...field} />} />
-                <Button type="default" onClick={() => void searchGeo()}>
-                  {t('natal.searchPlace')}
-                </Button>
-              </Space.Compact>
-            </Form.Item>
-            <Space wrap>
-              <Form.Item label={t('natal.labelLat')}>
-                <Controller
-                  name="lat"
-                  control={form.control}
-                  render={({ field }) => <InputNumber step={0.0001} style={{ width: 160 }} {...field} />}
-                />
-              </Form.Item>
-              <Form.Item label={t('natal.labelLon')}>
-                <Controller
-                  name="lon"
-                  control={form.control}
-                  render={({ field }) => <InputNumber step={0.0001} style={{ width: 160 }} {...field} />}
-                />
-              </Form.Item>
-            </Space>
-            <Form.Item label={t('natal.labelTz')}>
-              <Controller
-                name="timezone"
-                control={form.control}
-                render={({ field }) => (
-                  <Select
-                    showSearch
-                    optionFilterProp="label"
-                    style={{ width: '100%' }}
-                    options={getSelectableTimezones().map((z) => ({ label: z, value: z }))}
-                    {...field}
-                  />
-                )}
-              />
-            </Form.Item>
-            {canChooseHouseSystem(tariffCode) && (
-              <Form.Item label={t('natal.labelHouse')}>
-                <Controller
-                  name="house_system"
-                  control={form.control}
-                  render={({ field }) => (
-                    <Select
-                      style={{ width: '100%' }}
-                      options={HOUSE_SYSTEMS.map((h) => ({ label: h.label, value: h.value }))}
-                      {...field}
+          {/* ── Existing profiles ── */}
+          {hasProfiles && (
+            <Card
+              size="small"
+              title={isBundle ? `Выберите профили (${checkedIds.length}/${BUNDLE_MAX})` : 'Сохранённые профили'}
+              style={{ marginBottom: 16 }}
+            >
+              {existingProfiles.map((nd) => (
+                <div
+                  key={nd.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '8px 0',
+                    borderBottom: '1px solid var(--ag-border)',
+                  }}
+                >
+                  {isBundle ? (
+                    <Checkbox
+                      checked={checkedIds.includes(nd.id)}
+                      disabled={!checkedIds.includes(nd.id) && checkedIds.length >= BUNDLE_MAX}
+                      onChange={() => toggleBundle(nd.id)}
+                    />
+                  ) : (
+                    <Radio
+                      checked={selectedId === nd.id}
+                      onChange={() => setSelectedId(nd.id)}
                     />
                   )}
-                />
-              </Form.Item>
-            )}
-            {!me?.consent_given_at && (
-              <Form.Item>
-                <Controller
-                  name="accept_privacy_policy"
-                  control={form.control}
-                  render={({ field }) => (
-                    <Checkbox checked={field.value} onChange={(e) => field.onChange(e.target.checked)}>
-                      {t('natal.privacyConsent')}
-                    </Checkbox>
-                  )}
-                />
-              </Form.Item>
-            )}
-            <Button type="primary" loading={save.isPending} onClick={() => void form.handleSubmit((v) => save.mutate(v))()}>
-              Далее {'->'} Проверить заказ
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>{nd.full_name}</div>
+                    <div style={{ fontSize: 12, color: 'var(--ag-text-secondary)' }}>
+                      {formatDate(nd)} · {nd.birth_place}
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* Continue button if profile already selected */}
+              {((!isBundle && selectedId) || (isBundle && checkedIds.length > 0)) && !showNewForm && (
+                <Button
+                  type="primary"
+                  style={{ marginTop: 12 }}
+                  onClick={handleContinueWithExisting}
+                >
+                  {isBundle
+                    ? `Далее с ${checkedIds.length} профил${checkedIds.length === 1 ? 'ем' : 'ями'} →`
+                    : 'Далее → Проверить заказ'}
+                </Button>
+              )}
+            </Card>
+          )}
+
+          {/* ── Toggle new form ── */}
+          {showNewFormToggle && (
+            <Button
+              type={hasProfiles ? 'default' : 'primary'}
+              style={{ marginBottom: 16 }}
+              onClick={() => setShowNewForm(true)}
+            >
+              + Добавить новый профиль
             </Button>
-          </Form>
+          )}
+
+          {/* ── New profile form ── */}
+          {(showNewForm || !hasProfiles) && (
+            <>
+              {hasProfiles && (
+                <div style={{ marginBottom: 12, fontWeight: 600, fontSize: 14 }}>
+                  Новый профиль{isBundle ? ` (слот ${checkedIds.length + 1})` : ''}
+                </div>
+              )}
+              <Form layout="vertical">
+                <Form.Item label={t('natal.labelFullName')} required>
+                  <Controller name="full_name" control={form.control} render={({ field }) => <Input {...field} />} />
+                </Form.Item>
+                <Form.Item label={t('natal.labelBirthDate')} required>
+                  <Controller name="birth_date" control={form.control} render={({ field }) => <DatePicker style={{ width: '100%' }} {...field} />} />
+                </Form.Item>
+                <Form.Item label={t('natal.labelBirthTime')} required>
+                  <Controller
+                    name="birth_time"
+                    control={form.control}
+                    render={({ field }) => <TimePicker style={{ width: '100%' }} format="HH:mm" {...field} />}
+                  />
+                </Form.Item>
+                <Form.Item label={t('natal.labelPlace')} required>
+                  <Space.Compact style={{ width: '100%' }}>
+                    <Controller name="birth_place" control={form.control} render={({ field }) => <Input {...field} />} />
+                    <Button type="default" onClick={() => void searchGeo()}>
+                      {t('natal.searchPlace')}
+                    </Button>
+                  </Space.Compact>
+                </Form.Item>
+                <Space wrap>
+                  <Form.Item label={t('natal.labelLat')}>
+                    <Controller
+                      name="lat"
+                      control={form.control}
+                      render={({ field }) => <InputNumber step={0.0001} style={{ width: 160 }} {...field} />}
+                    />
+                  </Form.Item>
+                  <Form.Item label={t('natal.labelLon')}>
+                    <Controller
+                      name="lon"
+                      control={form.control}
+                      render={({ field }) => <InputNumber step={0.0001} style={{ width: 160 }} {...field} />}
+                    />
+                  </Form.Item>
+                </Space>
+                <Form.Item label={t('natal.labelTz')}>
+                  <Controller
+                    name="timezone"
+                    control={form.control}
+                    render={({ field }) => (
+                      <Select
+                        showSearch
+                        optionFilterProp="label"
+                        style={{ width: '100%' }}
+                        options={getSelectableTimezones().map((z) => ({ label: z, value: z }))}
+                        {...field}
+                      />
+                    )}
+                  />
+                </Form.Item>
+                {canChooseHouseSystem(tariffCode) && (
+                  <Form.Item label={t('natal.labelHouse')}>
+                    <Controller
+                      name="house_system"
+                      control={form.control}
+                      render={({ field }) => (
+                        <Select
+                          style={{ width: '100%' }}
+                          options={HOUSE_SYSTEMS.map((h) => ({ label: h.label, value: h.value }))}
+                          {...field}
+                        />
+                      )}
+                    />
+                  </Form.Item>
+                )}
+                {!me?.consent_given_at && (
+                  <Form.Item>
+                    <Controller
+                      name="accept_privacy_policy"
+                      control={form.control}
+                      render={({ field }) => (
+                        <Checkbox checked={field.value} onChange={(e) => field.onChange(e.target.checked)}>
+                          {t('natal.privacyConsent')}
+                        </Checkbox>
+                      )}
+                    />
+                  </Form.Item>
+                )}
+                <Space>
+                  <Button
+                    type="primary"
+                    loading={save.isPending}
+                    onClick={() => void form.handleSubmit((v) => save.mutate(v))()}
+                  >
+                    {isBundle && checkedIds.length < BUNDLE_MAX - 1
+                      ? `Сохранить и добавить ещё`
+                      : 'Далее → Проверить заказ'}
+                  </Button>
+                  {hasProfiles && (
+                    <Button onClick={() => setShowNewForm(false)}>Отмена</Button>
+                  )}
+                </Space>
+              </Form>
+            </>
+          )}
         </div>
       </div>
 

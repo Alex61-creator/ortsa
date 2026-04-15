@@ -22,3 +22,13 @@ export async function downloadOrderChart(orderId: number): Promise<void> {
   })
   triggerBlobDownload(data, `natal_chart_${orderId}.png`)
 }
+
+export async function postResendEmail(
+  orderId: number,
+  emailOverride?: string | null,
+): Promise<{ order_id: number; sent_to: string }> {
+  const { data } = await api.post(`/api/v1/admin/reports/orders/${orderId}/resend-email`, {
+    email_override: emailOverride ?? null,
+  })
+  return data
+}

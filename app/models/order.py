@@ -1,4 +1,4 @@
-from sqlalchemy import String, ForeignKey, DateTime, Numeric, Enum as SQLEnum
+from sqlalchemy import String, ForeignKey, DateTime, Numeric, Enum as SQLEnum, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 from decimal import Decimal
@@ -17,6 +17,12 @@ class OrderStatus(str, enum.Enum):
 
 class Order(Base):
     __tablename__ = "orders"
+    __table_args__ = (
+        Index("ix_orders_user_id", "user_id"),
+        Index("ix_orders_status", "status"),
+        Index("ix_orders_created_at", "created_at"),
+        Index("ix_orders_user_status", "user_id", "status"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
@@ -39,3 +45,4 @@ class Order(Base):
     natal_data = relationship("NatalData", backref="orders")
     tariff = relationship("Tariff", backref="orders")
     report = relationship("Report", back_populates="order", uselist=False)
+    natal_items = relationship("OrderNatalItem", cascade="all, delete-orphan", order_by="OrderNatalItem.slot_index")
