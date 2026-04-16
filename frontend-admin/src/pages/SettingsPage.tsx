@@ -102,15 +102,16 @@ export function SettingsPage() {
               <th style={{ padding: '6px 12px', borderBottom: '1px solid var(--ag-border)' }}>Тариф</th>
               <th style={{ padding: '6px 12px', borderBottom: '1px solid var(--ag-border)' }}>Синастрия</th>
               <th style={{ padding: '6px 12px', borderBottom: '1px solid var(--ag-border)' }}>Лимит</th>
+              <th style={{ padding: '6px 12px', borderBottom: '1px solid var(--ag-border)' }}>Хранение отчётов</th>
             </tr>
           </thead>
           <tbody>
             {[
-              { code: 'free', name: 'Бесплатный', access: false, limit: '—' },
-              { code: 'report', name: 'Отчёт', access: false, limit: '—' },
-              { code: 'bundle', name: 'Набор 3', access: true, limit: '1 включена, далее платно' },
-              { code: 'sub_monthly', name: 'Astro Pro (месяц)', access: true, limit: 'Безлимитно' },
-              { code: 'sub_annual', name: 'Astro Pro (год)', access: true, limit: 'Безлимитно' },
+              { code: 'free', name: 'Бесплатный', access: false, limit: '—', retention: '3 дня' },
+              { code: 'report', name: 'Разовый полный отчёт', access: false, limit: '—', retention: '30 дней' },
+              { code: 'bundle', name: 'Bundle: 3 отчёта', access: true, limit: '1 включена, далее платно', retention: '30 дней' },
+              { code: 'sub_monthly', name: 'Astro Pro (месяц)', access: true, limit: 'Безлимитно', retention: '180 дней' },
+              { code: 'sub_annual', name: 'Astro Pro (год)', access: true, limit: 'Безлимитно', retention: '180 дней' },
             ].map((row) => (
               <tr key={row.code}>
                 <td style={{ padding: '6px 12px', borderBottom: '1px solid var(--ag-border)' }}>
@@ -121,6 +122,9 @@ export function SettingsPage() {
                 </td>
                 <td style={{ padding: '6px 12px', borderBottom: '1px solid var(--ag-border)', color: '#8c8c8c' }}>
                   {row.limit}
+                </td>
+                <td style={{ padding: '6px 12px', borderBottom: '1px solid var(--ag-border)', color: '#8c8c8c' }}>
+                  {row.retention}
                 </td>
               </tr>
             ))}

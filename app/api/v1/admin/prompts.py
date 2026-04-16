@@ -15,6 +15,7 @@ from app.models.prompt_template import LlmPromptTemplate
 from app.models.user import User
 from app.services.llm import LLMService
 from app.services.admin_logs import append_admin_log
+from app.services.prompt_templates import PromptTemplateService
 
 router = APIRouter()
 
@@ -170,6 +171,7 @@ async def upsert_prompt(
 
     await db.commit()
     await db.refresh(rec)
+    await PromptTemplateService.invalidate(tariff_code, locale)
 
     await append_admin_log(
         db,
@@ -213,6 +215,7 @@ async def reset_prompt(
     if rec:
         await db.delete(rec)
         await db.commit()
+        await PromptTemplateService.invalidate(tariff_code, locale)
         await append_admin_log(
             db,
             actor.email or f"user:{actor.id}",

@@ -92,7 +92,7 @@ export function ReportsPage() {
                   </>
                 ) : (
                   <>
-                    <span>Хранится: бессрочно</span>
+                    <span>Хранится: по сроку тарифа</span>
                     <span>·</span>
                     <Link to={`/dashboard/orders`} style={{ color: 'var(--primary)', textDecoration: 'none' }}>
                       #ORD-{dayjs(o.created_at).format('YYYY')}-{String(o.id).padStart(4, '0')}

@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from sqlalchemy import select
@@ -11,7 +9,7 @@ from app.api.deps import get_current_active_user
 from app.models.user import User
 from app.models.report import Report, ReportStatus
 from app.models.order import Order, OrderStatus
-from app.core.config import settings
+from app.services.storage import StorageService
 
 router = APIRouter()
 
@@ -54,8 +52,13 @@ async def download_report(
     if not order or not order.report:
         raise HTTPException(status_code=404, detail="Report not found or not ready")
 
-    pdf_path = Path(settings.STORAGE_DIR) / order.report.pdf_path
+    storage = StorageService()
+    pdf_path = storage.resolve_path(order.report.pdf_path)
+    if not pdf_path:
+        raise HTTPException(status_code=404, detail="Report file path is empty")
     if not pdf_path.exists():
+        if order.report.status == ReportStatus.ARCHIVED:
+            raise HTTPException(status_code=404, detail="Report expired and archived")
         raise HTTPException(status_code=404, detail="File not found on server")
 
     return FileResponse(
@@ -84,8 +87,13 @@ async def download_chart(
     if not order or not order.report:
         raise HTTPException(status_code=404, detail="Chart not found")
 
-    chart_path = Path(settings.STORAGE_DIR) / order.report.chart_path
+    storage = StorageService()
+    chart_path = storage.resolve_path(order.report.chart_path)
+    if not chart_path:
+        raise HTTPException(status_code=404, detail="Chart path is empty")
     if not chart_path.exists():
+        if order.report.status == ReportStatus.ARCHIVED:
+            raise HTTPException(status_code=404, detail="Report expired and archived")
         raise HTTPException(status_code=404, detail="File not found on server")
 
     return FileResponse(path=chart_path, media_type="image/png")

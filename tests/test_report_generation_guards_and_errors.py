@@ -80,11 +80,6 @@ async def test_report_generation_marks_failed_when_pdf_generation_returns_none(
         "generate",
         AsyncMock(return_value=None),
     )
-    monkeypatch.setattr(
-        report_generation_module.EmailService,
-        "send_email",
-        AsyncMock(),
-    )
 
     with pytest.raises(Exception):
         await report_generation_module._generate_report_async(order.id, task_id="test-task-1")
@@ -136,11 +131,6 @@ async def test_report_generation_marks_failed_on_chart_step_error(
         "generate_interpretation",
         AsyncMock(),
     )
-    monkeypatch.setattr(
-        report_generation_module.EmailService,
-        "send_email",
-        AsyncMock(),
-    )
 
     with pytest.raises(Exception):
         await report_generation_module._generate_report_async(order.id, task_id="test-task-1")
@@ -167,7 +157,7 @@ async def test_report_generation_bundle_canonical_paths(
         price=Decimal("200.00"),
         price_usd=Decimal("2.00"),
         features={"max_natal_profiles": 3},
-        retention_days=365,
+        retention_days=30,
         llm_tier="natal_full",
     )
     db_session.add(bundle_tariff)
@@ -232,8 +222,6 @@ async def test_report_generation_bundle_canonical_paths(
     async def _fake_save_file(_: bytes, relative_path: str) -> Path:
         return Path(settings.STORAGE_DIR) / relative_path
 
-    mock_send_email = AsyncMock()
-
     def _fake_pdf_generate(_template_name: str, _context: dict, pdf_filename: str) -> Path:
         return Path(settings.STORAGE_DIR) / pdf_filename
 
@@ -257,11 +245,17 @@ async def test_report_generation_bundle_canonical_paths(
         "generate",
         AsyncMock(side_effect=_fake_pdf_generate),
     )
-    monkeypatch.setattr(
-        report_generation_module.EmailService,
-        "send_email",
-        mock_send_email,
-    )
+    queued_notifications: list[int] = []
+
+    class _FakeNotifyTask:
+        @staticmethod
+        def delay(order_id: int):
+            queued_notifications.append(order_id)
+
+    import sys
+    fake_module = type(sys)("app.tasks.report_notifications")
+    fake_module.send_report_email_task = _FakeNotifyTask()
+    monkeypatch.setitem(sys.modules, "app.tasks.report_notifications", fake_module)
 
     await report_generation_module._generate_report_async(order.id, task_id="test-task-1")
 
@@ -272,11 +266,8 @@ async def test_report_generation_bundle_canonical_paths(
     assert order_db.status == OrderStatus.COMPLETED
     assert report_db.status == ReportStatus.ACTIVE
 
-    assert report_db.pdf_path == str(Path(settings.STORAGE_DIR) / f"reports/report_{order.id}.pdf")
-    assert f"/charts/{order.id}_slot0_" in report_db.chart_path
+    assert report_db.pdf_path.endswith(f"reports/report_{order.id}.pdf")
+    assert f"charts/{order.id}_slot0_" in report_db.chart_path
 
-    assert mock_send_email.call_count == 1
-    attachments = mock_send_email.call_args.kwargs.get("attachments") or []
-    assert len(attachments) == 2
-    assert str(attachments[0]).endswith(f"reports/report_{order.id}.pdf")
+    assert queued_notifications == [order.id]
 

@@ -12,6 +12,7 @@ class OrderNatalItem(Base):
     __tablename__ = "order_natal_items"
     __table_args__ = (
         Index("ix_order_natal_items_order_id", "order_id"),
+        Index("ix_order_natal_items_order_slot", "order_id", "slot_index"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)

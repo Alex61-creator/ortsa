@@ -26,6 +26,15 @@ CODE_TO_LLM_TIER: dict[str, LlmTier] = {
     "pro": LlmTier.PRO,  # backward-compat alias
 }
 
+REPORT_RETENTION_DAYS_BY_CODE: dict[str, int] = {
+    "free": 3,
+    "report": 30,
+    "bundle": 30,
+    "sub_monthly": 180,
+    "sub_annual": 180,
+    "pro": 180,
+}
+
 # Коды подписочных тарифов (billing_type = subscription)
 SUBSCRIPTION_CODES = frozenset({"sub_monthly", "sub_annual", "pro"})
 

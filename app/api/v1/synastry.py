@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import structlog
-from datetime import datetime
-from pathlib import Path
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -21,12 +20,14 @@ from app.models.synastry_report import SynastryReport, SynastryStatus
 from app.models.tariff import Tariff
 from app.models.user import User
 from app.services.payment import YookassaPaymentService
+from app.services.storage import StorageService
 from app.services.synastry_access import (
     check_generating_lock,
     compute_input_hash,
     get_synastry_quota_info,
     require_synastry_access,
 )
+from app.constants.tariffs import REPORT_RETENTION_DAYS_BY_CODE
 from app.tasks.synastry_generation import generate_synastry_task
 
 logger = structlog.get_logger(__name__)
@@ -294,6 +295,8 @@ async def create_synastry(
         status=SynastryStatus.PENDING,
         locale=locale,
         generation_count=0,
+        retention_days=REPORT_RETENTION_DAYS_BY_CODE.get(tariff_code, 30),
+        expires_at=datetime.now(timezone.utc) + timedelta(days=REPORT_RETENTION_DAYS_BY_CODE.get(tariff_code, 30)),
     )
     db.add(report)
     await db.commit()
@@ -401,7 +404,13 @@ async def download_synastry_pdf(
             detail="PDF ещё не готов или синастрия не найдена.",
         )
 
-    pdf_path = Path(report.pdf_path)
+    storage = StorageService()
+    pdf_path = storage.resolve_path(report.pdf_path)
+    if not pdf_path:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Файл PDF не найден на сервере.",
+        )
     if not pdf_path.exists():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

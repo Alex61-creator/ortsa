@@ -6,7 +6,7 @@ from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML, CSS
 import structlog
 
-from app.core.config import settings
+from app.services.storage import StorageService
 
 logger = structlog.get_logger(__name__)
 
@@ -128,15 +128,15 @@ class PDFGenerator:
         template = self.env.get_template(template_name)
         html_content = template.render(**context)
 
-        output_path = settings.STORAGE_DIR / output_filename
-        output_path.parent.mkdir(parents=True, exist_ok=True)
+        storage = StorageService()
 
-        def _render():
+        def _render() -> bytes:
             html = HTML(string=html_content)
             # Базовый CSS — минимум; вся стилизация внутри шаблона
             css = CSS(string="@page { size: A4; margin: 0; } * { box-sizing: border-box; }")
-            html.write_pdf(output_path, stylesheets=[css])
+            return html.write_pdf(stylesheets=[css])
 
-        await asyncio.to_thread(_render)
+        pdf_bytes = await asyncio.to_thread(_render)
+        output_path = await storage.save_file(pdf_bytes, output_filename)
         logger.info("PDF generated", path=str(output_path))
         return output_path

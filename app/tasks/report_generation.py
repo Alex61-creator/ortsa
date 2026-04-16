@@ -11,12 +11,11 @@ from app.models.order import Order, OrderStatus
 from app.models.report import Report, ReportStatus
 from app.models.natal_data import NatalData
 from app.models.tariff import Tariff
-from app.models.prompt_template import LlmPromptTemplate
 from app.services.astrology import AstrologyService
 from app.services.llm import LLMService
 from app.services.pdf import PDFGenerator
-from app.services.email import EmailService
 from app.services.storage import StorageService
+from app.services.prompt_templates import PromptTemplateService
 from app.core.cache import cache
 from app.constants.tariffs import LlmTier, resolve_llm_tier
 from app.schemas.astrology import ChartResultSchema
@@ -109,12 +108,16 @@ async def _generate_report_async(order_id: int, task_id: str):
                     .order_by(OrderNatalItem.slot_index)
                 )
                 extras_result = await db.execute(extras_stmt)
-                for item in extras_result.scalars().all():
-                    nd_stmt = select(NatalData).where(NatalData.id == item.natal_data_id)
+                extras = extras_result.scalars().all()
+                extra_ids = [item.natal_data_id for item in extras]
+                if extra_ids:
+                    nd_stmt = select(NatalData).where(NatalData.id.in_(extra_ids))
                     nd_res = await db.execute(nd_stmt)
-                    nd = nd_res.scalar_one_or_none()
-                    if nd and nd.id != primary_natal.id:
-                        natal_profiles.append(nd)
+                    nd_by_id = {nd.id: nd for nd in nd_res.scalars().all()}
+                    for item in extras:
+                        nd = nd_by_id.get(item.natal_data_id)
+                        if nd and nd.id != primary_natal.id:
+                            natal_profiles.append(nd)
 
             # Загружаем системный промпт из БД (если задан)
             report_locale = (
@@ -124,13 +127,9 @@ async def _generate_report_async(order_id: int, task_id: str):
             )
             if report_locale not in ("ru", "en"):
                 report_locale = "ru"
-            prompt_stmt = select(LlmPromptTemplate).where(
-                LlmPromptTemplate.tariff_code == tariff.code,
-                LlmPromptTemplate.locale == report_locale,
+            system_prompt_override = await PromptTemplateService.get_system_prompt(
+                db, tariff.code, report_locale
             )
-            prompt_result = await db.execute(prompt_stmt)
-            prompt_rec = prompt_result.scalar_one_or_none()
-            system_prompt_override = prompt_rec.system_prompt if prompt_rec else None
 
             astro_service = AstrologyService()
             llm_service = LLMService()
@@ -184,13 +183,9 @@ async def _generate_report_async(order_id: int, task_id: str):
                 # Для bundle: промпт может зависеть от локали каждого профиля
                 sp_override = system_prompt_override
                 if nd_locale != report_locale:
-                    p_stmt = select(LlmPromptTemplate).where(
-                        LlmPromptTemplate.tariff_code == tariff.code,
-                        LlmPromptTemplate.locale == nd_locale,
+                    sp_override = await PromptTemplateService.get_system_prompt(
+                        db, tariff.code, nd_locale
                     )
-                    p_res = await db.execute(p_stmt)
-                    p_rec = p_res.scalar_one_or_none()
-                    sp_override = p_rec.system_prompt if p_rec else None
 
                 interpretation = await llm_service.generate_interpretation(
                     chart_data=chart_data,
@@ -208,7 +203,7 @@ async def _generate_report_async(order_id: int, task_id: str):
                     "full_name": natal_data.full_name,
                     "birth_data": f"{natal_data.birth_date.strftime('%d.%m.%Y')} {natal_data.birth_time.strftime('%H:%M')}",
                     "birth_place": natal_data.birth_place,
-                    "chart_img_path": f"/app/storage/{chart_filename}",
+                    "chart_img_path": str(chart_path),
                     "interpretation": interpretation.raw_content,
                     "interpretation_sections": interpretation.sections,
                     "chart_data": chart_data,
@@ -263,8 +258,8 @@ async def _generate_report_async(order_id: int, task_id: str):
                 report = Report(order_id=order.id)
                 db.add(report)
 
-            report.pdf_path = str(generated_pdf_paths[0])
-            report.chart_path = str(chart_paths[0])  # canonical chart = slot 0
+            report.pdf_path = storage.to_storage_key(generated_pdf_paths[0])
+            report.chart_path = storage.to_storage_key(chart_paths[0])  # canonical chart = slot 0
             report.status = ReportStatus.ACTIVE
             report.generated_at = datetime.now(timezone.utc)
 
@@ -307,52 +302,9 @@ async def _generate_report_async(order_id: int, task_id: str):
                 dedupe_key=f"report_generation_completed:{order.id}",
             )
 
-            failed_step = "email send"
-            email_service = EmailService()
-            to_addr = (order.report_delivery_email or "").strip() or (
-                order.user.email if getattr(order, "user", None) else None
-            )
-            if not to_addr:
-                raise ValueError("No delivery email for report")
+            from app.tasks.report_notifications import send_report_email_task
 
-            primary_locale = (
-                primary_natal.report_locale
-                if getattr(primary_natal, "report_locale", None) in ("ru", "en")
-                else "ru"
-            )
-            if primary_locale == "en":
-                mail_subject = f"Your natal chart is ready — Order #{order.id}"
-                mail_template = "report_ready_en.html"
-            else:
-                mail_subject = f"Ваша натальная карта готова — Заказ #{order.id}"
-                mail_template = "report_ready.html"
-
-            await email_service.send_email(
-                recipients=[to_addr],
-                subject=mail_subject,
-                body="",
-                template_name=mail_template,
-                template_body={
-                    "user_name": primary_natal.full_name,
-                    "order_id": order.id,
-                    "download_link": f"{settings.public_app_base_url}/reports/{order.id}",
-                },
-                attachments=generated_pdf_paths,
-            )
-            await record_analytics_event(
-                db,
-                event_name="email_sent",
-                user_id=order.user_id,
-                order_id=order.id,
-                tariff_code=tariff.code,
-                source_channel=source_channel,
-                utm_source=utm_source,
-                utm_medium=utm_medium,
-                utm_campaign=utm_campaign,
-                platform=platform,
-                geo=geo,
-                dedupe_key=f"email_sent:{order.id}",
-            )
+            send_report_email_task.delay(order.id)
 
             logger.info(
                 "Report generation completed",

@@ -81,11 +81,17 @@ async def test_report_generation_writes_paid_to_completed_latency(
         "generate",
         AsyncMock(side_effect=lambda *_args, **_kwargs: Path(settings.STORAGE_DIR) / _args[2]),
     )
-    monkeypatch.setattr(
-        report_generation_module.EmailService,
-        "send_email",
-        AsyncMock(),
-    )
+    queued_notifications: list[int] = []
+
+    class _FakeNotifyTask:
+        @staticmethod
+        def delay(order_id: int):
+            queued_notifications.append(order_id)
+
+    import sys
+    fake_module = type(sys)("app.tasks.report_notifications")
+    fake_module.send_report_email_task = _FakeNotifyTask()
+    monkeypatch.setitem(sys.modules, "app.tasks.report_notifications", fake_module)
 
     # _generate_report_async uses AsyncSessionLocal directly (not FastAPI deps),
     # so for tests we must route it to the in-memory TestingSessionLocal.
@@ -107,4 +113,5 @@ async def test_report_generation_writes_paid_to_completed_latency(
     assert lat_vals_raw, "expected at least one latency sample"
     latency_seconds = float(lat_vals_raw[0])
     assert 8.0 <= latency_seconds <= 20.0
+    assert queued_notifications == [order.id]
 

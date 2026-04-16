@@ -245,13 +245,18 @@ async def create_order(
     # Валидация дополнительных профилей для bundle
     extra_ids = raw_ids[1:] if is_bundle else []
     extra_natal_data: list[NatalData] = []
-    for eid in extra_ids:
-        stmt_e = select(NatalData).where(NatalData.id == eid, NatalData.user_id == user_id)
+    if extra_ids:
+        stmt_e = select(NatalData).where(
+            NatalData.id.in_(extra_ids),
+            NatalData.user_id == user_id,
+        )
         res_e = await db.execute(stmt_e)
-        nd = res_e.scalar_one_or_none()
-        if not nd:
-            raise HTTPException(status_code=404, detail=f"Natal data {eid} not found")
-        extra_natal_data.append(nd)
+        by_id = {nd.id: nd for nd in res_e.scalars().all()}
+        for eid in extra_ids:
+            nd = by_id.get(eid)
+            if not nd:
+                raise HTTPException(status_code=404, detail=f"Natal data {eid} not found")
+            extra_natal_data.append(nd)
     extra_natal_data_ids = [nd.id for nd in extra_natal_data]
     natal_data_id = natal_data.id
     tariff_id = tariff.id

@@ -1,7 +1,7 @@
 """Celery-задача асинхронной генерации PDF-отчёта синастрии."""
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 import structlog
 from celery import shared_task
@@ -124,7 +124,7 @@ async def _generate_synastry_async(synastry_id: int, tariff_code: str, task_id: 
                 ),
                 "person1_birth_place": nd1.birth_place,
                 "person2_birth_place": nd2.birth_place,
-                "chart_img_path": f"/app/storage/{chart_filename}",
+                "chart_img_path": str(chart_path),
                 "chart_data": chart_result_valid.model_dump(mode="json"),
                 "interpretation": interpretation.raw_content,
                 "interpretation_sections": interpretation.sections,
@@ -134,12 +134,14 @@ async def _generate_synastry_async(synastry_id: int, tariff_code: str, task_id: 
             pdf_path = await pdf_generator.generate("synastry.html", context, pdf_filename)
 
             # ── Обновляем запись ──────────────────────────────────────────
-            report.pdf_path = str(pdf_path)
-            report.chart_path = str(chart_path)
+            report.pdf_path = storage.to_storage_key(pdf_path)
+            report.chart_path = storage.to_storage_key(chart_path)
             report.status = SynastryStatus.COMPLETED
             report.input_hash = current_hash
             report.generation_count = (report.generation_count or 0) + 1
             report.last_generated_at = datetime.now(timezone.utc)
+            if report.retention_days and not report.expires_at:
+                report.expires_at = datetime.now(timezone.utc) + timedelta(days=report.retention_days)
             await db.commit()
 
             logger.info(

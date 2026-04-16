@@ -26,7 +26,7 @@ async def user_with_tariff(db_session: AsyncSession):
         price=Decimal("490.00"),
         price_usd=Decimal("5.00"),
         features={"max_natal_profiles": 5},
-        retention_days=365,
+        retention_days=180,
         billing_type="subscription",
         subscription_interval="month",
         llm_tier="pro",
