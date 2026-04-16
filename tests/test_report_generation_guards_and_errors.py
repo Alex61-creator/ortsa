@@ -46,8 +46,11 @@ async def test_report_generation_marks_failed_when_pdf_generation_returns_none(
     await cache.set(paid_at_key, datetime.now(timezone.utc).timestamp() - 10.0, ttl=7 * 24 * 3600)
 
     fake_chart_result = {
+        "report": {},
+        "svg": "<svg></svg>",
         "instance": {"planets": [], "houses": [], "angles": []},
         "png": b"png-bytes",
+        "llm_context": "<chart_analysis></chart_analysis>",
     }
     fake_interpretation = LLMResponseSchema(
         raw_content="**Test**",
@@ -215,8 +218,11 @@ async def test_report_generation_bundle_canonical_paths(
     await cache.set(paid_at_key, datetime.now(timezone.utc).timestamp() - 10.0, ttl=7 * 24 * 3600)
 
     fake_chart_result = {
+        "report": {},
+        "svg": "<svg></svg>",
         "instance": {"planets": [], "houses": [], "angles": []},
         "png": b"png-bytes",
+        "llm_context": "<chart_analysis></chart_analysis>",
     }
     fake_interpretation = LLMResponseSchema(
         raw_content="**Test**",

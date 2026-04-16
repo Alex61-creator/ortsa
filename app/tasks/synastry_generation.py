@@ -17,6 +17,7 @@ from app.services.storage import StorageService
 from app.services.synastry_access import compute_input_hash
 from app.services.synastry_llm import SynastryLLMService
 from app.core.config import settings
+from app.schemas.astrology import SynastryResultSchema
 
 logger = structlog.get_logger(__name__)
 
@@ -81,8 +82,9 @@ async def _generate_synastry_async(synastry_id: int, tariff_code: str, task_id: 
                     "house_system": nd2.house_system,
                 },
             )
+            chart_result_valid = SynastryResultSchema.model_validate(chart_result)
 
-            png_data = chart_result["png"]
+            png_data = chart_result_valid.png
 
             # ── Сохранение PNG колеса ─────────────────────────────────────
             storage = StorageService()
@@ -91,9 +93,9 @@ async def _generate_synastry_async(synastry_id: int, tariff_code: str, task_id: 
 
             # ── LLM интерпретация ─────────────────────────────────────────
             llm_data = {
-                "subject1": chart_result["subject1"],
-                "subject2": chart_result["subject2"],
-                "aspects": chart_result["aspects"],
+                "subject1": chart_result_valid.subject1.model_dump(mode="json"),
+                "subject2": chart_result_valid.subject2.model_dump(mode="json"),
+                "aspects": chart_result_valid.aspects,
             }
             llm_service = SynastryLLMService()
             interpretation = await llm_service.generate_synastry_interpretation(
@@ -101,6 +103,9 @@ async def _generate_synastry_async(synastry_id: int, tariff_code: str, task_id: 
                 person2_name=nd2.full_name,
                 chart_data=llm_data,
                 locale=locale,
+                chart_context=(
+                    chart_result_valid.llm_context if settings.LLM_USE_KERYKEION_CONTEXT else None
+                ),
             )
 
             # ── Генерация PDF ─────────────────────────────────────────────
@@ -120,7 +125,7 @@ async def _generate_synastry_async(synastry_id: int, tariff_code: str, task_id: 
                 "person1_birth_place": nd1.birth_place,
                 "person2_birth_place": nd2.birth_place,
                 "chart_img_path": f"/app/storage/{chart_filename}",
-                "chart_data": chart_result,
+                "chart_data": chart_result_valid.model_dump(mode="json"),
                 "interpretation": interpretation.raw_content,
                 "interpretation_sections": interpretation.sections,
                 "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),

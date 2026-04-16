@@ -142,7 +142,25 @@ class LLMService:
         base += "\n## [УГЛУБЛЁННЫЙ АНАЛИЗ]\n## [ОРБИСЫ И СИСТЕМЫ ДОМОВ]"
         return base
 
-    def build_user_prompt(self, chart_data: dict, include_transits: bool = False, locale: str = "ru") -> str:
+    def build_user_prompt(
+        self,
+        chart_data: dict,
+        include_transits: bool = False,
+        locale: str = "ru",
+        chart_context: str | None = None,
+    ) -> str:
+        if chart_context:
+            if locale == "en":
+                prompt = f"Kerykeion structured context (XML):\n{chart_context}"
+                if include_transits:
+                    prompt += "\n\nInclude current transits at the time of report generation."
+                prompt += "\n\nWrite the entire interpretation in clear, fluent English."
+                return prompt
+            prompt = f"Структурированный контекст Kerykeion (XML):\n{chart_context}"
+            if include_transits:
+                prompt += "\n\nТекущие транзиты на момент составления отчёта: необходимо учесть."
+            return prompt
+
         if locale == "en":
             prompt = "Natal chart data:\n" + json.dumps(chart_data, indent=2, ensure_ascii=False)
             if include_transits:
@@ -157,7 +175,7 @@ class LLMService:
     def make_cache_key(self, chart_data: dict, tier: LlmTier, locale: str = "ru") -> str:
         data = {"chart": chart_data, "llm_tier": tier.value, "locale": locale}
         raw = json.dumps(data, sort_keys=True)
-        return f"{LLM_CACHE_PREFIX}:{hashlib.md5(raw.encode()).hexdigest()}"
+        return f"{LLM_CACHE_PREFIX}:{hashlib.sha256(raw.encode()).hexdigest()}"
 
     @retry(
         stop=stop_after_attempt(3),
@@ -171,6 +189,7 @@ class LLMService:
         tariff: Tariff,
         locale: str = "ru",
         system_prompt_override: str | None = None,
+        chart_context: str | None = None,
     ) -> LLMResponseSchema:
         """Генерирует интерпретацию натальной карты.
 
@@ -192,7 +211,12 @@ class LLMService:
 
         system_prompt = system_prompt_override or self.build_system_prompt(tier, locale)
         include_transits = tier == LlmTier.PRO
-        user_prompt = self.build_user_prompt(chart_data, include_transits, locale)
+        user_prompt = self.build_user_prompt(
+            chart_data,
+            include_transits,
+            locale,
+            chart_context=chart_context,
+        )
         max_tokens = self._max_tokens_for_tier(tier)
 
         response = await self.client.chat.completions.create(

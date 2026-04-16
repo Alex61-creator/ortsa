@@ -5,9 +5,7 @@ from datetime import datetime
 from typing import Any, Dict
 
 import structlog
-from kerykeion import AstrologicalSubject, Report, SynastryAspects
-from kerykeion.charts.kerykeion_chart_svg import KerykeionChartSVG
-from kerykeion.utilities import get_available_astrological_points_list, get_houses_list
+from kerykeion import AspectsFactory, AstrologicalSubjectFactory, ChartDataFactory, ChartDrawer, to_context
 from zoneinfo import ZoneInfo
 
 logger = structlog.get_logger(__name__)
@@ -19,6 +17,26 @@ def _point_to_dict(point: Any) -> dict:
     if isinstance(point, dict):
         return point
     return {"repr": str(point)}
+
+
+def _extract_subject_instance(subject: Any) -> dict[str, list[dict[str, Any]]]:
+    payload = subject.model_dump(mode="json") if hasattr(subject, "model_dump") else {}
+
+    planet_keys = (
+        "sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn",
+        "uranus", "neptune", "pluto", "mean_north_lunar_node", "true_north_lunar_node",
+        "mean_south_lunar_node", "true_south_lunar_node", "chiron", "mean_lilith", "true_lilith",
+    )
+    house_keys = (
+        "first_house", "second_house", "third_house", "fourth_house", "fifth_house", "sixth_house",
+        "seventh_house", "eighth_house", "ninth_house", "tenth_house", "eleventh_house", "twelfth_house",
+    )
+    angle_keys = ("ascendant", "descendant", "medium_coeli", "imum_coeli")
+
+    planets = [_point_to_dict(payload[k]) for k in planet_keys if k in payload]
+    houses = [_point_to_dict(payload[k]) for k in house_keys if k in payload]
+    angles = [_point_to_dict(payload[k]) for k in angle_keys if k in payload]
+    return {"planets": planets, "houses": houses, "angles": angles}
 
 
 class AstrologyService:
@@ -42,8 +60,8 @@ class AstrologyService:
             tzinfo=ZoneInfo(tz_str),
         )
 
-        def _build_subject() -> AstrologicalSubject:
-            return AstrologicalSubject(
+        def _build_subject() -> Any:
+            return AstrologicalSubjectFactory.from_birth_data(
                 name=name,
                 year=dt.year,
                 month=dt.month,
@@ -55,36 +73,28 @@ class AstrologyService:
                 lng=lon,
                 lat=lat,
                 tz_str=tz_str,
-                zodiac_type="Tropic",
+                zodiac_type="Tropical",
                 houses_system_identifier=house_system,
                 online=False,
             )
 
         subject = await asyncio.to_thread(_build_subject)
-        report = Report(subject)
-        report_data = await asyncio.to_thread(report.get_full_report)
-
-        chart = KerykeionChartSVG(subject, chart_type="Natal")
-        svg_content = await asyncio.to_thread(chart.makeTemplate)
+        chart_data = await asyncio.to_thread(ChartDataFactory.create_natal_chart_data, subject)
+        svg_content = await asyncio.to_thread(
+            lambda: ChartDrawer(chart_data, chart_language="RU").generate_svg_string()
+        )
 
         import cairosvg
 
         png_data = await asyncio.to_thread(cairosvg.svg2png, bytestring=svg_content.encode())
-
-        planets = get_available_astrological_points_list(subject)
-        houses = get_houses_list(subject)
-        angle_attrs = ("asc", "dsc", "mc", "ic")
-        angles = [_point_to_dict(getattr(subject, a)) for a in angle_attrs if hasattr(subject, a)]
+        report_data = chart_data.model_dump(mode="json")
 
         return {
             "report": report_data,
             "svg": svg_content,
             "png": png_data,
-            "instance": {
-                "planets": [_point_to_dict(p) for p in planets],
-                "houses": [_point_to_dict(h) for h in houses],
-                "angles": angles,
-            },
+            "instance": _extract_subject_instance(subject),
+            "llm_context": to_context(chart_data),
         }
 
     async def calculate_synastry(
@@ -104,7 +114,7 @@ class AstrologyService:
             png — PNG двойного колеса (bytes)
         """
 
-        def _build(p: dict) -> AstrologicalSubject:
+        def _build(p: dict) -> Any:
             bd: datetime = p["birth_date"]
             bt: datetime = p["birth_time"]
             dt = datetime(
@@ -112,7 +122,7 @@ class AstrologyService:
                 bt.hour, bt.minute, bt.second,
                 tzinfo=ZoneInfo(p["tz_str"]),
             )
-            return AstrologicalSubject(
+            return AstrologicalSubjectFactory.from_birth_data(
                 name=p["name"],
                 year=dt.year,
                 month=dt.month,
@@ -124,7 +134,7 @@ class AstrologyService:
                 lng=p["lon"],
                 lat=p["lat"],
                 tz_str=p["tz_str"],
-                zodiac_type="Tropic",
+                zodiac_type="Tropical",
                 houses_system_identifier=p.get("house_system", "P"),
                 online=False,
             )
@@ -133,53 +143,22 @@ class AstrologyService:
             s1 = _build(person1)
             s2 = _build(person2)
 
-            # Двойное колесо
-            chart = KerykeionChartSVG(s1, chart_type="Synastry", second_obj=s2)
-            svg_content = chart.makeTemplate()
+            chart_data = ChartDataFactory.create_synastry_chart_data(s1, s2)
+            svg_content = ChartDrawer(chart_data, chart_language="RU").generate_svg_string()
 
             import cairosvg
             png_data = cairosvg.svg2png(bytestring=svg_content.encode())
 
-            # Аспекты синастрии
-            synastry = SynastryAspects(s1, s2)
-            all_aspects = synastry.get_all_aspects()
-
-            # Нормализуем аспекты
-            aspects_list = []
-            if isinstance(all_aspects, dict):
-                for planet_key, asp_list in all_aspects.items():
-                    if isinstance(asp_list, list):
-                        for asp in asp_list:
-                            if hasattr(asp, "model_dump"):
-                                aspects_list.append(asp.model_dump(mode="json"))
-                            elif isinstance(asp, dict):
-                                aspects_list.append(asp)
-            elif isinstance(all_aspects, list):
-                for asp in all_aspects:
-                    if hasattr(asp, "model_dump"):
-                        aspects_list.append(asp.model_dump(mode="json"))
-                    elif isinstance(asp, dict):
-                        aspects_list.append(asp)
-
-            def _subject_data(s: AstrologicalSubject) -> dict:
-                planets = get_available_astrological_points_list(s)
-                houses = get_houses_list(s)
-                angle_attrs = ("asc", "dsc", "mc", "ic")
-                angles = [
-                    _point_to_dict(getattr(s, a))
-                    for a in angle_attrs if hasattr(s, a)
-                ]
-                return {
-                    "planets": [_point_to_dict(p) for p in planets],
-                    "houses": [_point_to_dict(h) for h in houses],
-                    "angles": angles,
-                }
+            aspects_model = AspectsFactory.synastry_aspects(s1, s2)
+            aspects_list = aspects_model.model_dump(mode="json").get("aspects", [])
 
             return {
                 "png": png_data,
-                "subject1": _subject_data(s1),
-                "subject2": _subject_data(s2),
+                "subject1": _extract_subject_instance(s1),
+                "subject2": _extract_subject_instance(s2),
                 "aspects": aspects_list,
+                "chart_data": chart_data.model_dump(mode="json"),
+                "llm_context": to_context(chart_data),
             }
 
         return await asyncio.to_thread(_run_sync)
@@ -195,4 +174,4 @@ class AstrologyService:
             "house_system": kwargs.get("house_system"),
         }
         raw = json.dumps(data, sort_keys=True)
-        return f"astro:{hashlib.md5(raw.encode()).hexdigest()}"
+        return f"astro:{hashlib.sha256(raw.encode()).hexdigest()}"

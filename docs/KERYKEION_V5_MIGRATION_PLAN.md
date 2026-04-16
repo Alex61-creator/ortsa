@@ -489,12 +489,19 @@
 - Работают платежный webhook и существующие маршруты выдачи отчетов.
 - Интеграция `kerykeion` v4 функционирует в production-контуре натала/синастрии.
 
-### 8.2 Нужно сделать для перехода на `kerykeion` v5
+### 8.2 Статус перехода на `kerykeion` v5 (закрыто)
 
-- Обновить зависимость и пройти breaking changes (`AstrologicalSubject`/`KerykeionChartSVG`/`SynastryAspects` -> v5 factories).
-- Перевести `app/services/astrology.py` на `AstrologicalSubjectFactory`, `ChartDataFactory`, `ChartDrawer`, `AspectsFactory`.
-- Выровнять контракты данных для `report*.html`, `synastry.html` и LLM-пайплайна.
-- Провести regression pack (golden PNG/SVG/PDF, Celery smoke, проверка аспектов и текстов).
+- [x] Обновлена зависимость и пройдены breaking changes (`AstrologicalSubject`/`KerykeionChartSVG`/`SynastryAspects` -> v5 factories).
+- [x] `app/services/astrology.py` переведен на `AstrologicalSubjectFactory`, `ChartDataFactory`, `ChartDrawer`, `AspectsFactory`.
+- [x] Выровнены контракты данных для `report*.html`, `synastry.html` и LLM-пайплайна.
+- [x] Пройден regression pack (golden артефакты + smoke/contract тесты).
+
+Технические артефакты выполнения:
+- baseline/regression: `docs/KERYKEION_V5_REGRESSION_PACK.md`;
+- golden fixtures: `tests/fixtures/kerykeion_baseline_v5`;
+- скрипт фиксации baseline: `scripts/generate_kerykeion_baseline.py`;
+- contract schemas: `app/schemas/astrology.py`;
+- feature flag rollout для `to_context`: `LLM_USE_KERYKEION_CONTEXT`.
 
 ### 8.3 Нужно сделать для внедрения новых тарифов (add-on)
 

@@ -19,6 +19,7 @@ from app.services.email import EmailService
 from app.services.storage import StorageService
 from app.core.cache import cache
 from app.constants.tariffs import LlmTier, resolve_llm_tier
+from app.schemas.astrology import ChartResultSchema
 
 logger = structlog.get_logger(__name__)
 
@@ -153,9 +154,10 @@ async def _generate_report_async(order_id: int, task_id: str):
                     tz_str=natal_data.timezone,
                     house_system=natal_data.house_system,
                 )
+                chart_result_valid = ChartResultSchema.model_validate(chart_result)
 
-                png_data = chart_result["png"]
-                chart_data = chart_cached_instance or chart_result["instance"]
+                png_data = chart_result_valid.png
+                chart_data = chart_cached_instance or chart_result_valid.instance.model_dump(mode="json")
                 if not chart_cached_instance:
                     await cache.set(cache_key, chart_data, ttl=30 * 24 * 3600)
 
@@ -179,6 +181,9 @@ async def _generate_report_async(order_id: int, task_id: str):
                     tariff=tariff,
                     locale=nd_locale,
                     system_prompt_override=sp_override,
+                    chart_context=(
+                        chart_result_valid.llm_context if settings.LLM_USE_KERYKEION_CONTEXT else None
+                    ),
                 )
 
                 failed_step = f"pdf generation (slot {slot_idx})"

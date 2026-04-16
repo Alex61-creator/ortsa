@@ -22,7 +22,7 @@ bcrypt==4.2.1
 python-multipart==0.0.20
 itsdangerous==2.2.0
 yookassa==3.3.0
-kerykeion==4.26.3
+kerykeion==5.0.4
 cairosvg==2.7.1
 weasyprint==63.1
 markdown==3.7

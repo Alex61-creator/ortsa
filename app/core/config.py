@@ -106,6 +106,7 @@ class Settings(BaseSettings):
     LLM_MAX_TOKENS_PRO: int = 6144
     LLM_TEMPERATURE: float = 0.2
     LLM_TOP_P: float = 0.9
+    LLM_USE_KERYKEION_CONTEXT: bool = False
 
     SMTP_HOST: str = "localhost"
     SMTP_PORT: int = 587

@@ -66,11 +66,28 @@ def build_synastry_user_prompt(
     person2_name: str,
     chart_data: dict,
     locale: str = "ru",
+    chart_context: str | None = None,
 ) -> str:
     """
     Строит user-промпт с данными двух карт и аспектами синастрии.
     chart_data содержит: subject1, subject2, aspects
     """
+    if chart_context:
+        if locale == "en":
+            return (
+                f"Synastry analysis for:\n"
+                f"  Person 1: {person1_name}\n"
+                f"  Person 2: {person2_name}\n\n"
+                f"Kerykeion structured context (XML):\n{chart_context}\n\n"
+                "Write the entire analysis in clear, fluent English."
+            )
+        return (
+            f"Синастрия (совместность) двух людей:\n"
+            f"  Человек 1: {person1_name}\n"
+            f"  Человек 2: {person2_name}\n\n"
+            f"Структурированный контекст Kerykeion (XML):\n{chart_context}"
+        )
+
     if locale == "en":
         prompt = (
             f"Synastry analysis for:\n"
@@ -91,7 +108,7 @@ def build_synastry_user_prompt(
 
 def make_synastry_cache_key(chart_data: dict, locale: str = "ru") -> str:
     raw = json.dumps({"chart": chart_data, "locale": locale}, sort_keys=True)
-    return f"{SYNASTRY_CACHE_PREFIX}:{hashlib.md5(raw.encode()).hexdigest()}"
+    return f"{SYNASTRY_CACHE_PREFIX}:{hashlib.sha256(raw.encode()).hexdigest()}"
 
 
 class SynastryLLMService:
@@ -120,6 +137,7 @@ class SynastryLLMService:
         chart_data: dict,
         locale: str = "ru",
         system_prompt_override: str | None = None,
+        chart_context: str | None = None,
     ) -> LLMResponseSchema:
         if locale not in ("ru", "en"):
             locale = "ru"
@@ -131,7 +149,13 @@ class SynastryLLMService:
             return LLMResponseSchema(**cached)
 
         system_prompt = system_prompt_override or build_synastry_system_prompt(locale)
-        user_prompt = build_synastry_user_prompt(person1_name, person2_name, chart_data, locale)
+        user_prompt = build_synastry_user_prompt(
+            person1_name,
+            person2_name,
+            chart_data,
+            locale,
+            chart_context=chart_context,
+        )
 
         response = await self.client.chat.completions.create(
             model=self.model,

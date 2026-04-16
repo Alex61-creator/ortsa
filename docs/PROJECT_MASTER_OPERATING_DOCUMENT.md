@@ -123,11 +123,11 @@ Master-документ основан на:
 
 ## 4.2 Миграция на `kerykeion` v5
 
-- [ ] Обновлена зависимость до v5.
-- [ ] Заменены legacy API-классы на v5 factories.
-- [ ] Переведен `app/services/astrology.py` на новую архитектуру.
-- [ ] Выровнены контракты данных для PDF и LLM.
-- [ ] Пройден regression pack (golden PNG/SVG/PDF + Celery smoke).
+- [x] Обновлена зависимость до v5.
+- [x] Заменены legacy API-классы на v5 factories.
+- [x] Переведен `app/services/astrology.py` на новую архитектуру.
+- [x] Выровнены контракты данных для PDF и LLM.
+- [x] Пройден regression pack (golden PNG/SVG/PDF + Celery smoke).
 
 **Ожидаемый эффект:** снижение техдолга, лучшая поддерживаемость, база для новых продуктов.
 

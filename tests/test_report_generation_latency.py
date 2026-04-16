@@ -47,8 +47,11 @@ async def test_report_generation_writes_paid_to_completed_latency(
     await cache.set(paid_at_key, paid_at_ts, ttl=7 * 24 * 3600)
 
     fake_chart_result = {
+        "report": {},
+        "svg": "<svg></svg>",
         "instance": {"planets": [], "houses": [], "angles": []},
         "png": b"png-bytes",
+        "llm_context": "<chart_analysis></chart_analysis>",
     }
     fake_interpretation = LLMResponseSchema(
         raw_content="**Test**",
