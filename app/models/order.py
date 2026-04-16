@@ -22,6 +22,7 @@ class Order(Base):
         Index("ix_orders_status", "status"),
         Index("ix_orders_created_at", "created_at"),
         Index("ix_orders_user_status", "user_id", "status"),
+        Index("ix_orders_parent_order_id", "parent_order_id"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -30,6 +31,10 @@ class Order(Base):
         ForeignKey("natal_data.id", ondelete="RESTRICT"), nullable=True
     )
     tariff_id: Mapped[int] = mapped_column(ForeignKey("tariffs.id"), nullable=False)
+    parent_order_id: Mapped[int | None] = mapped_column(
+        ForeignKey("orders.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     # Используем `.value` (pending/paid/failed), чтобы SQLAlchemy корректно маппило значения
     # при работе с не-native enum (SQLite и т.п.). Иначе возможна ситуация,
     # когда в БД хранятся enum "имена" (PAID/FAILED), а ORM возвращает неверное значение.
@@ -59,3 +64,4 @@ class Order(Base):
     tariff = relationship("Tariff", backref="orders")
     report = relationship("Report", back_populates="order", uselist=False)
     natal_items = relationship("OrderNatalItem", cascade="all, delete-orphan", order_by="OrderNatalItem.slot_index")
+    parent_order = relationship("Order", remote_side=[id], backref="addon_orders")

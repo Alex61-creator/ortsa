@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from . import admin, auth, geocode, natal_data, ops, orders, reports, subscriptions, synastry, system, tariffs, users, webhooks
+from . import addons, admin, auth, geocode, natal_data, ops, orders, reports, subscriptions, synastry, system, tariffs, users, webhooks
 
 api_router = APIRouter()
 
@@ -12,6 +12,7 @@ api_router.include_router(orders.router, prefix="/orders", tags=["Заказы"]
 api_router.include_router(tariffs.router, prefix="/tariffs", tags=["Тарифы"])
 api_router.include_router(reports.router, prefix="/reports", tags=["Отчёты"])
 api_router.include_router(synastry.router, prefix="/synastry", tags=["Синастрия"])
+api_router.include_router(addons.router, prefix="/addons", tags=["Add-ons"])
 api_router.include_router(users.router, prefix="/users", tags=["Профиль и экспорт"])
 api_router.include_router(webhooks.router, prefix="/webhooks", tags=["Вебхуки"])
 api_router.include_router(geocode.router, prefix="/geocode", tags=["Геокодинг"])

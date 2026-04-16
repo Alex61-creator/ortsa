@@ -17,6 +17,7 @@ celery_app = Celery(
         "app.tasks.subscription_renewal",
         "app.tasks.monthly_digest",
         "app.tasks.subscription_finalize",
+        "app.tasks.addon_generation",
     ]
 )
 
@@ -34,6 +35,7 @@ celery_app.conf.update(
     task_routes={
         "app.tasks.report_generation.*": {"queue": "heavy"},
         "app.tasks.synastry_generation.*": {"queue": "heavy"},
+        "app.tasks.addon_generation.*": {"queue": "heavy"},
         "app.tasks.report_notifications.*": {"queue": "io"},
         "app.tasks.monthly_digest.*": {"queue": "io"},
         "app.tasks.subscription_renewal.*": {"queue": "io"},

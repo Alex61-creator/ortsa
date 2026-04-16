@@ -24,6 +24,9 @@ CODE_TO_LLM_TIER: dict[str, LlmTier] = {
     "sub_monthly": LlmTier.PRO,
     "sub_annual": LlmTier.PRO,
     "pro": LlmTier.PRO,  # backward-compat alias
+    "transit_month_pack": LlmTier.NATAL_FULL,
+    "compatibility_deep_dive": LlmTier.NATAL_FULL,
+    "return_pack": LlmTier.NATAL_FULL,
 }
 
 REPORT_RETENTION_DAYS_BY_CODE: dict[str, int] = {
@@ -33,7 +36,18 @@ REPORT_RETENTION_DAYS_BY_CODE: dict[str, int] = {
     "sub_monthly": 180,
     "sub_annual": 180,
     "pro": 180,
+    "transit_month_pack": 30,
+    "compatibility_deep_dive": 30,
+    "return_pack": 180,
 }
+
+ADDON_TARIFF_CODES: frozenset[str] = frozenset(
+    {"transit_month_pack", "compatibility_deep_dive", "return_pack", "synastry_addon"}
+)
+
+ADDON_REPORT_TARIFF_CODES: frozenset[str] = frozenset(
+    {"transit_month_pack", "compatibility_deep_dive", "return_pack"}
+)
 
 # Коды подписочных тарифов (billing_type = subscription)
 SUBSCRIPTION_CODES = frozenset({"sub_monthly", "sub_annual", "pro"})

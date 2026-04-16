@@ -14,6 +14,7 @@ from app.core.cache import cache
 from app.models.order import Order, OrderStatus
 from app.models.subscription import Subscription, SubscriptionStatus
 from app.services.analytics import get_user_attribution, is_first_paid_order, record_analytics_event
+from app.constants.tariffs import ADDON_REPORT_TARIFF_CODES
 Configuration.account_id = settings.YOOKASSA_SHOP_ID
 Configuration.secret_key = settings.YOOKASSA_SECRET_KEY
 
@@ -335,6 +336,53 @@ class YookassaPaymentService:
                             await cache.redis.expire(paid_completed_latencies_key, 7 * 24 * 3600)
                     finally:
                         await cache.delete(paid_at_key)
+                elif order.tariff.code in ADDON_REPORT_TARIFF_CODES:
+                    from app.tasks.addon_generation import (
+                        generate_compatibility_deep_dive_task,
+                        generate_return_pack_task,
+                        generate_transit_month_task,
+                    )
+
+                    if order.tariff.code == "transit_month_pack":
+                        generate_transit_month_task.delay(paid_order_id)
+                    elif order.tariff.code == "compatibility_deep_dive":
+                        generate_compatibility_deep_dive_task.delay(paid_order_id)
+                    else:
+                        generate_return_pack_task.delay(paid_order_id)
+
+                    correlation_id = str(payment_id)
+                    await record_analytics_event(
+                        db,
+                        event_name="addon_attached",
+                        user_id=order.user_id,
+                        order_id=order.id,
+                        tariff_code=order.tariff.code,
+                        source_channel=source_channel,
+                        utm_source=utm_source,
+                        utm_medium=utm_medium,
+                        utm_campaign=utm_campaign,
+                        platform=platform,
+                        geo=geo,
+                        amount=order.amount,
+                        correlation_id=correlation_id,
+                        dedupe_key=f"addon_attached:{order.id}",
+                    )
+                    await record_analytics_event(
+                        db,
+                        event_name="addon_purchase_completed",
+                        user_id=order.user_id,
+                        order_id=order.id,
+                        tariff_code=order.tariff.code,
+                        source_channel=source_channel,
+                        utm_source=utm_source,
+                        utm_medium=utm_medium,
+                        utm_campaign=utm_campaign,
+                        platform=platform,
+                        geo=geo,
+                        amount=order.amount,
+                        correlation_id=correlation_id,
+                        dedupe_key=f"addon_purchase_completed:{order.id}",
+                    )
                 else:
                     from app.tasks.report_generation import generate_report_task
                     generate_report_task.delay(paid_order_id)

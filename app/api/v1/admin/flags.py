@@ -18,6 +18,7 @@ FLAGS_META = {
     "admin_funnel_enabled": "Включает экран воронки",
     "promo_codes_enabled": "Включает применение промокодов",
     "health_panel_enabled": "Включает расширенный мониторинг",
+    "addons_enabled": "Глобальный kill switch add-on продаж и офферинга",
 }
 
 

@@ -15,11 +15,13 @@ from app.services.astrology import AstrologyService
 from app.services.llm import LLMService
 from app.services.pdf import PDFGenerator
 from app.services.storage import StorageService
+from app.services.email import EmailService  # backward-compatible import for tests
 from app.services.prompt_templates import PromptTemplateService
 from app.core.cache import cache
 from app.constants.tariffs import LlmTier, resolve_llm_tier
 from app.schemas.astrology import ChartResultSchema
 from app.services.analytics import get_user_attribution, record_analytics_event
+from app.constants.tariffs import ADDON_REPORT_TARIFF_CODES
 
 logger = structlog.get_logger(__name__)
 
@@ -68,12 +70,26 @@ async def _generate_report_async(order_id: int, task_id: str):
             geo=geo,
             dedupe_key=f"report_generation_started:{order.id}",
         )
-
         try:
             failed_step = "init"
             tariff_stmt = select(Tariff).where(Tariff.id == order.tariff_id)
             tariff_result = await db.execute(tariff_stmt)
             tariff = tariff_result.scalar_one()
+            if tariff.code in ADDON_REPORT_TARIFF_CODES:
+                await record_analytics_event(
+                    db,
+                    event_name="addon_report_generation_started",
+                    user_id=order.user_id,
+                    order_id=order.id,
+                    tariff_code=tariff.code,
+                    source_channel=source_channel,
+                    utm_source=utm_source,
+                    utm_medium=utm_medium,
+                    utm_campaign=utm_campaign,
+                    platform=platform,
+                    geo=geo,
+                    dedupe_key=f"addon_report_generation_started:{order.id}",
+                )
 
             tier = resolve_llm_tier(tariff.code, getattr(tariff, "llm_tier", None))
 
@@ -301,10 +317,32 @@ async def _generate_report_async(order_id: int, task_id: str):
                 geo=geo,
                 dedupe_key=f"report_generation_completed:{order.id}",
             )
+            if tariff.code in ADDON_REPORT_TARIFF_CODES:
+                await record_analytics_event(
+                    db,
+                    event_name="addon_report_generation_completed",
+                    user_id=order.user_id,
+                    order_id=order.id,
+                    tariff_code=tariff.code,
+                    source_channel=source_channel,
+                    utm_source=utm_source,
+                    utm_medium=utm_medium,
+                    utm_campaign=utm_campaign,
+                    platform=platform,
+                    geo=geo,
+                    dedupe_key=f"addon_report_generation_completed:{order.id}",
+                )
 
             from app.tasks.report_notifications import send_report_email_task
 
-            send_report_email_task.delay(order.id)
+            try:
+                send_report_email_task.delay(order.id)
+            except Exception as email_queue_exc:
+                logger.warning(
+                    "Failed to enqueue report email notification",
+                    order_id=order.id,
+                    error=str(email_queue_exc),
+                )
 
             logger.info(
                 "Report generation completed",
@@ -344,4 +382,20 @@ async def _generate_report_async(order_id: int, task_id: str):
                 notes=str(e),
                 dedupe_key=f"report_generation_failed:{order.id}",
             )
+            if tariff.code in ADDON_REPORT_TARIFF_CODES:
+                await record_analytics_event(
+                    db,
+                    event_name="addon_report_generation_failed",
+                    user_id=order.user_id,
+                    order_id=order.id,
+                    tariff_code=tariff.code,
+                    source_channel=source_channel,
+                    utm_source=utm_source,
+                    utm_medium=utm_medium,
+                    utm_campaign=utm_campaign,
+                    platform=platform,
+                    geo=geo,
+                    notes=str(e),
+                    dedupe_key=f"addon_report_generation_failed:{order.id}",
+                )
             raise

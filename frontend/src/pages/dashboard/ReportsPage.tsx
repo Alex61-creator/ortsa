@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import dayjs from 'dayjs'
 import { listOrders } from '@/api/orders'
 import { listNatalData } from '@/api/natal'
+import { listAddons, purchaseAddon } from '@/api/addons'
 import type { OrderListItem } from '@/types/api'
 
 function reportIconClass(order: OrderListItem): string {
@@ -23,6 +24,13 @@ export function ReportsPage() {
   const { t } = useTranslation()
   const { data, isLoading } = useQuery({ queryKey: ['orders'], queryFn: listOrders })
   const { data: natalData } = useQuery({ queryKey: ['natal-data'], queryFn: listNatalData })
+  const { data: addons } = useQuery({ queryKey: ['addons'], queryFn: listAddons })
+  const purchaseMut = useMutation({
+    mutationFn: (code: string) => purchaseAddon(code),
+    onSuccess: (payload) => {
+      if (payload.payment_url) window.location.href = payload.payment_url
+    },
+  })
   const ready = (data ?? [])
     .filter((o) => o.report_ready)
     .sort((a, b) => dayjs(b.created_at).valueOf() - dayjs(a.created_at).valueOf())
@@ -34,6 +42,27 @@ export function ReportsPage() {
 
   return (
     <div>
+      {(addons ?? []).some((a) => a.eligible) && (
+        <div className="card" style={{ marginBottom: 12 }}>
+          <div className="card-body">
+            <div style={{ fontWeight: 600, marginBottom: 8 }}>Доступные add-on</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {(addons ?? [])
+                .filter((a) => a.eligible)
+                .map((addon) => (
+                  <button
+                    key={addon.addon_code}
+                    className="btn btn-default btn-sm"
+                    disabled={purchaseMut.isPending}
+                    onClick={() => purchaseMut.mutate(addon.addon_code)}
+                  >
+                    {addon.title} · {Number(addon.price).toLocaleString('ru-RU')} {addon.currency}
+                  </button>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
       {ready.length === 0 ? (
         <div className="card">
           <div className="card-body">

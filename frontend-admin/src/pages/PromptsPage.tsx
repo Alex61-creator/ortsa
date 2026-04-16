@@ -10,6 +10,9 @@ const TARIFF_LABELS: Record<string, string> = {
   bundle: 'Bundle (Набор 3)',
   sub_monthly: 'Sub Monthly (Подписка / месяц)',
   sub_annual: 'Sub Annual (Подписка / год)',
+  transit_month_pack: 'Transit month pack (Add-on)',
+  compatibility_deep_dive: 'Compatibility deep dive (Add-on)',
+  return_pack: 'Return pack (Add-on)',
 }
 
 const LOCALE_LABELS: Record<string, string> = {
@@ -17,7 +20,16 @@ const LOCALE_LABELS: Record<string, string> = {
   en: 'EN — English',
 }
 
-const TARIFF_CODES = ['free', 'report', 'bundle', 'sub_monthly', 'sub_annual']
+const TARIFF_CODES = [
+  'free',
+  'report',
+  'bundle',
+  'sub_monthly',
+  'sub_annual',
+  'transit_month_pack',
+  'compatibility_deep_dive',
+  'return_pack',
+]
 
 export function PromptsPage() {
   const [templates, setTemplates] = useState<PromptTemplate[]>([])

@@ -20,7 +20,16 @@ from app.services.prompt_templates import PromptTemplateService
 router = APIRouter()
 
 # Все поддерживаемые коды тарифов (без deprecated 'pro')
-VALID_TARIFF_CODES = ["free", "report", "bundle", "sub_monthly", "sub_annual"]
+VALID_TARIFF_CODES = [
+    "free",
+    "report",
+    "bundle",
+    "sub_monthly",
+    "sub_annual",
+    "transit_month_pack",
+    "compatibility_deep_dive",
+    "return_pack",
+]
 VALID_LOCALES = ["ru", "en"]
 
 
