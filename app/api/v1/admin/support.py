@@ -10,7 +10,8 @@ from app.api.deps import get_current_admin_user
 from app.core.cache import cache
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.admin_extra import UserNoteCreate, UserNoteOut
+from app.models.addon_offer_dispatch import AddonOfferDispatch
+from app.schemas.admin_extra import AddonOfferDispatchRow, UserNoteCreate, UserNoteOut
 from app.services.admin_logs import append_admin_log
 
 router = APIRouter()
@@ -99,3 +100,22 @@ async def add_note(
     await cache.set(key, notes)
     await append_admin_log(db, _.email or f"user:{_.id}", "user_note_add", f"user:{user_id}")
     return UserNoteOut(**row)
+
+
+@router.get("/addon-offer-dispatches", response_model=list[AddonOfferDispatchRow], summary="Support: dispatch-логи add-on офферов")
+async def list_addon_offer_dispatches(
+    user_id: int | None = None,
+    channel: str | None = None,
+    status: str | None = None,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin_user),
+):
+    stmt = select(AddonOfferDispatch).order_by(AddonOfferDispatch.created_at.desc())
+    if user_id is not None:
+        stmt = stmt.where(AddonOfferDispatch.user_id == user_id)
+    if channel:
+        stmt = stmt.where(AddonOfferDispatch.channel == channel)
+    if status:
+        stmt = stmt.where(AddonOfferDispatch.status == status)
+    rows = (await db.execute(stmt.limit(200))).scalars().all()
+    return [AddonOfferDispatchRow.model_validate(r) for r in rows]

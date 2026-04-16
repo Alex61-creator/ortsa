@@ -210,3 +210,23 @@ class TariffHistoryRow(BaseModel):
     payload: dict
     created_at: datetime
 
+
+class AddonOfferDispatchRow(BaseModel):
+    id: int
+    user_id: int
+    parent_order_id: int
+    addon_code: str
+    channel: str
+    attempt_no: int
+    scheduled_at: datetime
+    sent_at: datetime | None = None
+    status: str
+    skip_reason: str | None = None
+    dedupe_key: str
+    payload: dict
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+

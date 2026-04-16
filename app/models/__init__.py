@@ -15,6 +15,7 @@ from app.models.feature_flag import FeatureFlag, FeatureFlagChange
 from app.models.promocode import Promocode, PromocodeRedemption
 from app.models.analytics_event import AnalyticsEvent
 from app.models.marketing_spend_manual import MarketingSpendManual
+from app.models.addon_offer_dispatch import AddonOfferDispatch
 
 __all__ = [
     "User",
@@ -39,4 +40,5 @@ __all__ = [
     "PromocodeRedemption",
     "AnalyticsEvent",
     "MarketingSpendManual",
+    "AddonOfferDispatch",
 ]

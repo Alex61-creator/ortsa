@@ -334,6 +334,7 @@ async def _generate_report_async(order_id: int, task_id: str):
                 )
 
             from app.tasks.report_notifications import send_report_email_task
+            from app.tasks.addon_offer_retargeting import schedule_addon_offer_followups_task
 
             try:
                 send_report_email_task.delay(order.id)
@@ -343,6 +344,15 @@ async def _generate_report_async(order_id: int, task_id: str):
                     order_id=order.id,
                     error=str(email_queue_exc),
                 )
+            if tariff.code not in ADDON_REPORT_TARIFF_CODES:
+                try:
+                    schedule_addon_offer_followups_task.delay(order.id, order.user_id)
+                except Exception as retarget_queue_exc:
+                    logger.warning(
+                        "Failed to enqueue addon retargeting schedule",
+                        order_id=order.id,
+                        error=str(retarget_queue_exc),
+                    )
 
             logger.info(
                 "Report generation completed",
