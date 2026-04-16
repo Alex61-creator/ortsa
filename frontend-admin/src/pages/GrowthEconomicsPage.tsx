@@ -2,7 +2,14 @@ import { useEffect, useMemo, useState } from 'react'
 import { Button, Card, DatePicker, Form, Input, InputNumber, Select, Table, message } from 'antd'
 import dayjs from 'dayjs'
 import { createMarketingSpend, fetchMarketingSpend, fetchMetricsCohorts, fetchMetricsEconomics, fetchMetricsFunnel, fetchMetricsOverview } from '@/api/metrics'
-import type { CohortRow, MarketingSpendRow, MetricsEconomicsOut, MetricsOverviewOut } from '@/types/admin'
+import type {
+  CohortRow,
+  FunnelStep,
+  FunnelSummary,
+  MarketingSpendRow,
+  MetricsEconomicsOut,
+  MetricsOverviewOut,
+} from '@/types/admin'
 import { extractApiErrorMessage } from '@/utils/apiError'
 
 const { RangePicker } = DatePicker
@@ -15,19 +22,85 @@ function fmtPercent(value: number) {
   return `${(value * 100).toLocaleString('ru-RU', { maximumFractionDigits: 1 })}%`
 }
 
+const FUNNEL_COLORS = ['#1677FF', '#4096FF', '#722ED1', '#EB2F96', '#52C41A']
+
+function heatCellPct(v: number) {
+  const t = Math.min(100, Math.max(0, v)) / 100
+  const bg = `rgba(109, 93, 251, ${0.08 + t * 0.42})`
+  return (
+    <div
+      style={{
+        background: bg,
+        borderRadius: 8,
+        padding: '6px 8px',
+        fontWeight: 600,
+        textAlign: 'center',
+      }}
+      aria-label={`retention ${v}%`}
+    >
+      {v}%
+    </div>
+  )
+}
+
+function GrowthFunnelMini({ data }: { data: FunnelSummary | null }) {
+  if (!data || !data.steps.length) {
+    return <div className="admin-empty" style={{ minHeight: 100 }}>Нет данных воронки</div>
+  }
+  const max = data.steps[0]?.count || 1
+  return (
+    <div className="ag-funnel-wrap">
+      {data.steps.map((step: FunnelStep, i: number) => {
+        const pct = Math.round((step.count / max) * 100)
+        const conv = i > 0 ? step.conversion_pct : null
+        const col =
+          conv !== null
+            ? (conv < 50 ? 'var(--ag-danger)' : conv < 70 ? 'var(--ag-warning)' : 'var(--ag-success)')
+            : 'var(--ag-muted)'
+        return (
+          <div key={step.key} className="ag-funnel-row">
+            <div
+              className="ag-funnel-num"
+              style={{ background: FUNNEL_COLORS[i % FUNNEL_COLORS.length] }}
+            >
+              {i + 1}
+            </div>
+            <div className="ag-funnel-label">{step.title}</div>
+            <div className="ag-funnel-bar-w">
+              <div
+                className="ag-funnel-bar"
+                style={{
+                  width: `${pct}%`,
+                  background: FUNNEL_COLORS[i % FUNNEL_COLORS.length],
+                }}
+              >
+                {step.count.toLocaleString()}
+              </div>
+            </div>
+            <div className="ag-funnel-conv" style={{ color: col }}>
+              {conv !== null ? `${conv.toFixed(1)}%` : '—'}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export function GrowthEconomicsPage() {
   const [period, setPeriod] = useState('current_month')
   const [overview, setOverview] = useState<MetricsOverviewOut | null>(null)
   const [economics, setEconomics] = useState<MetricsEconomicsOut | null>(null)
   const [cohorts, setCohorts] = useState<CohortRow[]>([])
   const [spendRows, setSpendRows] = useState<MarketingSpendRow[]>([])
+  const [funnel, setFunnel] = useState<FunnelSummary | null>(null)
   const [loading, setLoading] = useState(false)
   const [form] = Form.useForm()
 
   const load = async () => {
     setLoading(true)
     try {
-      const [overviewData, economicsData, cohortData, spendData] = await Promise.all([
+      const [overviewData, economicsData, cohortData, spendData, funnelData] = await Promise.all([
         fetchMetricsOverview({ period }),
         fetchMetricsEconomics({ period }),
         fetchMetricsCohorts({ period }),
@@ -38,6 +111,7 @@ export function GrowthEconomicsPage() {
       setEconomics(economicsData)
       setCohorts(cohortData.rows)
       setSpendRows(spendData)
+      setFunnel(funnelData)
     } catch (error) {
       message.error(extractApiErrorMessage(error, 'Не удалось загрузить growth-метрики'))
     } finally {
@@ -99,6 +173,10 @@ export function GrowthEconomicsPage() {
           ))}
         </Card>
       )}
+
+      <Card title="Воронка (event-based)" style={{ marginBottom: 16 }}>
+        <GrowthFunnelMini data={funnel} />
+      </Card>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 16, marginBottom: 16 }}>
         <Card title="Unit Economics">
@@ -176,7 +254,7 @@ export function GrowthEconomicsPage() {
           />
         </Card>
 
-        <Card title="Cohorts M1 / M3 / M6">
+        <Card title="Cohorts M1 / M3 / M6 (heatmap)">
           <Table
             rowKey="cohort"
             pagination={false}
@@ -185,9 +263,9 @@ export function GrowthEconomicsPage() {
             columns={[
               { title: 'Cohort', dataIndex: 'cohort' },
               { title: 'Size', dataIndex: 'size' },
-              { title: 'M1', dataIndex: 'm1', render: (v: number) => `${v}%` },
-              { title: 'M3', dataIndex: 'm3', render: (v: number) => `${v}%` },
-              { title: 'M6', dataIndex: 'm6', render: (v: number) => `${v}%` },
+              { title: 'M1', dataIndex: 'm1', render: (v: number) => heatCellPct(v) },
+              { title: 'M3', dataIndex: 'm3', render: (v: number) => heatCellPct(v) },
+              { title: 'M6', dataIndex: 'm6', render: (v: number) => heatCellPct(v) },
             ]}
           />
         </Card>

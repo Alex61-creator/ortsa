@@ -230,3 +230,81 @@ class AddonOfferDispatchRow(BaseModel):
     class Config:
         from_attributes = True
 
+
+class CampaignPerformanceRow(BaseModel):
+    segment_key: str
+    signups: int
+    first_paid_users: int
+    first_paid_revenue_rub: float
+    orders_completed: int
+    cr1: float
+
+
+class CampaignPerformanceOut(BaseModel):
+    period_start: datetime
+    period_end: datetime
+    group_by: str
+    billing_segment: str
+    methodology: str
+    rows: list[CampaignPerformanceRow]
+
+
+class OneTimeMonthRow(BaseModel):
+    month: str
+    orders_count: int
+    revenue_rub: float
+    aov_rub: float
+
+
+class OneTimeMonthlyOut(BaseModel):
+    methodology: str
+    rows: list[OneTimeMonthRow]
+
+
+class ReportOptionsAnalyticsOut(BaseModel):
+    methodology: str
+    key_counts: dict[str, int]
+    bucket_counts: dict[str, int]
+    estimated_options_revenue_rub: float
+    orders_sampled: int
+
+
+class PromoPerformanceRow(BaseModel):
+    promocode: str
+    redemptions: int
+    discount_total_rub: float
+    order_revenue_rub: float
+
+
+class PromoPerformanceOut(BaseModel):
+    methodology: str
+    rows: list[PromoPerformanceRow]
+
+
+class SubscriptionMonthRow(BaseModel):
+    month: str
+    new_subscriptions: int
+    first_payment_orders: int
+    subscription_order_revenue_rub: float
+    renewal_revenue_rub: float
+
+
+class SubscriptionsOverviewOut(BaseModel):
+    methodology: str
+    active_subscriptions_now: int
+    monthly_rows: list[SubscriptionMonthRow]
+
+
+class SubscriptionExportRow(BaseModel):
+    id: int
+    user_id: int
+    tariff_code: str
+    status: str
+    current_period_start: datetime | None
+    current_period_end: datetime | None
+    created_at: datetime
+
+
+class SubscriptionListOut(BaseModel):
+    rows: list[SubscriptionExportRow]
+

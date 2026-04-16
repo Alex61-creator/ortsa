@@ -42,7 +42,67 @@ async def test_admin_dashboard_ok_for_admin(client: AsyncClient, db_session: Asy
     assert r.status_code == 200
     data = r.json()
     assert "order_metrics" in data
-    assert data["analytics_stub"] is True
+    assert data["analytics_stub"] is False
+    assert data["business_metrics"]["users_total"] >= 1
+    assert "mrr" in data["business_metrics"]
+    assert "llm_cost" in data["llm_metrics"]
+    assert "ai_cost_history" in data
+    assert "tariff_kpis" in data
+
+
+@pytest.mark.asyncio
+async def test_admin_orders_list_includes_promo_and_report_options(client: AsyncClient, db_session: AsyncSession):
+    admin = User(
+        email="adm-ordlist@example.com",
+        external_id="adm-ordlist",
+        oauth_provider=OAuthProvider.GOOGLE,
+        consent_given_at=datetime.utcnow(),
+        is_admin=True,
+    )
+    db_session.add(admin)
+    user = User(
+        email="u-ordlist@example.com",
+        external_id="u-ordlist",
+        oauth_provider=OAuthProvider.TELEGRAM,
+        consent_given_at=datetime.utcnow(),
+    )
+    db_session.add(user)
+    tariff = Tariff(
+        code="report",
+        name="Отчёт",
+        price=Decimal("100.00"),
+        price_usd=Decimal("1.00"),
+        features={"max_natal_profiles": 1},
+        retention_days=30,
+        llm_tier="natal_full",
+        billing_type="one_time",
+    )
+    db_session.add(tariff)
+    await db_session.flush()
+    order = Order(
+        user_id=user.id,
+        natal_data_id=None,
+        tariff_id=tariff.id,
+        amount=Decimal("577.00"),
+        status=OrderStatus.PAID,
+        promo_code="SUMMER",
+        report_option_flags={"partnership": True, "career": True},
+    )
+    db_session.add(order)
+    await db_session.commit()
+    await db_session.refresh(order)
+
+    token = create_access_token({"sub": str(admin.id), "tv": admin.token_version})
+    headers = {"Authorization": f"Bearer {token}"}
+    r = await client.get("/api/v1/admin/orders/", headers=headers)
+    assert r.status_code == 200
+    rows = r.json()
+    assert len(rows) == 1
+    row = rows[0]
+    assert row["promo_code"] == "SUMMER"
+    assert row["report_option_flags"] == {"partnership": True, "career": True}
+    # Default prices 199+199 with 30% multi-discount on 2+ toggles: 398 * 0.7 = 278.60
+    assert float(row["report_options_line_amount"]) == pytest.approx(278.60, rel=1e-4)
 
 
 @pytest.mark.asyncio

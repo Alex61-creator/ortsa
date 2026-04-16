@@ -1,7 +1,8 @@
 import asyncio
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-from typing import Any, Dict, Optional
+from typing import Any, AsyncIterator, Dict, Optional
 
 import structlog
 from sqlalchemy import select, update
@@ -13,12 +14,24 @@ from app.core.config import settings
 from app.core.cache import cache
 from app.models.order import Order, OrderStatus
 from app.models.subscription import Subscription, SubscriptionStatus
+from app.models.tariff import Tariff
 from app.services.analytics import get_user_attribution, is_first_paid_order, record_analytics_event
 from app.constants.tariffs import ADDON_REPORT_TARIFF_CODES
 Configuration.account_id = settings.YOOKASSA_SHOP_ID
 Configuration.secret_key = settings.YOOKASSA_SECRET_KEY
 
 logger = structlog.get_logger(__name__)
+
+
+@asynccontextmanager
+async def _session_update_block(session: AsyncSession) -> AsyncIterator[None]:
+    """Коммит блока обновления: без вложенного begin(), если сессия уже в транзакции (тесты / вложенные вызовы)."""
+    if session.in_transaction():
+        yield
+    else:
+        async with session.begin():
+            yield
+
 
 # Юридическое: тексты чеков (description, vat_code, payment_subject/payment_mode) должны
 # соответствовать оферте и режиму НДС; изменения согласовать с бухгалтерией (54-ФЗ).
@@ -453,13 +466,19 @@ class YookassaPaymentService:
         if event_type != "payment.succeeded":
             return
         now = datetime.now(timezone.utc)
-        async with db.begin():
+        user_id_for_event: int | None = None
+        tariff_id_for_event: int | None = None
+        async with _session_update_block(db):
             res = await db.execute(select(Subscription).where(Subscription.id == subscription_id))
             sub = res.scalar_one_or_none()
             if not sub:
                 logger.error("Subscription not found for webhook", subscription_id=subscription_id)
                 return
+            user_id_for_event = sub.user_id
+            tariff_id_for_event = sub.tariff_id
             base = sub.current_period_end or now
+            if getattr(base, "tzinfo", None) is None:
+                base = base.replace(tzinfo=timezone.utc)
             if base < now:
                 base = now
             new_end = base + timedelta(days=30)
@@ -473,3 +492,34 @@ class YookassaPaymentService:
                 payment_id=payment_id,
                 until=new_end.isoformat(),
             )
+        if user_id_for_event is None:
+            return
+        try:
+            raw_amt = (payment_obj.get("amount") or {}).get("value")
+            pay_amount = Decimal(str(raw_amt)) if raw_amt is not None else Decimal("0")
+        except (TypeError, ValueError, ArithmeticError):
+            pay_amount = Decimal("0")
+        tariff_code = None
+        if tariff_id_for_event is not None:
+            tariff_code = (
+                await db.scalar(select(Tariff.code).where(Tariff.id == tariff_id_for_event))
+            )
+        utm_source, utm_medium, utm_campaign, source_channel, platform, geo = await get_user_attribution(
+            db, user_id_for_event
+        )
+        await record_analytics_event(
+            db,
+            event_name="subscription_renewal_payment",
+            user_id=user_id_for_event,
+            order_id=None,
+            tariff_code=tariff_code,
+            source_channel=source_channel,
+            utm_source=utm_source,
+            utm_medium=utm_medium,
+            utm_campaign=utm_campaign,
+            platform=platform,
+            geo=geo,
+            amount=pay_amount,
+            correlation_id=str(payment_id),
+            dedupe_key=f"subscription_renewal_payment:{payment_id}",
+        )

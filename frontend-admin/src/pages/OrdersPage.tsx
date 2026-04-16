@@ -231,6 +231,40 @@ export function OrdersPage() {
       render: (_, r) => tariffTag(r.tariff.code),
     },
     {
+      title: 'Промо',
+      dataIndex: 'promo_code',
+      width: 100,
+      render: (v: string | null | undefined) =>
+        v ? <span style={{ fontSize: 12 }}>{v}</span> : <span style={{ color: 'var(--ag-muted)' }}>—</span>,
+    },
+    {
+      title: 'Тумблеры',
+      key: 'toggles',
+      width: 120,
+      render: (_, r) => {
+        const f = r.report_option_flags
+        if (!f || !Object.keys(f).length) {
+          return <span style={{ color: 'var(--ag-muted)' }}>—</span>
+        }
+        const on = Object.entries(f).filter(([, val]) => val).map(([k]) => k)
+        return (
+          <span style={{ fontSize: 11, color: 'var(--ag-text-2)' }} title={JSON.stringify(f)}>
+            {on.length ? on.join(', ') : '—'}
+          </span>
+        )
+      },
+    },
+    {
+      title: 'Опции ₽',
+      dataIndex: 'report_options_line_amount',
+      width: 90,
+      render: (v: string | null | undefined) => {
+        if (v == null || v === '') return <span style={{ color: 'var(--ag-muted)' }}>—</span>
+        const n = parseFloat(v)
+        return <span style={{ fontSize: 12 }}>{isNaN(n) ? v : `${n.toLocaleString('ru-RU')} ₽`}</span>
+      },
+    },
+    {
       title: 'Отчёт',
       dataIndex: 'report_ready',
       render: (v: boolean) =>
@@ -332,6 +366,26 @@ export function OrdersPage() {
               <div className="ag-info-row">
                 <span className="k">Тариф</span>
                 <span className="v">{tariffTag(selected.tariff.code)} {selected.tariff.name}</span>
+              </div>
+              <div className="ag-info-row">
+                <span className="k">Промокод</span>
+                <span className="v">{selected.promo_code ?? '—'}</span>
+              </div>
+              <div className="ag-info-row">
+                <span className="k">Тумблеры (флаги)</span>
+                <span className="v" style={{ wordBreak: 'break-word', fontSize: 12 }}>
+                  {selected.report_option_flags && Object.keys(selected.report_option_flags).length
+                    ? JSON.stringify(selected.report_option_flags)
+                    : '—'}
+                </span>
+              </div>
+              <div className="ag-info-row">
+                <span className="k">Оценка строки опций</span>
+                <span className="v">
+                  {selected.report_options_line_amount != null && selected.report_options_line_amount !== ''
+                    ? `${parseFloat(selected.report_options_line_amount).toLocaleString('ru-RU')} ₽`
+                    : '—'}
+                </span>
               </div>
               <div className="ag-info-row">
                 <span className="k">Отчёт готов</span>

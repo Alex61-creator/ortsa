@@ -21,17 +21,30 @@ from app.services.admin_order_prepare import prepare_order_for_admin_report_retr
 from app.services.admin_report_retry import consume_admin_report_retry_slot
 from app.services.admin_logs import append_admin_log
 from app.services.refund import RefundService
+from app.services.report_option_pricing import estimate_report_options_line_amount, load_report_option_price_map_and_multi
 from app.tasks.report_generation import generate_report_task
 
 router = APIRouter()
 
 
-def _to_admin_item(order: Order) -> AdminOrderListItem:
+def _to_admin_item(
+    order: Order,
+    *,
+    price_by_key: dict[str, Decimal] | None = None,
+    multi_discount_percent: Decimal | None = None,
+) -> AdminOrderListItem:
     report_ready = bool(
         order.status == OrderStatus.COMPLETED
         and order.report
         and order.report.status == ReportStatus.ACTIVE
     )
+    line_amt = None
+    if price_by_key is not None and multi_discount_percent is not None:
+        line_amt = estimate_report_options_line_amount(
+            order.report_option_flags,
+            price_by_key=price_by_key,
+            multi_discount_percent=multi_discount_percent,
+        )
     return AdminOrderListItem(
         id=order.id,
         user_id=order.user_id,
@@ -47,6 +60,9 @@ def _to_admin_item(order: Order) -> AdminOrderListItem:
             subscription_interval=order.tariff.subscription_interval,
         ),
         report_ready=report_ready,
+        promo_code=order.promo_code,
+        report_option_flags=order.report_option_flags,
+        report_options_line_amount=line_amt,
     )
 
 
@@ -84,7 +100,8 @@ async def list_orders_admin(
     stmt = stmt.offset(offset).limit(page_size)
     result = await db.execute(stmt)
     orders = result.unique().scalars().all()
-    return [_to_admin_item(o) for o in orders]
+    price_by_key, multi_discount_percent = await load_report_option_price_map_and_multi(db)
+    return [_to_admin_item(o, price_by_key=price_by_key, multi_discount_percent=multi_discount_percent) for o in orders]
 
 
 @router.get("/{order_id}", response_model=AdminOrderListItem, summary="Заказ по id (админ)")
@@ -102,7 +119,8 @@ async def get_order_admin(
     order = result.unique().scalar_one_or_none()
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
-    return _to_admin_item(order)
+    price_by_key, multi_discount_percent = await load_report_option_price_map_and_multi(db)
+    return _to_admin_item(order, price_by_key=price_by_key, multi_discount_percent=multi_discount_percent)
 
 
 @router.post(
@@ -189,6 +207,7 @@ async def order_timeline_admin(
         "refund_completed",
         "email_sent",
         "cohort_month_started",
+        "subscription_renewal_payment",
     ]
 
     analytics_stmt = (

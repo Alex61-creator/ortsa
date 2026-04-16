@@ -1,11 +1,17 @@
 import { api } from '@/api/client'
 import type {
+  CampaignPerformanceOut,
   FunnelSummary,
   MarketingSpendCreate,
   MarketingSpendRow,
   MetricsCohortsOut,
   MetricsEconomicsOut,
   MetricsOverviewOut,
+  OneTimeMonthlyOut,
+  PromoPerformanceOut,
+  ReportOptionsAnalyticsOut,
+  SubscriptionListOut,
+  SubscriptionsOverviewOut,
 } from '@/types/admin'
 
 export async function fetchMetricsOverview(params: { period?: string } = {}) {
@@ -35,5 +41,44 @@ export async function fetchMarketingSpend() {
 
 export async function createMarketingSpend(payload: MarketingSpendCreate) {
   const { data } = await api.post<MarketingSpendRow>('/api/v1/admin/metrics/spend', payload)
+  return data
+}
+
+export async function fetchCampaignPerformance(params: {
+  date_from?: string
+  date_to?: string
+  group_by?: 'campaign' | 'source'
+  billing_segment?: 'all' | 'one_time' | 'subscription'
+}) {
+  const { data } = await api.get<CampaignPerformanceOut>('/api/v1/admin/metrics/campaign-performance', {
+    params,
+  })
+  return data
+}
+
+export async function fetchOneTimeMonthly(params: { months?: number } = {}) {
+  const { data } = await api.get<OneTimeMonthlyOut>('/api/v1/admin/metrics/one-time-monthly', { params })
+  return data
+}
+
+export async function fetchReportOptionsAnalytics() {
+  const { data } = await api.get<ReportOptionsAnalyticsOut>('/api/v1/admin/metrics/report-options-analytics')
+  return data
+}
+
+export async function fetchPromoPerformance() {
+  const { data } = await api.get<PromoPerformanceOut>('/api/v1/admin/metrics/promo-performance')
+  return data
+}
+
+export async function fetchSubscriptionsOverview(params: { months?: number } = {}) {
+  const { data } = await api.get<SubscriptionsOverviewOut>('/api/v1/admin/metrics/subscriptions-overview', {
+    params,
+  })
+  return data
+}
+
+export async function fetchSubscriptionsList(params: { limit?: number } = {}) {
+  const { data } = await api.get<SubscriptionListOut>('/api/v1/admin/metrics/subscriptions-list', { params })
   return data
 }

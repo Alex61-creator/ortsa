@@ -1,4 +1,4 @@
-import { Button, Layout, Menu } from 'antd'
+import { Button, Layout, Menu, Space } from 'antd'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { useUiStore } from '@/stores/uiStore'
@@ -11,6 +11,11 @@ const items = [
     { key: '/', label: <Link to="/">Дашборд</Link> },
     { key: '/funnel', label: <Link to="/funnel">Воронка</Link> },
     { key: '/growth', label: <Link to="/growth">Growth & Economics</Link> },
+    { key: '/campaigns', label: <Link to="/campaigns">Кампании и UTM</Link> },
+    { key: '/one-time-sales', label: <Link to="/one-time-sales">Разовые продажи</Link> },
+    { key: '/report-options', label: <Link to="/report-options">Тумблеры отчёта</Link> },
+    { key: '/promo-analytics', label: <Link to="/promo-analytics">Промо-аналитика</Link> },
+    { key: '/subscriptions', label: <Link to="/subscriptions">Подписки</Link> },
   ] },
   { type: 'group', label: 'Пользователи', key: 'g-users', children: [
     { key: '/users', label: <Link to="/users">Пользователи</Link> },
@@ -35,6 +40,11 @@ const TITLE_MAP: Record<string, string> = {
   '/': 'Дашборд',
   '/funnel': 'Воронка продаж',
   '/growth': 'Growth & Economics',
+  '/campaigns': 'Кампании и UTM',
+  '/one-time-sales': 'Разовые продажи',
+  '/report-options': 'Тумблеры отчёта',
+  '/promo-analytics': 'Промо-аналитика',
+  '/subscriptions': 'Подписки',
   '/users': 'Пользователи',
   '/payments': 'Платежи',
   '/orders': 'Заказы',
@@ -67,13 +77,18 @@ export function AdminLayout() {
   })()
   const toggleTheme = useUiStore((s) => s.toggleTheme)
   const adminInitial = (adminEmail ?? 'admin').slice(0, 1).toUpperCase()
-  const selected = ['/', '/funnel', '/growth', '/users', '/payments', '/orders', '/tasks', '/promos', '/prompts', '/tariffs', '/flags', '/health', '/log', '/settings']
+  const selected = ['/', '/funnel', '/growth', '/campaigns', '/one-time-sales', '/report-options', '/promo-analytics', '/subscriptions', '/users', '/payments', '/orders', '/tasks', '/promos', '/prompts', '/tariffs', '/flags', '/health', '/log', '/settings']
     .find((key) => (key === '/' ? location.pathname === '/' : location.pathname.startsWith(key)))
   document.documentElement.setAttribute('data-theme', theme)
   const titleMap: Record<string, string> = {
     '/': 'Дашборд',
     '/funnel': 'Воронка',
     '/growth': 'Growth & Economics',
+    '/campaigns': 'Кампании и UTM',
+    '/one-time-sales': 'Разовые продажи',
+    '/report-options': 'Тумблеры отчёта',
+    '/promo-analytics': 'Промо-аналитика',
+    '/subscriptions': 'Подписки',
     '/users': 'Пользователи',
     '/payments': 'Платежи',
     '/orders': 'Заказы',
@@ -162,13 +177,22 @@ export function AdminLayout() {
             >
               {theme === 'light' ? '☀' : '☾'}
             </button>
-            <Button
-              type="primary"
-              size="small"
-              onClick={() => exportFirstTableAsCsv(`admin-${topbarTitle}.csv`)}
-            >
-              ↓ CSV
-            </Button>
+            <Space size={4}>
+              <Button
+                type="primary"
+                size="small"
+                onClick={() => exportFirstTableAsCsv(`admin-${topbarTitle}.csv`, false)}
+              >
+                ↓ CSV
+              </Button>
+              <Button
+                size="small"
+                title="UTF-8 BOM для Excel"
+                onClick={() => exportFirstTableAsCsv(`admin-${topbarTitle}.csv`, true)}
+              >
+                BOM
+              </Button>
+            </Space>
           </div>
         </div>
         <Content className="admin-content">

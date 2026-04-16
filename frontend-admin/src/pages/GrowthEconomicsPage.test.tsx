@@ -27,7 +27,13 @@ vi.mock('@/api/metrics', () => ({
   }),
   fetchMarketingSpend: vi.fn().mockResolvedValue([]),
   createMarketingSpend: vi.fn(),
-  fetchMetricsFunnel: vi.fn().mockResolvedValue({ period: 'current_month', steps: [] }),
+  fetchMetricsFunnel: vi.fn().mockResolvedValue({
+    period: 'current_month',
+    steps: [
+      { key: 'a', title: 'Signup', count: 100, conversion_pct: 0 },
+      { key: 'b', title: 'Paid', count: 50, conversion_pct: 50 },
+    ],
+  }),
 }))
 
 describe('GrowthEconomicsPage', () => {
@@ -35,6 +41,7 @@ describe('GrowthEconomicsPage', () => {
     render(<GrowthEconomicsPage />)
     await waitFor(() => expect(screen.getByText('CR1')).toBeInTheDocument())
     expect(screen.getByText('CAC by Channel')).toBeInTheDocument()
-    expect(screen.getByText('Cohorts M1 / M3 / M6')).toBeInTheDocument()
+    expect(screen.getByText('Cohorts M1 / M3 / M6 (heatmap)')).toBeInTheDocument()
+    expect(screen.getByText('Воронка (event-based)')).toBeInTheDocument()
   })
 })

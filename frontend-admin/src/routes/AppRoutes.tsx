@@ -17,7 +17,12 @@ import { HealthPage } from '@/pages/HealthPage'
 import { ActionLogPage } from '@/pages/ActionLogPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { PromptsPage } from '@/pages/PromptsPage'
+import { CampaignAnalyticsPage } from '@/pages/CampaignAnalyticsPage'
 import { GrowthEconomicsPage } from '@/pages/GrowthEconomicsPage'
+import { OneTimeSalesPage } from '@/pages/OneTimeSalesPage'
+import { PromoAnalyticsPage } from '@/pages/PromoAnalyticsPage'
+import { ReportOptionsAnalyticsPage } from '@/pages/ReportOptionsAnalyticsPage'
+import { SubscriptionsPage } from '@/pages/SubscriptionsPage'
 
 export function AppRoutes() {
   return (
@@ -30,6 +35,11 @@ export function AppRoutes() {
           <Route index element={<DashboardPage />} />
           <Route path="funnel" element={<FunnelPage />} />
           <Route path="growth" element={<GrowthEconomicsPage />} />
+          <Route path="campaigns" element={<CampaignAnalyticsPage />} />
+          <Route path="one-time-sales" element={<OneTimeSalesPage />} />
+          <Route path="report-options" element={<ReportOptionsAnalyticsPage />} />
+          <Route path="promo-analytics" element={<PromoAnalyticsPage />} />
+          <Route path="subscriptions" element={<SubscriptionsPage />} />
           <Route path="orders" element={<OrdersPage />} />
           <Route path="payments" element={<PaymentsPage />} />
           <Route path="users" element={<UsersPage />} />

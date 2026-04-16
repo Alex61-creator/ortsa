@@ -3,18 +3,25 @@ from __future__ import annotations
 from calendar import monthrange
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
+from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from app.api.deps import get_current_admin_user
 from app.db.session import get_db
+from app.models.analytics_event import AnalyticsEvent
 from app.models.marketing_spend_manual import MarketingSpendManual
 from app.models.order import Order, OrderStatus
+from app.models.promocode import Promocode, PromocodeRedemption
+from app.models.subscription import Subscription, SubscriptionStatus
 from app.models.tariff import Tariff
 from app.models.user import User
 from app.schemas.admin_extra import (
+    CampaignPerformanceOut,
+    CampaignPerformanceRow,
     ChannelCacRow,
     CohortRow,
     MarketingSpendCreate,
@@ -24,14 +31,56 @@ from app.schemas.admin_extra import (
     MetricsFunnelOut,
     MetricsOverviewOut,
     MetricValueCard,
+    OneTimeMonthRow,
+    OneTimeMonthlyOut,
+    PromoPerformanceOut,
+    PromoPerformanceRow,
+    ReportOptionsAnalyticsOut,
+    SubscriptionExportRow,
+    SubscriptionListOut,
+    SubscriptionMonthRow,
+    SubscriptionsOverviewOut,
 )
 from app.schemas.admin_extra import FunnelStep
 from app.services.admin_logs import append_admin_log
 from app.services.analytics import fetch_addon_counts, fetch_first_paid_users_by_period, fetch_paid_orders_revenue, record_analytics_event
-from app.services.event_based_metrics import compute_funnel_steps, compute_growth_metrics, compute_retention_cohorts
-from app.services.event_based_metrics import compute_channel_cac_rows
+from app.services.event_based_metrics import (
+    compute_campaign_performance,
+    compute_channel_cac_rows,
+    compute_funnel_steps,
+    compute_growth_metrics,
+    compute_retention_cohorts,
+)
+from app.services.report_option_pricing import aggregate_report_option_analytics
 
 router = APIRouter()
+
+_MONTHS_RU = {
+    1: "Янв", 2: "Фев", 3: "Мар", 4: "Апр", 5: "Май", 6: "Июн",
+    7: "Июл", 8: "Авг", 9: "Сен", 10: "Окт", 11: "Ноя", 12: "Дек",
+}
+
+
+def _last_n_calendar_months(n: int) -> list[tuple[int, int]]:
+    now = datetime.now(timezone.utc)
+    y, m = now.year, now.month
+    buckets: list[tuple[int, int]] = []
+    for _ in range(n):
+        buckets.append((y, m))
+        m -= 1
+        if m < 1:
+            m = 12
+            y -= 1
+    return list(reversed(buckets))
+
+
+def _month_window_utc(year: int, month: int) -> tuple[datetime, datetime]:
+    start = datetime(year, month, 1, tzinfo=timezone.utc)
+    if month == 12:
+        end = datetime(year + 1, 1, 1, tzinfo=timezone.utc)
+    else:
+        end = datetime(year, month + 1, 1, tzinfo=timezone.utc)
+    return start, end
 
 
 def _period_bounds(period: str, date_from: datetime | None, date_to: datetime | None) -> tuple[datetime, datetime, datetime, datetime]:
@@ -183,6 +232,84 @@ async def create_manual_spend(
     return MarketingSpendRow.model_validate(row)
 
 
+@router.get(
+    "/campaign-performance",
+    response_model=CampaignPerformanceOut,
+    summary="UTM / кампания: конверсии и выручка (события)",
+)
+async def campaign_performance(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin_user),
+    date_from: datetime | None = Query(default=None),
+    date_to: datetime | None = Query(default=None),
+    group_by: Literal["campaign", "source"] = Query(default="campaign"),
+    billing_segment: Literal["all", "one_time", "subscription"] = Query(default="all"),
+):
+    now = datetime.now(timezone.utc)
+    if date_from and date_to:
+        start_at, end_at = date_from, date_to
+        if end_at <= start_at:
+            start_at, end_at = end_at - timedelta(days=30), end_at
+    else:
+        end_at = now
+        start_at = end_at - timedelta(days=30)
+    seg_filter = None if billing_segment == "all" else billing_segment
+    rows_raw, methodology = await compute_campaign_performance(
+        db,
+        start_at,
+        end_at,
+        group_by=group_by,
+        billing_segment=seg_filter,
+    )
+    rows = [CampaignPerformanceRow(**r) for r in rows_raw]
+    return CampaignPerformanceOut(
+        period_start=start_at,
+        period_end=end_at,
+        group_by=group_by,
+        billing_segment=billing_segment,
+        methodology=methodology,
+        rows=rows,
+    )
+
+
+@router.get(
+    "/campaign-performance/one-time",
+    response_model=CampaignPerformanceOut,
+    summary="Кампании: только разовые заказы (billing_type one_time)",
+)
+async def campaign_performance_one_time(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin_user),
+    date_from: datetime | None = Query(default=None),
+    date_to: datetime | None = Query(default=None),
+    group_by: Literal["campaign", "source"] = Query(default="campaign"),
+):
+    now = datetime.now(timezone.utc)
+    if date_from and date_to:
+        start_at, end_at = date_from, date_to
+        if end_at <= start_at:
+            start_at, end_at = end_at - timedelta(days=30), end_at
+    else:
+        end_at = now
+        start_at = end_at - timedelta(days=30)
+    rows_raw, methodology = await compute_campaign_performance(
+        db,
+        start_at,
+        end_at,
+        group_by=group_by,
+        billing_segment="one_time",
+    )
+    rows = [CampaignPerformanceRow(**r) for r in rows_raw]
+    return CampaignPerformanceOut(
+        period_start=start_at,
+        period_end=end_at,
+        group_by=group_by,
+        billing_segment="one_time",
+        methodology=methodology,
+        rows=rows,
+    )
+
+
 @router.get("/overview", response_model=MetricsOverviewOut, summary="Growth metrics overview")
 async def metrics_overview(
     period: str = Query(default="current_month"),
@@ -329,3 +456,217 @@ async def metrics_economics(
         channel_cac=channel_rows,
         action_hints=hints,
     )
+
+
+@router.get("/one-time-monthly", response_model=OneTimeMonthlyOut, summary="Разовые продажи по месяцам")
+async def one_time_monthly(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin_user),
+    months: int = Query(default=12, ge=1, le=36),
+):
+    methodology = (
+        "Заказы со статусами paid и completed, tariffs.billing_type = one_time; "
+        "AOV = revenue / orders_count."
+    )
+    rows: list[OneTimeMonthRow] = []
+    for y, m in _last_n_calendar_months(months):
+        ms, me = _month_window_utc(y, m)
+        rev, cnt = (
+            await db.execute(
+                select(
+                    func.coalesce(func.sum(Order.amount), Decimal("0")),
+                    func.count(Order.id),
+                )
+                .select_from(Order)
+                .join(Tariff, Tariff.id == Order.tariff_id)
+                .where(
+                    Tariff.billing_type == "one_time",
+                    Order.status.in_((OrderStatus.PAID, OrderStatus.COMPLETED)),
+                    Order.created_at >= ms,
+                    Order.created_at < me,
+                )
+            )
+        ).one()
+        revenue = float(rev or 0)
+        orders_count = int(cnt or 0)
+        aov = revenue / orders_count if orders_count else 0.0
+        rows.append(
+            OneTimeMonthRow(
+                month=f"{_MONTHS_RU[m]} {y}",
+                orders_count=orders_count,
+                revenue_rub=round(revenue, 2),
+                aov_rub=round(aov, 2),
+            )
+        )
+    return OneTimeMonthlyOut(methodology=methodology, rows=rows)
+
+
+@router.get(
+    "/report-options-analytics",
+    response_model=ReportOptionsAnalyticsOut,
+    summary="Аналитика тумблеров report/bundle",
+)
+async def report_options_analytics(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin_user),
+):
+    raw = await aggregate_report_option_analytics(db)
+    methodology = (
+        "Последние заказы с непустым report_option_flags (до 3000 строк). "
+        "Оценка выручки опций — compute_toggle_line по app_settings, без скидки промокода на тариф."
+    )
+    return ReportOptionsAnalyticsOut(
+        methodology=methodology,
+        key_counts=raw["key_counts"],
+        bucket_counts=raw["bucket_counts"],
+        estimated_options_revenue_rub=raw["estimated_options_revenue_rub"],
+        orders_sampled=raw["orders_sampled"],
+    )
+
+
+@router.get("/promo-performance", response_model=PromoPerformanceOut, summary="Эффективность промокодов")
+async def promo_performance(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin_user),
+):
+    methodology = (
+        "promocode_redemptions ⋈ orders: число погашений, сумма discount_amount, сумма amount заказов (выручка чека)."
+    )
+    stmt = (
+        select(
+            Promocode.code,
+            func.count(PromocodeRedemption.id),
+            func.coalesce(func.sum(PromocodeRedemption.discount_amount), Decimal("0")),
+            func.coalesce(func.sum(Order.amount), Decimal("0")),
+        )
+        .select_from(PromocodeRedemption)
+        .join(Promocode, Promocode.id == PromocodeRedemption.promocode_id)
+        .join(Order, Order.id == PromocodeRedemption.order_id)
+        .group_by(Promocode.id, Promocode.code)
+        .order_by(func.count(PromocodeRedemption.id).desc())
+    )
+    out_rows: list[PromoPerformanceRow] = []
+    for code, red_cnt, disc_sum, ord_sum in (await db.execute(stmt)).all():
+        out_rows.append(
+            PromoPerformanceRow(
+                promocode=str(code),
+                redemptions=int(red_cnt or 0),
+                discount_total_rub=float(disc_sum or 0),
+                order_revenue_rub=float(ord_sum or 0),
+            )
+        )
+    return PromoPerformanceOut(methodology=methodology, rows=out_rows)
+
+
+@router.get(
+    "/subscriptions-overview",
+    response_model=SubscriptionsOverviewOut,
+    summary="Подписки: активные, новые, выручка заказов и продлений по месяцам",
+)
+async def subscriptions_overview(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin_user),
+    months: int = Query(default=12, ge=1, le=36),
+):
+    now = datetime.now(timezone.utc)
+    methodology = (
+        "Новые подписки — по subscriptions.created_at. Выручка первых платежей — заказы paid/completed "
+        "с tariffs.billing_type = subscription. Продления — событие subscription_renewal_payment (webhook без order)."
+    )
+    active = int(
+        (
+            await db.scalar(
+                select(func.count(Subscription.id)).where(
+                    Subscription.status == SubscriptionStatus.ACTIVE.value,
+                    or_(
+                        Subscription.current_period_end.is_(None),
+                        Subscription.current_period_end > now,
+                    ),
+                )
+            )
+        )
+        or 0
+    )
+    monthly_rows: list[SubscriptionMonthRow] = []
+    for y, m in _last_n_calendar_months(months):
+        ms, me = _month_window_utc(y, m)
+        new_subs = int(
+            (
+                await db.scalar(
+                    select(func.count(Subscription.id)).where(
+                        Subscription.created_at >= ms,
+                        Subscription.created_at < me,
+                    )
+                )
+            )
+            or 0
+        )
+        sub_orders = (
+            await db.execute(
+                select(
+                    func.count(Order.id),
+                    func.coalesce(func.sum(Order.amount), Decimal("0")),
+                )
+                .select_from(Order)
+                .join(Tariff, Tariff.id == Order.tariff_id)
+                .where(
+                    Tariff.billing_type == "subscription",
+                    Order.status.in_((OrderStatus.PAID, OrderStatus.COMPLETED)),
+                    Order.created_at >= ms,
+                    Order.created_at < me,
+                )
+            )
+        ).one()
+        first_pay_cnt = int(sub_orders[0] or 0)
+        sub_rev = float(sub_orders[1] or 0)
+        ren = (
+            await db.scalar(
+                select(func.coalesce(func.sum(AnalyticsEvent.amount), 0)).where(
+                    AnalyticsEvent.event_name == "subscription_renewal_payment",
+                    AnalyticsEvent.event_time >= ms,
+                    AnalyticsEvent.event_time < me,
+                )
+            )
+        ) or 0
+        monthly_rows.append(
+            SubscriptionMonthRow(
+                month=f"{_MONTHS_RU[m]} {y}",
+                new_subscriptions=new_subs,
+                first_payment_orders=first_pay_cnt,
+                subscription_order_revenue_rub=round(sub_rev, 2),
+                renewal_revenue_rub=round(float(ren), 2),
+            )
+        )
+    return SubscriptionsOverviewOut(
+        methodology=methodology,
+        active_subscriptions_now=active,
+        monthly_rows=monthly_rows,
+    )
+
+
+@router.get("/subscriptions-list", response_model=SubscriptionListOut, summary="Список подписок (админ)")
+async def subscriptions_list(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin_user),
+    limit: int = Query(default=500, ge=1, le=5000),
+):
+    stmt = (
+        select(Subscription)
+        .options(joinedload(Subscription.tariff))
+        .order_by(Subscription.created_at.desc())
+        .limit(limit)
+    )
+    subs = (await db.execute(stmt)).unique().scalars().all()
+    rows = [
+        SubscriptionExportRow(
+            id=s.id,
+            user_id=s.user_id,
+            tariff_code=s.tariff.code if s.tariff else "",
+            status=s.status,
+            current_period_start=s.current_period_start,
+            current_period_end=s.current_period_end,
+            created_at=s.created_at,
+        )
+        for s in subs
+    ]
+    return SubscriptionListOut(rows=rows)

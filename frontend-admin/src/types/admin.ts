@@ -15,6 +15,9 @@ export interface AdminOrderRow {
   updated_at: string
   tariff: TariffSummary
   report_ready: boolean
+  promo_code?: string | null
+  report_option_flags?: Record<string, boolean> | null
+  report_options_line_amount?: string | null
 }
 
 export interface AdminUserRow {
@@ -72,6 +75,18 @@ export interface MrrPoint {
   mrr: number
 }
 
+export interface MonthAmountPoint {
+  month: string
+  amount_rub: number
+}
+
+export interface TariffKpiRow {
+  tariff_code: string
+  tariff_name: string
+  revenue_rub: number
+  ai_cost_rub: number
+}
+
 export interface DashboardSummary {
   order_metrics: {
     failed_orders_total: number
@@ -86,14 +101,21 @@ export interface DashboardSummary {
     new_mrr: number
     churn_mrr: number
     ltv: number
+    revenue_90d_rub?: number
+    refunds_lifetime_rub?: number
   }
   llm_metrics?: {
     llm_cost: number
     roi_pct: number
     avg_report_cost: number
-    tokens_total: number
+    infra_cost_rub?: number
+    payment_fee_rub?: number
+    variable_cost_rub?: number
+    contribution_margin_pct?: number
   }
   mrr_history?: MrrPoint[]
+  ai_cost_history?: MonthAmountPoint[]
+  tariff_kpis?: TariffKpiRow[]
 }
 
 export interface RetryReportResponse {
@@ -258,6 +280,24 @@ export interface MetricsCohortsOut {
   rows: CohortRow[]
 }
 
+export interface CampaignPerformanceRow {
+  segment_key: string
+  signups: number
+  first_paid_users: number
+  first_paid_revenue_rub: number
+  orders_completed: number
+  cr1: number
+}
+
+export interface CampaignPerformanceOut {
+  period_start: string
+  period_end: string
+  group_by: string
+  billing_segment: string
+  methodology: string
+  rows: CampaignPerformanceRow[]
+}
+
 export interface MetricsEconomicsOut {
   period_start: string
   period_end: string
@@ -297,4 +337,64 @@ export interface AppSettingRow {
   value: string
   description: string | null
   updated_at: string
+}
+
+export interface OneTimeMonthRow {
+  month: string
+  orders_count: number
+  revenue_rub: number
+  aov_rub: number
+}
+
+export interface OneTimeMonthlyOut {
+  methodology: string
+  rows: OneTimeMonthRow[]
+}
+
+export interface ReportOptionsAnalyticsOut {
+  methodology: string
+  key_counts: Record<string, number>
+  bucket_counts: Record<string, number>
+  estimated_options_revenue_rub: number
+  orders_sampled: number
+}
+
+export interface PromoPerformanceRow {
+  promocode: string
+  redemptions: number
+  discount_total_rub: number
+  order_revenue_rub: number
+}
+
+export interface PromoPerformanceOut {
+  methodology: string
+  rows: PromoPerformanceRow[]
+}
+
+export interface SubscriptionMonthRow {
+  month: string
+  new_subscriptions: number
+  first_payment_orders: number
+  subscription_order_revenue_rub: number
+  renewal_revenue_rub: number
+}
+
+export interface SubscriptionsOverviewOut {
+  methodology: string
+  active_subscriptions_now: number
+  monthly_rows: SubscriptionMonthRow[]
+}
+
+export interface SubscriptionExportRow {
+  id: number
+  user_id: number
+  tariff_code: string
+  status: string
+  current_period_start: string | null
+  current_period_end: string | null
+  created_at: string
+}
+
+export interface SubscriptionListOut {
+  rows: SubscriptionExportRow[]
 }

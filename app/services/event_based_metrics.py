@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
 
-from sqlalchemy import func, select
+from sqlalchemy import func, literal, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.analytics_event import AnalyticsEvent
+from app.models.order import Order
+from app.models.tariff import Tariff
 from app.schemas.admin_extra import ChannelCacRow, CohortRow, FunnelStep
 
 ELIGIBLE_BASE_TARIFFS: set[str] = {"bundle", "report", "sub_monthly", "sub_annual"}
@@ -478,4 +481,121 @@ async def compute_retention_cohorts(
             )
         )
     return rows_out
+
+
+def _attribution_segment_column(group_by: str):
+    if group_by == "source":
+        return func.lower(func.trim(func.coalesce(AnalyticsEvent.source_channel, literal("direct"))))
+    camp = func.trim(func.coalesce(AnalyticsEvent.utm_campaign, literal("")))
+    inner = func.nullif(camp, "")
+    return func.lower(func.coalesce(inner, literal("(no campaign)")))
+
+
+async def compute_campaign_performance(
+    db: AsyncSession,
+    start_at: datetime,
+    end_at: datetime,
+    *,
+    group_by: str = "campaign",
+    billing_segment: str | None = None,
+) -> tuple[list[dict], str]:
+    """
+    Агрегаты по analytics_events: signup_completed, first_purchase_completed (выручка = sum amount),
+    order_completed (число уникальных order_id).
+    billing_segment one_time|subscription — только события с order_id и тарифом заказа.
+    """
+    seg = _attribution_segment_column(group_by)
+    methodology = (
+        "События в analytics_events за период; сегмент last-touch: "
+        + ("utm_campaign (пусто → «(no campaign)»)" if group_by == "campaign" else "source_channel")
+        + ". CR1 = first_paid_users / signups по сегменту."
+    )
+    if billing_segment == "one_time":
+        methodology += (
+            " first_purchase_completed и order_completed учитываются только для заказов "
+            "с tariffs.billing_type = one_time. signups — все signup_completed (без фильтра по тарифу)."
+        )
+    elif billing_segment == "subscription":
+        methodology += (
+            " first_purchase_completed и order_completed — только subscription-тарифы заказа. "
+            "signups — все signup_completed."
+        )
+
+    merged: dict[str, dict[str, float | int]] = defaultdict(
+        lambda: {"signups": 0, "first_paid_users": 0, "first_paid_revenue_rub": 0.0, "orders_completed": 0}
+    )
+
+    signup_stmt = (
+        select(seg.label("sk"), func.count(func.distinct(AnalyticsEvent.user_id)))
+        .where(
+            AnalyticsEvent.event_name == "signup_completed",
+            AnalyticsEvent.event_time >= start_at,
+            AnalyticsEvent.event_time < end_at,
+            AnalyticsEvent.user_id.is_not(None),
+        )
+        .group_by(seg)
+    )
+    for sk, cnt in (await db.execute(signup_stmt)).all():
+        merged[str(sk)]["signups"] = int(cnt or 0)
+
+    fp_stmt = (
+        select(
+            seg.label("sk"),
+            func.count(func.distinct(AnalyticsEvent.user_id)).label("users"),
+            func.coalesce(func.sum(AnalyticsEvent.amount), 0).label("rev"),
+        )
+        .where(
+            AnalyticsEvent.event_name == "first_purchase_completed",
+            AnalyticsEvent.event_time >= start_at,
+            AnalyticsEvent.event_time < end_at,
+            AnalyticsEvent.user_id.is_not(None),
+        )
+    )
+    if billing_segment in ("one_time", "subscription"):
+        fp_stmt = (
+            fp_stmt.join(Order, Order.id == AnalyticsEvent.order_id)
+            .join(Tariff, Tariff.id == Order.tariff_id)
+            .where(Tariff.billing_type == billing_segment)
+        )
+    fp_stmt = fp_stmt.group_by(seg)
+    for sk, users, rev in (await db.execute(fp_stmt)).all():
+        key = str(sk)
+        merged[key]["first_paid_users"] = int(users or 0)
+        merged[key]["first_paid_revenue_rub"] = float(rev or 0)
+
+    oc_stmt = (
+        select(seg.label("sk"), func.count(func.distinct(AnalyticsEvent.order_id)).label("oc"))
+        .where(
+            AnalyticsEvent.event_name == "order_completed",
+            AnalyticsEvent.event_time >= start_at,
+            AnalyticsEvent.event_time < end_at,
+            AnalyticsEvent.order_id.is_not(None),
+        )
+    )
+    if billing_segment in ("one_time", "subscription"):
+        oc_stmt = (
+            oc_stmt.join(Order, Order.id == AnalyticsEvent.order_id)
+            .join(Tariff, Tariff.id == Order.tariff_id)
+            .where(Tariff.billing_type == billing_segment)
+        )
+    oc_stmt = oc_stmt.group_by(seg)
+    for sk, oc in (await db.execute(oc_stmt)).all():
+        merged[str(sk)]["orders_completed"] = int(oc or 0)
+
+    rows: list[dict] = []
+    for sk, m in sorted(merged.items(), key=lambda kv: kv[1]["first_paid_revenue_rub"], reverse=True):
+        su = int(m["signups"])
+        fp = int(m["first_paid_users"])
+        cr1 = (fp / su) if su else 0.0
+        rows.append(
+            {
+                "segment_key": sk,
+                "signups": su,
+                "first_paid_users": fp,
+                "first_paid_revenue_rub": float(m["first_paid_revenue_rub"]),
+                "orders_completed": int(m["orders_completed"]),
+                "cr1": round(cr1, 4),
+            }
+        )
+    return rows, methodology
 

@@ -3,19 +3,20 @@ import { Card, Spin } from 'antd'
 import { fetchDashboardSummary } from '@/api/dashboard'
 import { fetchFunnelSummary } from '@/api/funnel'
 import { fetchHealthWidgets } from '@/api/health'
-import type { DashboardSummary, FunnelSummary, HealthWidget, MrrPoint } from '@/types/admin'
+import { fetchCampaignPerformance } from '@/api/metrics'
+import type { DashboardSummary, FunnelSummary, HealthWidget, MonthAmountPoint, MrrPoint, TariffKpiRow } from '@/types/admin'
 
 /* ─── helpers ─── */
 const fmt = (n: number | undefined, symbol = '₽') =>
   n === undefined ? '—' : `${n.toLocaleString('ru-RU')} ${symbol}`
 
 const FUNNEL_COLORS = ['#1677FF', '#4096FF', '#722ED1', '#EB2F96', '#52C41A']
-const SRC_DATA = [
-  { name: 'Прямые',   cnt: 112, color: '#1677FF' },
-  { name: 'Telegram', cnt: 74,  color: '#2AABEE' },
-  { name: 'Google',   cnt: 38,  color: '#34A853' },
-  { name: 'ВКонтакте',cnt: 15,  color: '#2787F5' },
-  { name: 'Прочие',   cnt: 8,   color: '#D9D9D9' },
+const SOURCE_BAR_COLORS = [
+  'var(--ag-primary)',
+  'var(--ag-info)',
+  'var(--ag-success)',
+  'var(--ag-warning)',
+  '#2AABEE',
 ]
 
 /* ─── STATUS DOT ─── */
@@ -88,25 +89,34 @@ function FunnelMini({ data }: { data: FunnelSummary | null }) {
   )
 }
 
-/* ─── TRAFFIC SOURCES ─── */
-function SourcesChart() {
-  const max = SRC_DATA[0].cnt
+/* ─── TRAFFIC SOURCES (source_channel из событий, 30 дней) ─── */
+function SourcesChart({
+  rows,
+}: {
+  rows: { name: string; signups: number; revenue: number; color: string }[]
+}) {
+  if (!rows.length) {
+    return <div className="admin-empty" style={{ minHeight: 80 }}>Нет событий signup за период</div>
+  }
+  const max = Math.max(...rows.map((s) => s.signups), 1)
   return (
     <>
-      {SRC_DATA.map((s) => (
+      {rows.map((s) => (
         <div key={s.name} className="ag-src-row">
-          <div className="ag-src-name">{s.name}</div>
+          <div className="ag-src-name" title={`Выручка 1-й оплаты: ${s.revenue.toLocaleString('ru-RU')} ₽`}>
+            {s.name}
+          </div>
           <div className="ag-src-bar-w">
             <div
               className="ag-src-bar"
-              style={{ width: `${Math.round((s.cnt / max) * 100)}%`, background: s.color }}
+              style={{ width: `${Math.round((s.signups / max) * 100)}%`, background: s.color }}
             />
           </div>
-          <div className="ag-src-cnt">{s.cnt}</div>
+          <div className="ag-src-cnt">{s.signups}</div>
         </div>
       ))}
       <div className="admin-info-notice">
-        📌 После подключения UTM-меток появится разбивка по рекламным кампаниям.
+        Регистрации по <code>source_channel</code> (последние 30 дней). Полная витрина: раздел «Кампании и UTM».
       </div>
     </>
   )
@@ -143,22 +153,20 @@ function HealthMini({ rows }: { rows: HealthWidget[] }) {
   )
 }
 
-/* ─── ROI BY PLAN ─── */
-function RoiByPlan({ mrr, llmCost }: { mrr: number; llmCost: number }) {
-  const plans = [
-    { name: 'Astro Pro',  rev: mrr * 0.55, cost: llmCost * 0.6  },
-    { name: 'Отчёт',      rev: mrr * 0.3,  cost: llmCost * 0.3  },
-    { name: 'Набор «3»',  rev: mrr * 0.15, cost: llmCost * 0.1  },
-  ]
+/* ─── Выручка и AI по тарифам (из заказов) ─── */
+function TariffKpiBlock({ rows }: { rows: TariffKpiRow[] }) {
+  if (!rows.length) {
+    return <div className="admin-empty" style={{ minHeight: 80 }}>Нет оплаченных заказов</div>
+  }
   return (
     <>
-      {plans.map((p) => {
-        const roi = p.cost > 0 ? Math.round(((p.rev - p.cost) / p.cost) * 100) : 0
+      {rows.map((p) => {
+        const roi = p.ai_cost_rub > 0 ? Math.round(((p.revenue_rub - p.ai_cost_rub) / p.ai_cost_rub) * 100) : 0
         return (
-          <div key={p.name} className="ag-roi-row">
-            <span style={{ fontSize: 13 }}>{p.name}</span>
+          <div key={p.tariff_code} className="ag-roi-row">
+            <span style={{ fontSize: 13 }}>{p.tariff_name}</span>
             <span style={{ fontSize: 12, color: 'var(--ag-muted)' }}>
-              {p.rev.toFixed(0)} ₽ / {p.cost.toFixed(0)} ₽
+              {p.revenue_rub.toFixed(0)} ₽ / AI {p.ai_cost_rub.toFixed(0)} ₽
             </span>
             <span
               style={{
@@ -176,6 +184,32 @@ function RoiByPlan({ mrr, llmCost }: { mrr: number; llmCost: number }) {
   )
 }
 
+function AiCostChart({ points }: { points: MonthAmountPoint[] }) {
+  if (!points.length) return <div className="admin-empty" style={{ height: 80 }}>Нет данных</div>
+  const max = Math.max(...points.map((p) => p.amount_rub), 1)
+  return (
+    <>
+      <div className="ag-mrr-wrap">
+        {points.map((p) => {
+          const h = Math.max(Math.round((p.amount_rub / max) * 76), 2)
+          return (
+            <div key={p.month} className="ag-mrr-col">
+              <div className="ag-mrr-bar" style={{ height: h, background: 'var(--ag-warning)' }} />
+              <span className="ag-mrr-lbl">{p.month}</span>
+            </div>
+          )
+        })}
+      </div>
+      <div className="ag-mrr-legend">
+        <div className="ag-mrr-legend-item">
+          <span className="ag-mrr-legend-dot" style={{ background: 'var(--ag-warning)' }} />
+          Затраты AI (₽)
+        </div>
+      </div>
+    </>
+  )
+}
+
 /* ═══════════════════════════════
    MAIN COMPONENT
    ═══════════════════════════════ */
@@ -183,22 +217,48 @@ export function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
   const [funnel, setFunnel] = useState<FunnelSummary | null>(null)
   const [health, setHealth] = useState<HealthWidget[]>([])
+  const [trafficRows, setTrafficRows] = useState<
+    { name: string; signups: number; revenue: number; color: string }[]
+  >([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     setLoading(true)
+    const end = new Date()
+    const start = new Date()
+    start.setDate(start.getDate() - 30)
     Promise.allSettled([
       fetchDashboardSummary().then(setSummary),
       fetchFunnelSummary('current_month').then(setFunnel).catch(() => null),
       fetchHealthWidgets().then(setHealth).catch(() => []),
+      fetchCampaignPerformance({
+        date_from: start.toISOString(),
+        date_to: end.toISOString(),
+        group_by: 'source',
+        billing_segment: 'all',
+      })
+        .then((camp) => {
+          const top = [...camp.rows]
+            .sort((a, b) => b.signups - a.signups)
+            .slice(0, 6)
+          setTrafficRows(
+            top.map((r, i) => ({
+              name: r.segment_key,
+              signups: r.signups,
+              revenue: r.first_paid_revenue_rub,
+              color: SOURCE_BAR_COLORS[i % SOURCE_BAR_COLORS.length],
+            })),
+          )
+        })
+        .catch(() => setTrafficRows([])),
     ]).finally(() => setLoading(false))
   }, [])
 
   const bm = summary?.business_metrics
   const lm = summary?.llm_metrics
-  const mrr = bm?.mrr ?? 0
-  const llmCost = lm?.llm_cost ?? 0
   const mrrHistory = summary?.mrr_history ?? []
+  const aiCostHistory = summary?.ai_cost_history ?? []
+  const tariffKpis = summary?.tariff_kpis ?? []
 
   return (
     <Spin spinning={loading}>
@@ -210,59 +270,59 @@ export function DashboardPage() {
           <div className="admin-metric-delta admin-metric-delta--up">↑ всего активных</div>
         </div>
         <div className="admin-metric-card">
-          <div className="admin-metric-label">MRR</div>
+          <div className="admin-metric-label">Выручка (paid+completed)</div>
           <div className="admin-metric-value">{bm ? fmt(bm.mrr) : '—'}</div>
-          <div className="admin-metric-delta admin-metric-delta--up">↑ +{bm ? fmt(bm.new_mrr) : '—'} new</div>
+          <div className="admin-metric-delta admin-metric-delta--dim">все время</div>
         </div>
         <div className="admin-metric-card">
-          <div className="admin-metric-label">New MRR</div>
+          <div className="admin-metric-label">Выручка 30 дней</div>
           <div className="admin-metric-value" style={{ color: 'var(--ag-success)' }}>
-            +{bm ? fmt(bm.new_mrr) : '—'}
+            {bm ? fmt(bm.new_mrr) : '—'}
           </div>
-          <div className="admin-metric-delta admin-metric-delta--dim">новые подписки</div>
+          <div className="admin-metric-delta admin-metric-delta--dim">те же статусы заказов</div>
         </div>
         <div className="admin-metric-card">
-          <div className="admin-metric-label">Churn MRR</div>
+          <div className="admin-metric-label">Возвраты 30 дней</div>
           <div className="admin-metric-value" style={{ color: 'var(--ag-danger)' }}>
-            −{bm ? fmt(bm.churn_mrr) : '—'}
+            {bm ? fmt(bm.churn_mrr) : '—'}
           </div>
-          <div className="admin-metric-delta admin-metric-delta--dn">возвраты</div>
+          <div className="admin-metric-delta admin-metric-delta--dn">sum(refunded_amount)</div>
         </div>
         <div className="admin-metric-card">
-          <div className="admin-metric-label">Ср. LTV</div>
+          <div className="admin-metric-label">Ср. выручка / пользователя</div>
           <div className="admin-metric-value">{bm ? fmt(bm.ltv) : '—'}</div>
-          <div className="admin-metric-delta admin-metric-delta--up">↑ среднее</div>
+          <div className="admin-metric-delta admin-metric-delta--dim">lifetime выручка / users</div>
         </div>
       </div>
 
       {/* ── Row 2: LLM / Ops KPIs ── */}
       <div className="admin-llm-grid">
         <div className="admin-metric-card">
-          <div className="admin-metric-label">Затраты LLM</div>
-          <div className="admin-metric-value">{lm ? fmt(lm.llm_cost, '$') : '—'}</div>
-          <div className="admin-metric-delta admin-metric-delta--dim">GPT-4o · $/токен</div>
+          <div className="admin-metric-label">Затраты AI (заказы)</div>
+          <div className="admin-metric-value">{lm ? fmt(lm.llm_cost) : '—'}</div>
+          <div className="admin-metric-delta admin-metric-delta--dim">sum(ai_cost_amount)</div>
         </div>
         <div className="admin-metric-card">
-          <div className="admin-metric-label">ROI LLM</div>
+          <div className="admin-metric-label">Вклад (gross − переменные)</div>
           <div
             className="admin-metric-value"
-            style={{ color: (lm?.roi_pct ?? 0) > 200 ? 'var(--ag-success)' : 'var(--ag-warning)' }}
+            style={{ color: (lm?.contribution_margin_pct ?? 0) > 30 ? 'var(--ag-success)' : 'var(--ag-warning)' }}
           >
-            {lm?.roi_pct ?? '—'}%
+            {lm?.contribution_margin_pct != null ? `${lm.contribution_margin_pct.toFixed(1)}%` : '—'}
           </div>
-          <div className="admin-metric-delta admin-metric-delta--dim">выручка / затраты</div>
+          <div className="admin-metric-delta admin-metric-delta--dim">доля в выручке</div>
         </div>
         <div className="admin-metric-card">
-          <div className="admin-metric-label">Ср. цена отчёта</div>
-          <div className="admin-metric-value">{lm ? fmt(lm.avg_report_cost, '$') : '—'}</div>
-          <div className="admin-metric-delta admin-metric-delta--dim">на один отчёт</div>
+          <div className="admin-metric-label">Ср. AI на completed</div>
+          <div className="admin-metric-value">{lm ? fmt(lm.avg_report_cost) : '—'}</div>
+          <div className="admin-metric-delta admin-metric-delta--dim">ai_cost / completed</div>
         </div>
         <div className="admin-metric-card">
-          <div className="admin-metric-label">Токенов всего</div>
+          <div className="admin-metric-label">ROI к AI</div>
           <div className="admin-metric-value">
-            {lm ? (lm.tokens_total / 1000).toFixed(1) + 'k' : '—'}
+            {lm?.roi_pct != null ? `${lm.roi_pct.toFixed(0)}%` : '—'}
           </div>
-          <div className="admin-metric-delta admin-metric-delta--dim">за период</div>
+          <div className="admin-metric-delta admin-metric-delta--dim">(выручка − стек) / AI</div>
         </div>
         <div className="admin-metric-card">
           <div className="admin-metric-label">Failed заказов</div>
@@ -296,36 +356,18 @@ export function DashboardPage() {
         <Card
           title="Источники трафика"
           extra={
-            <span className="ag-tag ag-tag-amber" style={{ fontSize: 10 }}>
-              DEMO · UTM в разработке
-            </span>
+            <span style={{ fontSize: 11, color: 'var(--ag-muted)' }}>30 дней · signup_completed</span>
           }
         >
-          <SourcesChart />
+          <SourcesChart rows={trafficRows} />
         </Card>
         <Card
-          title="Затраты LLM по месяцам"
+          title="Затраты AI по месяцам"
           extra={
-            <span style={{ fontSize: 11, color: 'var(--ag-muted)' }}>GPT-4o · $/токен × курс</span>
+            <span style={{ fontSize: 11, color: 'var(--ag-muted)' }}>Из поля ai_cost_amount</span>
           }
         >
-          {mrrHistory.length > 0 ? (
-            <div className="ag-mrr-wrap">
-              {mrrHistory.map((p) => {
-                const cost = p.mrr * 0.18
-                const max = Math.max(...mrrHistory.map((x) => x.mrr * 0.18), 1)
-                const h = Math.max(Math.round((cost / max) * 76), 2)
-                return (
-                  <div key={p.month} className="ag-mrr-col">
-                    <div className="ag-mrr-bar" style={{ height: h, background: 'var(--ag-warning)' }} />
-                    <span className="ag-mrr-lbl">{p.month}</span>
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <div className="admin-empty">Нет данных</div>
-          )}
+          <AiCostChart points={aiCostHistory} />
         </Card>
       </div>
 
@@ -335,12 +377,12 @@ export function DashboardPage() {
           <HealthMini rows={health} />
         </Card>
         <Card
-          title="ROI по тарифам"
+          title="Выручка и AI по тарифам"
           extra={
-            <span style={{ fontSize: 11, color: 'var(--ag-muted)' }}>Выручка / затраты LLM</span>
+            <span style={{ fontSize: 11, color: 'var(--ag-muted)' }}>Заказы paid / completed / refunded</span>
           }
         >
-          <RoiByPlan mrr={mrr} llmCost={llmCost} />
+          <TariffKpiBlock rows={tariffKpis} />
         </Card>
       </div>
     </Spin>
