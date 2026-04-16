@@ -10,6 +10,7 @@ from sqlalchemy.orm import joinedload
 from yookassa import Configuration, Payment
 
 from app.core.config import settings
+from app.core.cache import cache
 from app.models.order import Order, OrderStatus
 from app.models.subscription import Subscription, SubscriptionStatus
 Configuration.account_id = settings.YOOKASSA_SHOP_ID
@@ -216,6 +217,14 @@ class YookassaPaymentService:
                 paid_order_id = result.scalar_one_or_none()
             if paid_order_id is not None:
                 logger.info("Order marked as paid", order_id=paid_order_id)
+                # Метрика paid->completed latency:
+                # фиксируем момент оплаты, а финальную задержку считаем в report_generation
+                # (или сразу для credit-like тарифов, которые завершаются без генерации).
+                paid_at_key = f"ops:paid_at:{paid_order_id}"
+                paid_completed_latencies_key = "ops:paid_completed_latencies"
+                paid_at_ts = datetime.now(timezone.utc).timestamp()
+                await cache.set(paid_at_key, paid_at_ts, ttl=7 * 24 * 3600)
+
                 stmt = (
                     select(Order)
                     .where(Order.id == paid_order_id)
@@ -240,6 +249,16 @@ class YookassaPaymentService:
                         "synastry_addon order completed (no report generation)",
                         order_id=paid_order_id,
                     )
+                    # credit-like тариф: считаем latency сразу (report_generation не запустится)
+                    try:
+                        paid_at_value = await cache.get(paid_at_key)
+                        if paid_at_value is not None:
+                            latency_seconds = max(0.0, datetime.now(timezone.utc).timestamp() - float(paid_at_value))
+                            await cache.redis.lpush(paid_completed_latencies_key, latency_seconds)
+                            await cache.redis.ltrim(paid_completed_latencies_key, 0, 999)
+                            await cache.redis.expire(paid_completed_latencies_key, 7 * 24 * 3600)
+                    finally:
+                        await cache.delete(paid_at_key)
                 else:
                     from app.tasks.report_generation import generate_report_task
                     generate_report_task.delay(paid_order_id)

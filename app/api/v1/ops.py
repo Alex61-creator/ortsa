@@ -18,6 +18,8 @@ router = APIRouter()
 class OrderOpsMetrics(BaseModel):
     failed_orders_total: int
     processing_stuck_over_2h: int
+    paid_completed_latency_p50_seconds: float | None = None
+    paid_completed_latency_p95_seconds: float | None = None
     checked_at: datetime
 
 

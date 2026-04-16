@@ -11,6 +11,7 @@ celery_app = Celery(
     backend=settings.CELERY_RESULT_BACKEND,
     include=[
         "app.tasks.report_generation",
+        "app.tasks.synastry_generation",
         "app.tasks.cleanup",
         "app.tasks.subscription_renewal",
         "app.tasks.monthly_digest",
@@ -28,6 +29,15 @@ celery_app.conf.update(
     task_time_limit=40 * 60,       # hard kill: 40 мин (LLM 300s × retries + PDF + email)
     task_soft_time_limit=35 * 60,  # graceful: 35 мин → SoftTimeLimitExceeded перехватывается в задаче
     task_acks_late=True,
+    task_default_queue="default",
+    task_routes={
+        "app.tasks.report_generation.*": {"queue": "heavy"},
+        "app.tasks.synastry_generation.*": {"queue": "heavy"},
+        "app.tasks.monthly_digest.*": {"queue": "io"},
+        "app.tasks.subscription_renewal.*": {"queue": "io"},
+        "app.tasks.subscription_finalize.*": {"queue": "io"},
+        "app.tasks.cleanup.*": {"queue": "io"},
+    },
     worker_prefetch_multiplier=1,
     broker_transport_options={"visibility_timeout": 3600},
     result_expires=3600,

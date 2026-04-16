@@ -6,6 +6,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import create_access_token
+from app.core.cache import cache
 from app.models.order import Order, OrderStatus
 from app.models.tariff import Tariff
 from app.models.user import OAuthProvider, User
@@ -69,3 +70,63 @@ async def test_ops_metrics_ok_for_admin(client: AsyncClient, db_session: AsyncSe
     data = r.json()
     assert data["failed_orders_total"] >= 1
     assert data["processing_stuck_over_2h"] >= 1
+
+
+@pytest.mark.asyncio
+async def test_ops_metrics_latency_p50_p95_from_redis(client: AsyncClient, db_session: AsyncSession):
+    admin = User(
+        email="admin-ops-latency@example.com",
+        external_id="admin-ops-latency",
+        oauth_provider=OAuthProvider.GOOGLE,
+        consent_given_at=datetime.utcnow(),
+        is_admin=True,
+    )
+    db_session.add(admin)
+    tariff = Tariff(
+        code="report",
+        name="Отчёт",
+        price=Decimal("100.00"),
+        price_usd=Decimal("1.00"),
+        features={"max_natal_profiles": 1},
+        retention_days=30,
+        llm_tier="natal_full",
+    )
+    db_session.add(tariff)
+    await db_session.flush()
+
+    old = datetime.now(timezone.utc) - timedelta(hours=3)
+    db_session.add(
+        Order(
+            user_id=admin.id,
+            natal_data_id=None,
+            tariff_id=tariff.id,
+            amount=Decimal("100.00"),
+            status=OrderStatus.FAILED,
+        )
+    )
+    db_session.add(
+        Order(
+            user_id=admin.id,
+            natal_data_id=None,
+            tariff_id=tariff.id,
+            amount=Decimal("100.00"),
+            status=OrderStatus.PROCESSING,
+            updated_at=old,
+        )
+    )
+    await db_session.commit()
+
+    # 5 sample latencies => sorted [10, 20, 30, 40, 50]
+    key = "ops:paid_completed_latencies"
+    await cache.redis.delete(key)
+    await cache.redis.lpush(key, 50.0, 40.0, 30.0, 20.0, 10.0)
+
+    token = create_access_token({"sub": str(admin.id), "tv": admin.token_version})
+    r = await client.get(
+        "/api/v1/ops/metrics/orders",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert data["paid_completed_latency_p50_seconds"] == 30.0
+    assert data["paid_completed_latency_p95_seconds"] == 50.0

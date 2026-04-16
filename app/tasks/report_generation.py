@@ -1,7 +1,6 @@
 import asyncio
 from datetime import datetime, timezone
 from celery import shared_task
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 import structlog
@@ -55,6 +54,7 @@ async def _generate_report_async(order_id: int, task_id: str):
         await db.commit()
 
         try:
+            failed_step = "init"
             tariff_stmt = select(Tariff).where(Tariff.id == order.tariff_id)
             tariff_result = await db.execute(tariff_stmt)
             tariff = tariff_result.scalar_one()
@@ -105,6 +105,8 @@ async def _generate_report_async(order_id: int, task_id: str):
                 if getattr(primary_natal, "report_locale", None) in ("ru", "en")
                 else "ru"
             )
+            if report_locale not in ("ru", "en"):
+                report_locale = "ru"
             prompt_stmt = select(LlmPromptTemplate).where(
                 LlmPromptTemplate.tariff_code == tariff.code,
                 LlmPromptTemplate.locale == report_locale,
@@ -120,13 +122,17 @@ async def _generate_report_async(order_id: int, task_id: str):
             pdf_template = "report_free.html" if tier == LlmTier.FREE else "report.html"
 
             generated_pdf_paths = []
+            chart_paths = []
+
+            if not natal_profiles:
+                raise ValueError("No natal profiles for order")
 
             for slot_idx, natal_data in enumerate(natal_profiles):
-                nd_locale = (
-                    natal_data.report_locale
-                    if getattr(natal_data, "report_locale", None) in ("ru", "en")
-                    else "ru"
-                )
+                nd_locale = natal_data.report_locale if getattr(natal_data, "report_locale", None) in ("ru", "en") else "ru"
+                if nd_locale not in ("ru", "en"):
+                    nd_locale = "ru"
+
+                failed_step = f"chart (slot {slot_idx})"
                 cache_key = astro_service.make_cache_key(
                     name=natal_data.full_name,
                     birth_date=natal_data.birth_date,
@@ -136,7 +142,8 @@ async def _generate_report_async(order_id: int, task_id: str):
                     tz_str=natal_data.timezone,
                     house_system=natal_data.house_system,
                 )
-                chart_data = await cache.get(cache_key)
+
+                chart_cached_instance = await cache.get(cache_key)
                 chart_result = await astro_service.calculate_chart(
                     name=natal_data.full_name,
                     birth_date=natal_data.birth_date,
@@ -146,14 +153,16 @@ async def _generate_report_async(order_id: int, task_id: str):
                     tz_str=natal_data.timezone,
                     house_system=natal_data.house_system,
                 )
-                if not chart_data:
-                    chart_data = chart_result["instance"]
-                    await cache.set(cache_key, chart_data, ttl=30 * 24 * 3600)
+
                 png_data = chart_result["png"]
+                chart_data = chart_cached_instance or chart_result["instance"]
+                if not chart_cached_instance:
+                    await cache.set(cache_key, chart_data, ttl=30 * 24 * 3600)
 
                 chart_filename = f"charts/{order_id}_slot{slot_idx}_{datetime.utcnow().timestamp()}.png"
                 chart_path = await storage.save_file(png_data, chart_filename)
 
+                failed_step = f"llm interpretation (slot {slot_idx})"
                 # Для bundle: промпт может зависеть от локали каждого профиля
                 sp_override = system_prompt_override
                 if nd_locale != report_locale:
@@ -165,47 +174,90 @@ async def _generate_report_async(order_id: int, task_id: str):
                     p_rec = p_res.scalar_one_or_none()
                     sp_override = p_rec.system_prompt if p_rec else None
 
-            pdf_generator = PDFGenerator()
-            tier = resolve_llm_tier(tariff.code, getattr(tariff, "llm_tier", None))
-            pdf_template = "report_free.html" if tier == LlmTier.FREE else "report.html"
-            context = {
-                "locale": report_locale,
-                "full_name": natal_data.full_name,
-                "birth_data": f"{natal_data.birth_date.strftime('%d.%m.%Y')} {natal_data.birth_time.strftime('%H:%M')}",
-                "birth_place": natal_data.birth_place,
-                "chart_img_path": f"/app/storage/{chart_filename}",
-                "interpretation": interpretation.raw_content,
-                "interpretation_sections": interpretation.sections,
-                "chart_data": chart_data,
-                "tariff_name": tariff.name,
-                "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
-            }
-            pdf_filename = f"reports/report_{order_id}.pdf"
-            pdf_path = await pdf_generator.generate(pdf_template, context, pdf_filename)
+                interpretation = await llm_service.generate_interpretation(
+                    chart_data=chart_data,
+                    tariff=tariff,
+                    locale=nd_locale,
+                    system_prompt_override=sp_override,
+                )
 
-            # Сохраняем Report (первый PDF как основной)
+                failed_step = f"pdf generation (slot {slot_idx})"
+                context = {
+                    "locale": nd_locale,
+                    "full_name": natal_data.full_name,
+                    "birth_data": f"{natal_data.birth_date.strftime('%d.%m.%Y')} {natal_data.birth_time.strftime('%H:%M')}",
+                    "birth_place": natal_data.birth_place,
+                    "chart_img_path": f"/app/storage/{chart_filename}",
+                    "interpretation": interpretation.raw_content,
+                    "interpretation_sections": interpretation.sections,
+                    "chart_data": chart_data,
+                    "tariff_name": tariff.name,
+                    "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+                }
+
+                # Canonical: first PDF goes to `report.pdf_path`
+                pdf_filename = (
+                    f"reports/report_{order_id}.pdf"
+                    if slot_idx == 0
+                    else f"reports/report_{order_id}_slot{slot_idx}.pdf"
+                )
+                pdf_path = await pdf_generator.generate(pdf_template, context, pdf_filename)
+                if not pdf_path:
+                    raise ValueError(f"PDF generation returned empty (slot {slot_idx})")
+
+                generated_pdf_paths.append(pdf_path)
+                chart_paths.append(chart_path)
+
+            # ── Guard-checks before completing order ─────────────────────────
+            failed_step = "persist report/order"
+            if not generated_pdf_paths or not generated_pdf_paths[0]:
+                raise ValueError("No generated PDFs")
+            if not chart_paths or not chart_paths[0]:
+                raise ValueError("No generated chart paths")
+
+            # Observability: paid->completed latency (фиксируем после генерации PDF).
+            # Поскольку в Order нет отдельных paid/completed timestamps, используем временную метку из webhook.
+            paid_at_key = f"ops:paid_at:{order.id}"
+            latencies_key = "ops:paid_completed_latencies"
+            try:
+                paid_at_value = await cache.get(paid_at_key)
+                if paid_at_value is not None:
+                    now_ts = datetime.now(timezone.utc).timestamp()
+                    latency_seconds = max(0.0, now_ts - float(paid_at_value))
+                    await cache.redis.lpush(latencies_key, latency_seconds)
+                    await cache.redis.ltrim(latencies_key, 0, 999)
+                    await cache.redis.expire(latencies_key, 7 * 24 * 3600)
+                    await cache.delete(paid_at_key)
+            except Exception as latency_exc:
+                logger.warning(
+                    "paid->completed latency write failed",
+                    order_id=order.id,
+                    error=str(latency_exc),
+                )
+
             report_stmt = select(Report).where(Report.order_id == order.id)
             report_result = await db.execute(report_stmt)
             report = report_result.scalar_one_or_none()
             if not report:
                 report = Report(order_id=order.id)
                 db.add(report)
+
             report.pdf_path = str(generated_pdf_paths[0])
-            report.chart_path = str(chart_path)  # chart последнего (или единственного) слота
+            report.chart_path = str(chart_paths[0])  # canonical chart = slot 0
             report.status = ReportStatus.ACTIVE
             report.generated_at = datetime.now(timezone.utc)
 
             order.status = OrderStatus.COMPLETED
             await db.commit()
 
+            failed_step = "email send"
             email_service = EmailService()
             to_addr = (order.report_delivery_email or "").strip() or (
-                order.user.email if order.user else None
+                order.user.email if getattr(order, "user", None) else None
             )
             if not to_addr:
                 raise ValueError("No delivery email for report")
 
-            # Отправляем письмо с первым PDF + extras как вложения (bundle)
             primary_locale = (
                 primary_natal.report_locale
                 if getattr(primary_natal, "report_locale", None) in ("ru", "en")
@@ -228,7 +280,7 @@ async def _generate_report_async(order_id: int, task_id: str):
                     "order_id": order.id,
                     "download_link": f"{settings.public_app_base_url}/reports/{order.id}",
                 },
-                attachments=generated_pdf_paths,  # все PDF для bundle
+                attachments=generated_pdf_paths,
             )
 
             logger.info(
@@ -241,8 +293,9 @@ async def _generate_report_async(order_id: int, task_id: str):
         except Exception as e:
             logger.exception(
                 "Report generation failed",
-                order_id=order.id,
+                order_id=order_id,
                 user_id=order.user_id,
+                step=locals().get("failed_step", "unknown"),
                 error=str(e),
             )
             order.status = OrderStatus.FAILED

@@ -1,5 +1,7 @@
 # URL для регистрации внешних сервисов (прод)
 
+Последняя верификация: `2026-04-15`
+
 Заполните после выбора **боевого домена** и HTTPS. Значения подставляются в `.env` (не коммитить).
 
 | Сервис | Куда вставить | Пример шаблона |
@@ -13,9 +15,14 @@
 | **Админ-SPA** | `ADMIN_APP_ORIGIN`, CORS | `https://admin.ВАШ-ДОМЕН` (рекомендуемый вариант; шаблоны `Caddyfile` и `deploy/Caddyfile.prod.example` уже включают `admin.<домен>`, `X-Robots-Tag: noindex` и `robots.txt` с `Disallow: /`) |
 | **Telegram Mini App** | BotFather → Web App URL | **`https://ВАШ-ДОМЕН/`** (корень React SPA); авторизация через `POST /api/v1/auth/twa` по `initData`. |
 
-**Почта ([Unisender](https://www.unisender.com/)):** SMTP-параметры и DKIM задаются в кабинете Unisender; в DNS домена отправки — записи SPF/DKIM/DMARC по инструкции провайдера (см. `PRODUCTION_IMPLEMENTATION.md` §2.3.1).
+**Почта ([Unisender](https://www.unisender.com/)):** SMTP-параметры и DKIM задаются в кабинете Unisender; в DNS домена отправки — записи SPF/DKIM/DMARC по инструкции провайдера (см. `PRODUCTION_READINESS_AND_GROWTH_PLAN.md`).
 
 **Проверка после деплоя:** HTTP→HTTPS, `GET /health`, `GET /health/ready`, тестовый платёж ЮKassa → вебхук → письмо с отчётом → ссылка в письме открывает `/reports/:id`.
+
+Чеклист sec-doc-only по TLS/секретам/callbacks/backup-restore:
+- проверить, что `YOOKASSA_RETURN_URL` и webhook endpoint настроены на `https://` и совпадают с тем, что указано в `.env` и `DEPLOY_URLS.md`;
+- проверить, что включены `YOOKASSA_WEBHOOK_VERIFY_IP` и `YOOKASSA_WEBHOOK_VERIFY_API` и что обработчик webhooks отклоняет неверный IP/подпись (см. `tests/test_webhooks.py`);
+- выполнить DR drill “dump -> restore в staging” по `DB_MIGRATION_AND_RESTORE_RUNBOOK.md` и зафиксировать результат.
 
 ### OAuth: почему должен быть `https://`, а не `http://`
 

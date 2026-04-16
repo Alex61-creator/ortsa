@@ -120,7 +120,7 @@ async def admin_dashboard_summary(
 
     return AdminDashboardSummary(
         order_metrics=OrderMetricsBlock(**raw),
-        analytics_stub=False,
+        analytics_stub=True,
         business_metrics={
             "users_total": users_total,
             "mrr": round(mrr, 2),

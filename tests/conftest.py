@@ -88,6 +88,8 @@ engine = create_async_engine(
     connect_args={"check_same_thread": False, "uri": True},
     poolclass=StaticPool,
 )
+# В тестах используем `expire_on_commit=False`, чтобы не провоцировать lazy-load при простом чтении атрибутов
+# (в async SQLAlchemy это может приводить к MissingGreenlet).
 TestingSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
@@ -97,6 +99,16 @@ async def override_get_db():
 
 
 app.dependency_overrides[get_db] = override_get_db
+
+# Tasks like `app.tasks.report_generation` use `AsyncSessionLocal` directly (not FastAPI deps),
+# so for tests we must route them to the same in-memory TestingSessionLocal.
+try:
+    import app.tasks.report_generation as report_generation_module
+
+    report_generation_module.AsyncSessionLocal = TestingSessionLocal
+except Exception:
+    # If the module can't be imported in the current environment, tests will fail elsewhere anyway.
+    pass
 
 
 @pytest.fixture(scope="function", autouse=True)

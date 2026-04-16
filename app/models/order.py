@@ -30,7 +30,14 @@ class Order(Base):
         ForeignKey("natal_data.id", ondelete="RESTRICT"), nullable=True
     )
     tariff_id: Mapped[int] = mapped_column(ForeignKey("tariffs.id"), nullable=False)
-    status: Mapped[OrderStatus] = mapped_column(SQLEnum(OrderStatus), default=OrderStatus.PENDING, nullable=False)
+    # Используем `.value` (pending/paid/failed), чтобы SQLAlchemy корректно маппило значения
+    # при работе с не-native enum (SQLite и т.п.). Иначе возможна ситуация,
+    # когда в БД хранятся enum "имена" (PAID/FAILED), а ORM возвращает неверное значение.
+    status: Mapped[OrderStatus] = mapped_column(
+        SQLEnum(OrderStatus, values_callable=lambda enum_cls: [e.value for e in enum_cls]),
+        default=OrderStatus.PENDING,
+        nullable=False,
+    )
     yookassa_id: Mapped[str | None] = mapped_column(String(100), unique=True, nullable=True)
     amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     refund_id: Mapped[str | None] = mapped_column(String(100), unique=True, nullable=True)

@@ -2,6 +2,12 @@
 
 Backend сервиса онлайн-натальной карты: FastAPI, PostgreSQL, Redis, Celery, ЮKassa, LLM, PDF.
 
+## Документация
+
+- Product flow, бизнес-логика и маршруты SPA: [`docs/PRODUCT_FLOW_AND_BUSINESS_LOGIC.md`](docs/PRODUCT_FLOW_AND_BUSINESS_LOGIC.md)
+- Прод-ready, масштабирование и post-launch план: [`docs/PRODUCTION_READINESS_AND_GROWTH_PLAN.md`](docs/PRODUCTION_READINESS_AND_GROWTH_PLAN.md)
+- URL для внешних интеграций (OAuth/ЮKassa/почта): [`docs/DEPLOY_URLS.md`](docs/DEPLOY_URLS.md)
+
 ## Требования
 
 - **Python 3.12.x** — поддерживаемая ветка для backend, pytest и Docker-образа (файл [`.python-version`](.python-version), `Dockerfile`, [CI](.github/workflows/tests.yml)). Устанавливайте зависимости из корня: `python3.12 -m pip install -r requirements.txt` (и при тестах `-r requirements-dev.txt`).
@@ -32,7 +38,7 @@ Backend сервиса онлайн-натальной карты: FastAPI, Post
    alembic upgrade head
    ```
 
-**Продакшен (отдельный Compose):** [`docker-compose.prod.yml`](docker-compose.prod.yml) — образ приложения **без** монтирования `./app`; том только для `storage`. Сборка SPA в каталоги для Caddy: `cd frontend && npm run build:deploy` (→ `frontend-dist/`) и `cd ../frontend-admin && npm run build` (→ `frontend-admin/dist/`). Запуск: `docker compose -f docker-compose.prod.yml --env-file .env up -d`. Черновик Caddy с доменом (включая `admin.<домен>` для админ-SPA): [`deploy/Caddyfile.prod.example`](deploy/Caddyfile.prod.example). Резервное копирование БД и `storage`: [`scripts/backup_all.sh`](scripts/backup_all.sh) (см. [`docs/PRODUCTION_IMPLEMENTATION.md`](docs/PRODUCTION_IMPLEMENTATION.md) §1.6).
+**Продакшен (отдельный Compose):** [`docker-compose.prod.yml`](docker-compose.prod.yml) — образ приложения **без** монтирования `./app`; том только для `storage`. Сборка SPA в каталоги для Caddy: `cd frontend && npm run build:deploy` (→ `frontend-dist/`) и `cd ../frontend-admin && npm run build` (→ `frontend-admin/dist/`). Запуск: `docker compose -f docker-compose.prod.yml --env-file .env up -d`. Черновик Caddy с доменом (включая `admin.<домен>` для админ-SPA): [`deploy/Caddyfile.prod.example`](deploy/Caddyfile.prod.example). Резервное копирование БД и `storage`: [`scripts/backup_all.sh`](scripts/backup_all.sh) (см. [`docs/PRODUCTION_READINESS_AND_GROWTH_PLAN.md`](docs/PRODUCTION_READINESS_AND_GROWTH_PLAN.md)).
 
 ## Локальная разработка (без Docker)
 
@@ -52,9 +58,24 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 Celery:
 
 ```bash
-celery -A app.tasks.worker.celery_app worker --loglevel=info
+# default queue worker (легкие/прочие задачи по умолчанию)
+celery -A app.tasks.worker.celery_app worker -Q default --loglevel=info --hostname=worker-default@%h
+
+# io queue worker (cleanup/digest/subscription)
+celery -A app.tasks.worker.celery_app worker -Q io --loglevel=info --hostname=worker-io@%h
+
+# heavy queue worker (report/synastry generation)
+celery -A app.tasks.worker.celery_app worker -Q heavy --loglevel=info --hostname=worker-heavy@%h
+
+# beat — отдельным процессом
 celery -A app.tasks.worker.celery_app beat --loglevel=info
 ```
+
+Минимальный rollout по очередям:
+
+1. Сначала деплой только `task_routes` при одном worker и проверка маршрутизации.
+2. Затем поднимаем отдельный `heavy` worker.
+3. После стабилизации — физически разделяем `io` и `default` воркеры.
 
 ## Вспомогательные скрипты
 
@@ -74,11 +95,11 @@ PYTHONPATH=. python scripts/create_admin.py
 ./scripts/verify_pg_backup.sh backups/astro_pg_<timestamp>.dump.gz
 ```
 
-Расписание (cron), ротация старых файлов и учебное восстановление — в [`docs/PRODUCTION_IMPLEMENTATION.md`](docs/PRODUCTION_IMPLEMENTATION.md) §1.6.
+Расписание (cron), ротация старых файлов и учебное восстановление — в [`docs/PRODUCTION_READINESS_AND_GROWTH_PLAN.md`](docs/PRODUCTION_READINESS_AND_GROWTH_PLAN.md).
 
 ## Админ-панель (`frontend-admin`)
 
-Отдельное SPA для операторов: дашборд, заказы (перезапуск отчёта, скачивание PDF/PNG, возврат), пользователи, тарифы. REST API: `/api/v1/admin/*`. Вход через Google: `/api/v1/auth/google/authorize-admin`. Переменные окружения (`ADMIN_APP_ORIGIN`, allowlist админов) и выкладка на поддомен — в [`docs/PRODUCTION_IMPLEMENTATION.md`](docs/PRODUCTION_IMPLEMENTATION.md).
+Отдельное SPA для операторов: дашборд, заказы (перезапуск отчёта, скачивание PDF/PNG, возврат), пользователи, тарифы. REST API: `/api/v1/admin/*`. Вход через Google: `/api/v1/auth/google/authorize-admin`. Переменные окружения (`ADMIN_APP_ORIGIN`, allowlist админов) и выкладка на поддомен — в [`docs/PRODUCTION_READINESS_AND_GROWTH_PLAN.md`](docs/PRODUCTION_READINESS_AND_GROWTH_PLAN.md).
 
 ```bash
 cd frontend-admin
