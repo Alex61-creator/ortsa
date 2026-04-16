@@ -23,7 +23,6 @@ import {
   purchaseSynastry,
   regenerateSynastry,
   type SynastryOut,
-  type SynastryQuota,
 } from '@/api/synastry'
 import { listNatalData } from '@/api/natal'
 
@@ -108,7 +107,7 @@ function SynastryDescription() {
 
 // ── Баннер для пользователей без доступа ─────────────────────────────────────
 
-function SynastryLockedBanner({ quota }: { quota: SynastryQuota }) {
+function SynastryLockedBanner() {
   return (
     <div style={{ padding: '0 0 24px' }}>
       <SynastryDescription />
@@ -261,7 +260,7 @@ export function SynastryPage() {
   if (!quota?.has_access) {
     return (
       <div style={{ padding: 24 }}>
-        <SynastryLockedBanner quota={quota!} />
+        <SynastryLockedBanner />
       </div>
     )
   }

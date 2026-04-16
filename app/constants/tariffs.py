@@ -23,7 +23,6 @@ CODE_TO_LLM_TIER: dict[str, LlmTier] = {
     "bundle": LlmTier.NATAL_FULL,
     "sub_monthly": LlmTier.PRO,
     "sub_annual": LlmTier.PRO,
-    "pro": LlmTier.PRO,  # backward-compat alias
     "transit_month_pack": LlmTier.NATAL_FULL,
     "compatibility_deep_dive": LlmTier.NATAL_FULL,
     "return_pack": LlmTier.NATAL_FULL,
@@ -35,7 +34,6 @@ REPORT_RETENTION_DAYS_BY_CODE: dict[str, int] = {
     "bundle": 30,
     "sub_monthly": 180,
     "sub_annual": 180,
-    "pro": 180,
     "transit_month_pack": 30,
     "compatibility_deep_dive": 30,
     "return_pack": 180,
@@ -48,9 +46,6 @@ ADDON_TARIFF_CODES: frozenset[str] = frozenset(
 ADDON_REPORT_TARIFF_CODES: frozenset[str] = frozenset(
     {"transit_month_pack", "compatibility_deep_dive", "return_pack"}
 )
-
-# Коды подписочных тарифов (billing_type = subscription)
-SUBSCRIPTION_CODES = frozenset({"sub_monthly", "sub_annual", "pro"})
 
 # Максимум натальных профилей по умолчанию (если features.max_natal_profiles не задан)
 DEFAULT_MAX_NATAL_PROFILES = 1
@@ -68,16 +63,16 @@ def resolve_llm_tier(code: str, stored_tier: str | None) -> LlmTier:
     return LlmTier.NATAL_FULL
 
 
-# ── Подписки ─────────────────────────────────────────────────────────────────
-SUBSCRIPTION_CODES: frozenset[str] = frozenset({"sub_monthly", "sub_annual", "pro"})
+# ── Подписки (billing_type = subscription) ──────────────────────────────────
+SUBSCRIPTION_CODES: frozenset[str] = frozenset({"sub_monthly", "sub_annual"})
 
 # ── Синастрия ─────────────────────────────────────────────────────────────────
 
 # Тарифы, у которых есть базовый доступ к синастрии
-SYNASTRY_ACCESS_CODES: frozenset[str] = frozenset({"bundle", "sub_monthly", "sub_annual", "pro"})
+SYNASTRY_ACCESS_CODES: frozenset[str] = frozenset({"bundle", "sub_monthly", "sub_annual"})
 
 # Тарифы с безлимитными синастриями (подписки платят ежемесячно — лимит не нужен)
-SYNASTRY_UNLIMITED_CODES: frozenset[str] = frozenset({"sub_monthly", "sub_annual", "pro"})
+SYNASTRY_UNLIMITED_CODES: frozenset[str] = frozenset({"sub_monthly", "sub_annual"})
 
 # Для bundle: количество включённых бесплатных синастрий
 SYNASTRY_BUNDLE_FREE_COUNT: int = 1

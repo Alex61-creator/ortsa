@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, EmailStr
 from decimal import Decimal
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 
 class OrderCreate(BaseModel):
@@ -21,6 +21,10 @@ class OrderCreate(BaseModel):
     promo_code: Optional[str] = Field(
         default=None,
         description="Необязательный промокод для скидки.",
+    )
+    report_options: Optional[Dict[str, bool]] = Field(
+        default=None,
+        description="Доп. разделы отчёта (report/bundle): partnership, children_parenting, career, money_boundaries.",
     )
 
 

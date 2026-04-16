@@ -1,4 +1,5 @@
 import asyncio
+import json
 from datetime import datetime, timezone
 from celery import shared_task
 from sqlalchemy import select
@@ -18,6 +19,7 @@ from app.services.storage import StorageService
 from app.services.email import EmailService  # backward-compatible import for tests
 from app.services.prompt_templates import PromptTemplateService
 from app.core.cache import cache
+from app.constants.report_options import build_report_options_prompt_addon
 from app.constants.tariffs import LlmTier, resolve_llm_tier
 from app.schemas.astrology import ChartResultSchema
 from app.services.analytics import get_user_attribution, record_analytics_event
@@ -203,6 +205,22 @@ async def _generate_report_async(order_id: int, task_id: str):
                         db, tariff.code, nd_locale
                     )
 
+                flags_dict = (
+                    order.report_option_flags
+                    if isinstance(getattr(order, "report_option_flags", None), dict)
+                    else {}
+                )
+                ro_addon = build_report_options_prompt_addon(flags_dict)
+                if ro_addon:
+                    slot_tier = resolve_llm_tier(tariff.code, getattr(tariff, "llm_tier", None))
+                    base_sp = (
+                        sp_override
+                        if sp_override is not None
+                        else llm_service.build_system_prompt(slot_tier, nd_locale)
+                    )
+                    sp_override = base_sp + ro_addon
+                llm_cache_extra = json.dumps(flags_dict, sort_keys=True) if flags_dict else None
+
                 interpretation = await llm_service.generate_interpretation(
                     chart_data=chart_data,
                     tariff=tariff,
@@ -211,6 +229,7 @@ async def _generate_report_async(order_id: int, task_id: str):
                     chart_context=(
                         chart_result_valid.llm_context if settings.LLM_USE_KERYKEION_CONTEXT else None
                     ),
+                    llm_cache_extra=llm_cache_extra,
                 )
 
                 failed_step = f"pdf generation (slot {slot_idx})"

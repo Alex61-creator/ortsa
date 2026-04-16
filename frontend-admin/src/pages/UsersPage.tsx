@@ -202,7 +202,8 @@ function SynastryTab({ userId }: { userId: number }) {
 
 /* ── tag helpers ── */
 const planTagClass: Record<string, string> = {
-  pro: 'ag-tag-purple',
+  sub_monthly: 'ag-tag-purple',
+  sub_annual: 'ag-tag-purple',
   report: 'ag-tag-blue',
   bundle: 'ag-tag-amber',
   free: 'ag-tag-gray',

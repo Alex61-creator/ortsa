@@ -6,6 +6,7 @@ import { listOrders } from '@/api/orders'
 import { listNatalData } from '@/api/natal'
 import { listAddons, purchaseAddon } from '@/api/addons'
 import type { OrderListItem } from '@/types/api'
+import { isSubscriptionTariffCode } from '@/constants/tariffs'
 
 function reportIconClass(order: OrderListItem): string {
   if (Number(order.amount) === 0) return 'report-icon archived'
@@ -16,7 +17,7 @@ function reportIconClass(order: OrderListItem): string {
 function reportTag(order: OrderListItem): { cls: string; label: string } {
   if (Number(order.amount) === 0) return { cls: 'tag tag-gray', label: 'Бесплатный' }
   if (order.tariff.code.toLowerCase().includes('bundle')) return { cls: 'tag tag-amber', label: 'Набор «3»' }
-  if (order.tariff.code.toLowerCase().includes('pro')) return { cls: 'tag tag-purple', label: 'Astro Pro' }
+  if (isSubscriptionTariffCode(order.tariff.code)) return { cls: 'tag tag-purple', label: 'Astro Pro' }
   return { cls: 'tag tag-purple', label: order.tariff.code.toUpperCase() }
 }
 

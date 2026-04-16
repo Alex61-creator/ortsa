@@ -316,6 +316,7 @@ async def test_post_orders_reclaims_stale_processing_lock(
         primary_natal_data_id=seed_report_tariff_and_natal["natal_data_id"],
         natal_data_ids=[seed_report_tariff_and_natal["natal_data_id"]],
         report_delivery_email=None,
+        report_options_normalized={},
     )
 
     monkeypatch.setattr(

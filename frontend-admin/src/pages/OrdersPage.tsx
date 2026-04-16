@@ -18,6 +18,7 @@ import { fetchOrder, fetchOrderTimeline, fetchOrders, postRefund, postRetryRepor
 import { downloadOrderChart, downloadOrderPdf, postResendEmail } from '@/api/reports'
 import type { AdminOrderRow, AdminOrderTimelineItem } from '@/types/admin'
 import { isAxiosError } from 'axios'
+import { isSubscriptionTariffCode } from '@/constants/tariffs'
 
 const { Text } = Typography
 
@@ -36,8 +37,7 @@ function statusTag(status: string) {
 }
 
 function tariffTag(code: string) {
-  if (code?.includes('pro'))   return <span className="ag-tag ag-tag-purple">{code}</span>
-  if (code?.includes('sub'))   return <span className="ag-tag ag-tag-blue">{code}</span>
+  if (isSubscriptionTariffCode(code)) return <span className="ag-tag ag-tag-purple">{code}</span>
   return <span className="ag-tag ag-tag-gray">{code}</span>
 }
 

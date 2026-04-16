@@ -22,6 +22,7 @@ import { fetchMe } from '@/api/users'
 import { fetchMySubscription } from '@/api/subscriptions'
 import { listOrders } from '@/api/orders'
 import { getSynastryQuota } from '@/api/synastry'
+import { isSubscriptionTariffCode } from '@/constants/tariffs'
 import '@/styles/cabinet-mockup.css'
 
 const TITLE_KEYS: Record<string, string> = {
@@ -115,7 +116,8 @@ export function DashboardLayout() {
 
   const orderCount = orders?.length ?? 0
   const isDashboardHome = location.pathname === '/dashboard'
-  const showProBadge = subscription?.status === 'active' && subscription.tariff_code?.toLowerCase().includes('pro')
+  const showProBadge =
+    subscription?.status === 'active' && isSubscriptionTariffCode(subscription.tariff_code)
   const planIsPro = subscription?.status === 'active' && showProBadge
 
   const navClass = ({ isActive }: { isActive: boolean }) => `nav-item cabinet-nav-link${isActive ? ' active' : ''}`
@@ -167,9 +169,9 @@ export function DashboardLayout() {
               <NavLink to="/dashboard/synastry" className={navClass} onClick={closeMobile}>
                 <HeartOutlined />
                 Синастрия
-                {synastryQuota.pairs_used > 0 && (
+                {synastryQuota.synastries_created > 0 && (
                   <span className="nav-badge" style={{ background: 'var(--rose-light, #f0d0da)', color: '#c96e8c' }}>
-                    {synastryQuota.pairs_used}
+                    {synastryQuota.synastries_created}
                   </span>
                 )}
               </NavLink>

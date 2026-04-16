@@ -9,6 +9,26 @@ const SETTING_LABELS: Record<string, { label: string; hint: string }> = {
     label: 'Цена повторной / дополнительной синастрии (₽)',
     hint: 'Сумма в рублях, которую платит пользователь за каждую синастрию сверх включённых в тариф. По умолчанию: 190.00',
   },
+  report_option_price_partnership: {
+    label: 'Тумблер «Партнёрство» (₽)',
+    hint: 'Доп. раздел в отчёте report/bundle. Пусто → 199.00',
+  },
+  report_option_price_children_parenting: {
+    label: 'Тумблер «Дети и родительская роль» (₽)',
+    hint: 'Пусто → 199.00',
+  },
+  report_option_price_career: {
+    label: 'Тумблер «Карьера и реализация» (₽)',
+    hint: 'Пусто → 199.00',
+  },
+  report_option_price_money_boundaries: {
+    label: 'Тумблер «Деньги, границы, опора» (₽)',
+    hint: 'Пусто → 199.00',
+  },
+  report_option_multi_discount_percent: {
+    label: 'Скидка на сумму тумблеров при 2+ выбранных (%)',
+    hint: 'Применяется к сумме цен включённых тумблеров. Промокод на тумблеры не действует. Пусто → 30',
+  },
 }
 
 export function SettingsPage() {

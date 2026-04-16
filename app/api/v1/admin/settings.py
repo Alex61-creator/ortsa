@@ -20,6 +20,11 @@ router = APIRouter()
 # Допустимые ключи настроек и их описания
 KNOWN_SETTINGS: dict[str, str] = {
     "synastry_repeat_price": "Цена повторного / дополнительного отчёта синастрии (руб.)",
+    "report_option_price_partnership": "Цена тумблера «Партнёрство» для report/bundle (руб.)",
+    "report_option_price_children_parenting": "Цена тумблера «Дети и родительская роль» (руб.)",
+    "report_option_price_career": "Цена тумблера «Карьера и реализация» (руб.)",
+    "report_option_price_money_boundaries": "Цена тумблера «Деньги, границы, опора» (руб.)",
+    "report_option_multi_discount_percent": "Скидка % на сумму тумблеров при выборе 2+ (0–100)",
 }
 
 

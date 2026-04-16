@@ -1,4 +1,6 @@
-from sqlalchemy import String, ForeignKey, DateTime, Numeric, Enum as SQLEnum, Index
+from typing import Any
+
+from sqlalchemy import String, ForeignKey, DateTime, Numeric, Enum as SQLEnum, Index, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 from decimal import Decimal
@@ -35,6 +37,8 @@ class Order(Base):
         ForeignKey("orders.id", ondelete="SET NULL"),
         nullable=True,
     )
+    # Включённые платные разделы для report/bundle (ключи из app.constants.report_options)
+    report_option_flags: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     # Используем `.value` (pending/paid/failed), чтобы SQLAlchemy корректно маппило значения
     # при работе с не-native enum (SQLite и т.п.). Иначе возможна ситуация,
     # когда в БД хранятся enum "имена" (PAID/FAILED), а ORM возвращает неверное значение.

@@ -19,6 +19,7 @@ FLAGS_META = {
     "promo_codes_enabled": "Включает применение промокодов",
     "health_panel_enabled": "Включает расширенный мониторинг",
     "addons_enabled": "Глобальный kill switch add-on продаж и офферинга",
+    "report_upsell_sections_enabled": "Доп. разделы отчёта (тумблеры) в визарде report/bundle",
 }
 
 

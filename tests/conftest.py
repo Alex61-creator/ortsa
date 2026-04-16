@@ -110,6 +110,11 @@ except Exception:
     # If the module can't be imported in the current environment, tests will fail elsewhere anyway.
     pass
 
+# FeatureFlags read-through must use the same in-memory DB as API tests.
+import app.core.feature_flags as feature_flags_module
+
+feature_flags_module.AsyncSessionLocal = TestingSessionLocal
+
 
 @pytest.fixture(scope="function", autouse=True)
 async def setup_db():

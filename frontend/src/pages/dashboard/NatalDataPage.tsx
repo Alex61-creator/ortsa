@@ -32,6 +32,7 @@ import { nominatimSearch, type GeocodeHit } from '@/lib/geocoder'
 import { getSelectableTimezones } from '@/lib/timezones'
 import { HOUSE_SYSTEMS, canChooseHouseSystem } from '@/lib/tariff'
 import { useOrderWizardStore } from '@/stores/orderWizardStore'
+import { isSubscriptionTariffCode } from '@/constants/tariffs'
 
 const schema = z.object({
   full_name: z.string().min(1).max(80),
@@ -84,7 +85,7 @@ export function NatalDataPage() {
   const [geoHits, setGeoHits] = useState<GeocodeHit[]>([])
   const [geoOpen, setGeoOpen] = useState(false)
   const [upsellOpen, setUpsellOpen] = useState(false)
-  const [upsellTab, setUpsellTab] = useState<'pro' | 'bundle'>('pro')
+  const [upsellTab, setUpsellTab] = useState<'subscription' | 'bundle'>('subscription')
   const [upsellBilling, setUpsellBilling] = useState<'year' | 'month'>('year')
   const [upsellCollapsed, setUpsellCollapsed] = useState(false)
 
@@ -96,7 +97,7 @@ export function NatalDataPage() {
   const sorted = useMemo(() => [...(data ?? [])].sort((a, b) => a.id - b.id), [data])
   const primaryId = sorted[0]?.id
   const totalCards = sorted.length
-  const isPro = subscription?.status === 'active' && subscription.tariff_code?.toLowerCase().includes('pro')
+  const isPro = subscription?.status === 'active' && isSubscriptionTariffCode(subscription.tariff_code)
   const maxCards = isPro ? 5 : 1
   const usagePercent = Math.min(100, Math.round((totalCards / maxCards) * 100))
 
@@ -528,14 +529,14 @@ export function NatalDataPage() {
         <Segmented
           block
           value={upsellTab}
-          onChange={(value) => setUpsellTab(value as 'pro' | 'bundle')}
+          onChange={(value) => setUpsellTab(value as 'subscription' | 'bundle')}
           options={[
-            { label: 'Astro Pro', value: 'pro' },
+            { label: 'Astro Pro', value: 'subscription' },
             { label: t('natal.upsellBundleTab'), value: 'bundle' },
           ]}
         />
         <div className="natal-upsell-modal-body">
-          {upsellTab === 'pro' ? (
+          {upsellTab === 'subscription' ? (
             <>
               <h4>{t('natal.upsellProModalTitle')}</h4>
               <p>{t('natal.upsellProModalDesc')}</p>

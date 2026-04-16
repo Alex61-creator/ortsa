@@ -22,7 +22,13 @@ from app.services.payment import YookassaPaymentService
 from app.services.refund import RefundService
 from app.services.tariff import TariffService
 from app.services.analytics import get_user_attribution, record_analytics_event
+from app.constants.report_options import REPORT_OPTION_KEYS_SET, normalize_report_options
+from app.core.feature_flags import FeatureFlags
 from app.schemas.order import OrderCreate, OrderListItem, OrderOut, TariffSummary
+from app.services.report_option_pricing import (
+    compute_toggle_line,
+    load_report_option_price_map_and_multi,
+)
 from app.schemas.refund import AdminRefundResponse
 from app.core.rate_limit import limiter
 from app.core.config import settings
@@ -65,12 +71,19 @@ def _order_to_list_item(order: Order) -> OrderListItem:
     )
 
 
+def _fingerprint_report_options(norm: dict[str, bool]) -> str:
+    if not norm:
+        return "{}"
+    return json.dumps(norm, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
+
+
 def _build_order_request_fingerprint(
     user_id: int,
     tariff_code: str,
     primary_natal_data_id: int,
     natal_data_ids: list[int],
     report_delivery_email: str | None,
+    report_options_normalized: dict[str, bool],
 ) -> str:
     payload = {
         "user_id": user_id,
@@ -78,6 +91,7 @@ def _build_order_request_fingerprint(
         "primary_natal_data_id": primary_natal_data_id,
         "natal_data_ids": natal_data_ids,
         "report_delivery_email": (report_delivery_email or "").lower(),
+        "report_options": _fingerprint_report_options(report_options_normalized),
     }
     raw = json.dumps(payload, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
@@ -264,9 +278,52 @@ async def create_order(
     tariff_code = tariff.code
     tariff_billing_type = getattr(tariff, "billing_type", None)
 
-    price = tariff.price if isinstance(tariff.price, Decimal) else Decimal(str(tariff.price))
+    raw_report_opts = order_in.report_options
+    if raw_report_opts:
+        unknown = set(raw_report_opts.keys()) - REPORT_OPTION_KEYS_SET
+        if unknown:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "message": "Unknown report_options keys",
+                    "keys": sorted(unknown),
+                },
+            )
+        if tariff_code not in ("report", "bundle"):
+            raise HTTPException(
+                status_code=422,
+                detail="report_options are only allowed for report or bundle tariffs",
+            )
+    if tariff_code == "free" and raw_report_opts:
+        raise HTTPException(
+            status_code=422,
+            detail="report_options are not allowed for the free tariff",
+        )
+
+    upsell_enabled = await FeatureFlags.is_enabled("report_upsell_sections_enabled", default=False)
+    norm_report_options: dict[str, bool] = {}
+    if raw_report_opts and upsell_enabled and tariff_code in ("report", "bundle"):
+        norm_report_options = normalize_report_options(raw_report_opts)
+    elif raw_report_opts and not upsell_enabled:
+        logger.warning(
+            "report_options ignored: report_upsell_sections_enabled is off",
+            user_id=user_id,
+            tariff_code=tariff_code,
+        )
+
+    toggle_line = Decimal("0.00")
+    if norm_report_options:
+        price_by_key, multi_pct = await load_report_option_price_map_and_multi(db)
+        toggle_line = compute_toggle_line(
+            selected_keys=frozenset(norm_report_options.keys()),
+            price_by_key=price_by_key,
+            multi_discount_percent=multi_pct,
+        )
+
+    list_price = tariff.price if isinstance(tariff.price, Decimal) else Decimal(str(tariff.price))
     applied_promo: Promocode | None = None
     promo_discount_percent = 0
+    base_after_promo = list_price
     if order_in.promo_code:
         promo_stmt = select(Promocode).where(Promocode.code == order_in.promo_code.strip().upper())
         promo_result = await db.execute(promo_stmt)
@@ -278,7 +335,13 @@ async def create_order(
         if applied_promo.used_count >= applied_promo.max_uses:
             raise HTTPException(status_code=400, detail="Promo code usage limit reached")
         promo_discount_percent = applied_promo.discount_percent
-        price = (price * Decimal(100 - promo_discount_percent) / Decimal(100)).quantize(Decimal("0.01"))
+        base_after_promo = (list_price * Decimal(100 - promo_discount_percent) / Decimal(100)).quantize(
+            Decimal("0.01")
+        )
+
+    promo_discount_amount = (list_price - base_after_promo).quantize(Decimal("0.01"))
+    order_total = (base_after_promo + toggle_line).quantize(Decimal("0.01"))
+
     delivery_email = (
         str(order_in.report_delivery_email).strip()
         if order_in.report_delivery_email
@@ -292,7 +355,7 @@ async def create_order(
             detail="Укажите report_delivery_email: для аккаунта без реальной почты нужен email для отчёта и чека.",
         )
 
-    if price <= 0 and tariff.code == "free":
+    if order_total <= 0 and tariff_code == "free":
         if await user_already_used_free_tariff(db, user_id):
             raise HTTPException(
                 status_code=400,
@@ -305,6 +368,7 @@ async def create_order(
         primary_natal_data_id=primary_id,
         natal_data_ids=raw_ids,
         report_delivery_email=delivery_email,
+        report_options_normalized=norm_report_options,
     )
 
     # Idempotency для create_order:
@@ -432,15 +496,16 @@ async def create_order(
                     new_processing_started_at=now_utc.isoformat(),
                 )
 
-    if price <= 0:
+    if order_total <= 0:
         order = Order(
             user_id=user_id,
             natal_data_id=natal_data_id,
             tariff_id=tariff_id,
-            amount=price,
+            amount=order_total,
             status=OrderStatus.PAID,
             report_delivery_email=delivery_email,
             promo_code=applied_promo.code if applied_promo else None,
+            report_option_flags=None,
         )
         db.add(order)
         await db.flush()  # получаем order.id до commit
@@ -456,7 +521,7 @@ async def create_order(
                     user_id=user_id,
                     order_id=order.id,
                     discount_percent=promo_discount_percent,
-                    discount_amount=(tariff.price - order.amount),
+                    discount_amount=float(promo_discount_amount),
                 )
             )
             await db.commit()
@@ -509,10 +574,11 @@ async def create_order(
         user_id=user_id,
         natal_data_id=natal_data_id,
         tariff_id=tariff_id,
-        amount=price,
+        amount=order_total,
         status=OrderStatus.PENDING,
         report_delivery_email=delivery_email,
         promo_code=applied_promo.code if applied_promo else None,
+        report_option_flags=norm_report_options if norm_report_options else None,
     )
     db.add(order)
     await db.flush()
@@ -528,7 +594,7 @@ async def create_order(
                 user_id=user_id,
                 order_id=order.id,
                 discount_percent=promo_discount_percent,
-                discount_amount=(tariff.price - order.amount),
+                discount_amount=float(promo_discount_amount),
             )
         )
         await db.commit()
@@ -537,13 +603,19 @@ async def create_order(
     payment_service = YookassaPaymentService()
     description = f"AstroGen Natal Chart - {tariff_name}"
     save_pm = tariff_billing_type == "subscription"
+    payment_metadata: dict[str, str] = {
+        "order_id": str(order.id),
+        "tariff": tariff_code,
+    }
+    if norm_report_options:
+        payment_metadata["report_options"] = _fingerprint_report_options(norm_report_options)
     try:
         payment_kwargs = {
             "order_id": order.id,
             "amount": order.amount,
             "description": description,
             "user_email": receipt_email,
-            "metadata": {"order_id": order.id, "tariff": tariff_code},
+            "metadata": payment_metadata,
             "save_payment_method": save_pm,
         }
         # Если клиент повторяет запрос с тем же заголовком — YooKassa тоже должен дедуплицировать платеж.

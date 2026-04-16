@@ -1,5 +1,5 @@
 """
-Идемпотентное заполнение базовых тарифов (free, report, bundle, pro — как в лендинге и CODE_TO_LLM_TIER).
+Идемпотентное заполнение базовых тарифов (free, report, bundle, sub_monthly, sub_annual — см. CODE_TO_LLM_TIER).
 
 Запуск из корня проекта:
   PYTHONPATH=. python -m scripts.seed_tariffs
@@ -40,7 +40,7 @@ DEFAULT_TARIFFS: list[dict] = [
         "priority": 10,
     },
     {
-        "code": "pro",
+        "code": "sub_monthly",
         "name": "Astro Pro (месяц)",
         "price": Decimal("490.00"),
         "price_usd": Decimal("5.00"),
@@ -52,6 +52,20 @@ DEFAULT_TARIFFS: list[dict] = [
         "subscription_interval": "month",
         "llm_tier": "pro",
         "priority": 20,
+    },
+    {
+        "code": "sub_annual",
+        "name": "Astro Pro (год)",
+        "price": (Decimal("490.00") * Decimal("12") * Decimal("0.66")).quantize(Decimal("0.01")),
+        "price_usd": (Decimal("5.00") * Decimal("12") * Decimal("0.66")).quantize(Decimal("0.01")),
+        "compare_price_usd": None,
+        "annual_total_usd": None,
+        "features": {"max_natal_profiles": 5},
+        "retention_days": 365,
+        "billing_type": "subscription",
+        "subscription_interval": "year",
+        "llm_tier": "pro",
+        "priority": 19,
     },
     {
         "code": "bundle",

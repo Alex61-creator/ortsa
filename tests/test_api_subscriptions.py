@@ -21,7 +21,7 @@ async def user_with_tariff(db_session: AsyncSession):
     db_session.add(user)
     await db_session.flush()
     tariff = Tariff(
-        code="pro",
+        code="sub_monthly",
         name="Astro Pro",
         price=Decimal("490.00"),
         price_usd=Decimal("5.00"),

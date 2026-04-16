@@ -6,8 +6,10 @@ from httpx import AsyncClient
 from sqlalchemy import select
 
 from app.core.security import create_access_token
+from app.models.feature_flag import FeatureFlag
 from app.models.natal_data import NatalData
 from app.models.order import Order, OrderStatus
+from app.models.promocode import Promocode
 from app.models.tariff import Tariff
 from app.models.user import OAuthProvider, User
 
@@ -282,3 +284,116 @@ async def test_create_order_real_user_uses_account_email_for_yookassa_when_no_de
     )
     assert response.status_code == 200
     assert captured.get("user_email") == "test@example.com"
+
+
+@pytest.mark.asyncio
+async def test_create_order_report_options_unknown_key_422(
+    client: AsyncClient,
+    auth_headers,
+    seed_report_tariff_and_natal,
+    db_session,
+):
+    db_session.add(
+        FeatureFlag(key="report_upsell_sections_enabled", description="upsell", enabled=True)
+    )
+    await db_session.commit()
+    r = await client.post(
+        "/api/v1/orders/",
+        json={
+            "tariff_code": "report",
+            "natal_data_id": seed_report_tariff_and_natal["natal_data_id"],
+            "report_options": {"partnership": True, "not_a_key": True},
+        },
+        headers=auth_headers,
+    )
+    assert r.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_create_order_report_options_two_toggles_total(
+    client: AsyncClient,
+    auth_headers,
+    seed_report_tariff_and_natal,
+    db_session,
+    monkeypatch,
+):
+    db_session.add(
+        FeatureFlag(key="report_upsell_sections_enabled", description="upsell", enabled=True)
+    )
+    await db_session.commit()
+
+    captured: dict = {}
+
+    async def fake_create_payment(self, order_id, amount, description, user_email, metadata=None, **kwargs):
+        captured["amount"] = amount
+        return {
+            "id": "ym_opts",
+            "status": "pending",
+            "confirmation_url": "https://yookassa.example/pay",
+        }
+
+    monkeypatch.setattr("app.api.v1.orders.YookassaPaymentService.create_payment", fake_create_payment)
+
+    r = await client.post(
+        "/api/v1/orders/",
+        json={
+            "tariff_code": "report",
+            "natal_data_id": seed_report_tariff_and_natal["natal_data_id"],
+            "report_options": {"partnership": True, "career": True},
+        },
+        headers=auth_headers,
+    )
+    assert r.status_code == 200
+    # base 100 + (199+199)*0.7 = 378.60
+    assert captured["amount"] == Decimal("378.60")
+    oid = r.json()["id"]
+    row = (await db_session.execute(select(Order).where(Order.id == oid))).scalar_one()
+    assert row.report_option_flags == {"partnership": True, "career": True}
+
+
+@pytest.mark.asyncio
+async def test_create_order_promo_only_on_base_with_toggles(
+    client: AsyncClient,
+    auth_headers,
+    seed_report_tariff_and_natal,
+    db_session,
+    monkeypatch,
+):
+    db_session.add(
+        FeatureFlag(key="report_upsell_sections_enabled", description="upsell", enabled=True)
+    )
+    promo = Promocode(
+        code="SAVE10",
+        discount_percent=10,
+        max_uses=100,
+        used_count=0,
+        is_active=True,
+    )
+    db_session.add(promo)
+    await db_session.commit()
+
+    captured: dict = {}
+
+    async def fake_create_payment(self, order_id, amount, description, user_email, metadata=None, **kwargs):
+        captured["amount"] = amount
+        return {
+            "id": "ym_promo_opts",
+            "status": "pending",
+            "confirmation_url": "https://yookassa.example/pay",
+        }
+
+    monkeypatch.setattr("app.api.v1.orders.YookassaPaymentService.create_payment", fake_create_payment)
+
+    r = await client.post(
+        "/api/v1/orders/",
+        json={
+            "tariff_code": "report",
+            "natal_data_id": seed_report_tariff_and_natal["natal_data_id"],
+            "promo_code": "SAVE10",
+            "report_options": {"partnership": True, "career": True},
+        },
+        headers=auth_headers,
+    )
+    assert r.status_code == 200
+    # base 90 + toggle line 278.60 = 368.60
+    assert captured["amount"] == Decimal("368.60")

@@ -9,7 +9,7 @@
 5. get_synastry_repeat_price  — читает цену доп. синастрии из app_settings
 
 Тарифная модель:
-- sub_monthly / sub_annual / pro  → безлимитные синастрии
+- sub_monthly / sub_annual → безлимитные синастрии
 - bundle                          → 1 бесплатная, далее за деньги
 - free / report                   → нет доступа (только через admin override)
 """

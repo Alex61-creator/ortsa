@@ -87,12 +87,30 @@ export interface OrderListItem {
   report_ready: boolean
 }
 
+export interface ReportOrderOptionItem {
+  key: string
+  title: string
+  description: string
+  price: string
+  currency: string
+}
+
+export interface ReportOrderOptionsOut {
+  feature_enabled: boolean
+  options: ReportOrderOptionItem[]
+  multi_discount_percent: number
+  currency: string
+}
+
 export interface OrderCreatePayload {
   tariff_code: string
   natal_data_id: number
   /** Для тарифа bundle: список всех выбранных natal_data_id (1–3 штуки). */
   natal_data_ids?: number[] | null
   report_delivery_email?: string | null
+  promo_code?: string | null
+  /** Доп. разделы отчёта (только report / bundle). */
+  report_options?: Record<string, boolean> | null
 }
 
 export interface OrderOut {

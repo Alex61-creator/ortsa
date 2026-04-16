@@ -172,8 +172,17 @@ class LLMService:
             prompt += "\n\nТекущие транзиты на момент составления отчёта: необходимо учесть."
         return prompt
 
-    def make_cache_key(self, chart_data: dict, tier: LlmTier, locale: str = "ru") -> str:
-        data = {"chart": chart_data, "llm_tier": tier.value, "locale": locale}
+    def make_cache_key(
+        self,
+        chart_data: dict,
+        tier: LlmTier,
+        locale: str = "ru",
+        *,
+        cache_extra: str | None = None,
+    ) -> str:
+        data: dict = {"chart": chart_data, "llm_tier": tier.value, "locale": locale}
+        if cache_extra:
+            data["cache_extra"] = cache_extra
         raw = json.dumps(data, sort_keys=True)
         return f"{LLM_CACHE_PREFIX}:{hashlib.sha256(raw.encode()).hexdigest()}"
 
@@ -190,6 +199,8 @@ class LLMService:
         locale: str = "ru",
         system_prompt_override: str | None = None,
         chart_context: str | None = None,
+        *,
+        llm_cache_extra: str | None = None,
     ) -> LLMResponseSchema:
         """Генерирует интерпретацию натальной карты.
 
@@ -203,7 +214,7 @@ class LLMService:
         if locale not in ("ru", "en"):
             locale = "ru"
         tier = resolve_llm_tier(tariff.code, getattr(tariff, "llm_tier", None))
-        cache_key = self.make_cache_key(chart_data, tier, locale)
+        cache_key = self.make_cache_key(chart_data, tier, locale, cache_extra=llm_cache_extra)
         cached = await cache.get(cache_key)
         if cached:
             logger.info("LLM cache hit", tier=tier.value, locale=locale)
