@@ -6,13 +6,13 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin_user
-from app.api.v1.admin.logs import append_admin_log
 from app.core.cache import cache
 from app.db.session import get_db
 from app.models.tariff import Tariff
 from app.models.user import User
 from app.schemas.admin_extra import TariffHistoryRow
 from app.schemas.admin_tariff import TariffAdminOut, TariffAdminPatch
+from app.services.admin_logs import append_admin_log
 from app.services.tariff import TariffService
 
 router = APIRouter()
@@ -82,7 +82,7 @@ async def patch_tariff_admin(
         ).model_dump(mode="json"),
     )
     await cache.set(TARIFF_HISTORY_KEY, rows[:100])
-    await append_admin_log(actor.email or f"user:{actor.id}", "tariff_patch", f"tariff:{t.id}")
+    await append_admin_log(db, actor.email or f"user:{actor.id}", "tariff_patch", f"tariff:{t.id}")
     return t
 
 

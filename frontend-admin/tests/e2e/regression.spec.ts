@@ -91,8 +91,45 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/admin/promos/**', (route) =>
     route.fulfill(json([{ id: 'p1', code: 'SPRING', discount_percent: 20, max_uses: 10, used_count: 1, active_until: null, is_active: true }]))
   )
+  await page.route('**/admin/prompts/**', (route) =>
+    route.fulfill(json([{ tariff_code: 'free', locale: 'ru', system_prompt: 'Prompt', is_custom: false, updated_at: null, updated_by: null }]))
+  )
   await page.route('**/admin/flags/**', (route) =>
     route.fulfill(json([{ key: 'admin_funnel_enabled', description: 'flag', enabled: true }]))
+  )
+  await page.route('**/admin/metrics/overview**', (route) =>
+    route.fulfill(json({
+      period_start: new Date().toISOString(),
+      period_end: new Date().toISOString(),
+      cards: [{ key: 'cr1', label: 'CR1', value: 0.2, previous_value: 0.1, delta_pct: 100, unit: 'ratio' }],
+      alerts: [],
+    }))
+  )
+  await page.route('**/admin/metrics/economics**', (route) =>
+    route.fulfill(json({
+      period_start: new Date().toISOString(),
+      period_end: new Date().toISOString(),
+      blended_cac: 1000,
+      ltv_cac: 2.4,
+      contribution_margin: 0.4,
+      aov: 1200,
+      attach_rate: 0.2,
+      channel_cac: [{ channel: 'tg_ads', spend: 1000, first_paid_users: 2, cac: 500 }],
+      action_hints: ['hint'],
+    }))
+  )
+  await page.route('**/admin/metrics/cohorts**', (route) =>
+    route.fulfill(json({
+      period_start: new Date().toISOString(),
+      period_end: new Date().toISOString(),
+      rows: [{ cohort: '2026-04', size: 10, m1: 50, m3: 30, m6: 10 }],
+    }))
+  )
+  await page.route('**/admin/metrics/funnel**', (route) =>
+    route.fulfill(json({ period: 'current_month', steps: [] }))
+  )
+  await page.route('**/admin/metrics/spend**', (route) =>
+    route.fulfill(json([]))
   )
   await page.route('**/admin/health/**', (route) =>
     route.fulfill(json([{ name: 'API', status: 'ok', value: 'online' }]))
@@ -111,7 +148,7 @@ test('navigates through all admin sections', async ({ page }) => {
   await page.goto('/')
   await expect(page.locator('.admin-topbar-title')).toContainText('Дашборд')
 
-  const routes = ['/funnel', '/users', '/payments', '/orders', '/tasks', '/promos', '/tariffs', '/flags', '/health', '/log']
+  const routes = ['/funnel', '/growth', '/users', '/payments', '/orders', '/tasks', '/promos', '/prompts', '/tariffs', '/flags', '/health', '/log']
   for (const route of routes) {
     await page.goto(route)
     await expect(page.locator('body')).toContainText(/.+/)

@@ -2,20 +2,24 @@ from decimal import Decimal
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from app.api.deps import get_current_admin_user
+from app.api.deps import get_current_admin_user, get_current_admin_user_can_refund, get_current_admin_user_can_retry_report
 from app.db.session import get_db
+from app.models.admin_action_log import AdminActionLog
+from app.models.analytics_event import AnalyticsEvent
 from app.models.order import Order, OrderStatus
 from app.models.report import Report, ReportStatus
 from app.models.user import User
 from app.schemas.admin_order import AdminOrderListItem
+from app.schemas.admin_extra import AdminOrderTimelineItem
 from app.schemas.order import TariffSummary
 from app.schemas.refund import AdminRefundResponse
 from app.services.admin_order_prepare import prepare_order_for_admin_report_retry
 from app.services.admin_report_retry import consume_admin_report_retry_slot
+from app.services.admin_logs import append_admin_log
 from app.services.refund import RefundService
 from app.tasks.report_generation import generate_report_task
 
@@ -110,7 +114,7 @@ async def refund_order_admin(
     order_id: int,
     amount: Optional[Decimal] = None,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_admin_user),
+    actor: User = Depends(get_current_admin_user_can_refund),
 ):
     service = RefundService()
     try:
@@ -119,6 +123,17 @@ async def refund_order_admin(
         msg = str(e)
         code = status.HTTP_404_NOT_FOUND if "not found" in msg.lower() else status.HTTP_400_BAD_REQUEST
         raise HTTPException(status_code=code, detail=msg) from e
+    await append_admin_log(
+        db,
+        actor.email or f"user:{actor.id}",
+        "refund_order_admin",
+        f"order:{order_id}",
+        details={
+            "refund_id": result["refund_id"],
+            "status": result["status"],
+            "amount": str(result["amount"]),
+        },
+    )
     return AdminRefundResponse(**result)
 
 
@@ -129,7 +144,7 @@ async def refund_order_admin(
 async def retry_report_admin(
     order_id: int,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_admin_user),
+    actor: User = Depends(get_current_admin_user_can_retry_report),
 ):
     stmt = select(Order).where(Order.id == order_id).options(joinedload(Order.tariff), joinedload(Order.report))
     result = await db.execute(stmt)
@@ -141,4 +156,96 @@ async def retry_report_admin(
     await prepare_order_for_admin_report_retry(db, order)
     await db.refresh(order)
     generate_report_task.delay(order_id)
+    await append_admin_log(
+        db,
+        actor.email or f"user:{actor.id}",
+        "retry_report_admin",
+        f"order:{order_id}",
+        details={"queued": True},
+    )
     return {"order_id": order_id, "status": order.status.value, "queued": True}
+
+
+@router.get(
+    "/{order_id}/timeline",
+    response_model=list[AdminOrderTimelineItem],
+    summary="Таймлайн заказа (админ)",
+)
+async def order_timeline_admin(
+    order_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin_user),
+):
+    order_exists = await db.scalar(select(Order.id).where(Order.id == order_id))
+    if not order_exists:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+
+    analytics_event_names = [
+        "payment_started",
+        "payment_succeeded",
+        "first_purchase_completed",
+        "order_completed",
+        "addon_attached",
+        "refund_completed",
+        "email_sent",
+        "cohort_month_started",
+    ]
+
+    analytics_stmt = (
+        select(AnalyticsEvent)
+        .where(AnalyticsEvent.order_id == order_id)
+        .where(
+            or_(
+                AnalyticsEvent.event_name.in_(analytics_event_names),
+                AnalyticsEvent.event_name.like("report_generation_%"),
+            )
+        )
+    )
+    analytics_events = (await db.execute(analytics_stmt)).scalars().all()
+
+    logs_stmt = (
+        select(AdminActionLog)
+        .where(AdminActionLog.entity.ilike(f"%order:{order_id}%"))
+        .order_by(AdminActionLog.created_at.asc())
+    )
+    admin_logs = (await db.execute(logs_stmt)).scalars().all()
+
+    items: list[AdminOrderTimelineItem] = []
+
+    for ev in analytics_events:
+        amount = float(ev.amount) if ev.amount is not None else None
+        items.append(
+            AdminOrderTimelineItem(
+                type="analytics",
+                time=ev.event_time,
+                event_name=ev.event_name,
+                details={
+                    "amount": amount,
+                    "currency": ev.currency,
+                    "tariff_code": ev.tariff_code,
+                    "source_channel": ev.source_channel,
+                    "utm_source": ev.utm_source,
+                    "utm_medium": ev.utm_medium,
+                    "utm_campaign": ev.utm_campaign,
+                    "correlation_id": ev.correlation_id,
+                    "cost_components": ev.cost_components,
+                    "event_metadata": ev.event_metadata,
+                    "notes": ev.notes,
+                    "dedupe_key": ev.dedupe_key,
+                },
+            )
+        )
+
+    for lg in admin_logs:
+        items.append(
+            AdminOrderTimelineItem(
+                type="admin_log",
+                time=lg.created_at,
+                action=lg.action,
+                entity=lg.entity,
+                details=lg.details,
+            )
+        )
+
+    items.sort(key=lambda x: x.time)
+    return items

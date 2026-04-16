@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Button, Card, DatePicker, Input, Select, Table, message } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
+import type { Dayjs } from 'dayjs'
 import { fetchPayments } from '@/api/payments'
 import type { AdminPaymentRow } from '@/types/admin'
 import { extractApiErrorMessage } from '@/utils/apiError'
@@ -26,14 +27,26 @@ function fmtAmt(amount: string) {
 export function PaymentsPage() {
   const [rows, setRows]       = useState<AdminPaymentRow[]>([])
   const [status, setStatus]   = useState<string>('')
+  const [provider, setProvider] = useState<string>('')
+  const [tariff, setTariff] = useState<string>('')
+  const [paymentId, setPaymentId] = useState('')
   const [q, setQ]             = useState('')
+  const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>(null)
   const [loading, setLoading] = useState(false)
   const [err, setErr]         = useState<string | null>(null)
 
   const load = () => {
     setLoading(true)
     setErr(null)
-    void fetchPayments({ status: status || undefined, q: q.trim() || undefined })
+    void fetchPayments({
+      status: status || undefined,
+      provider: provider || undefined,
+      tariff: tariff || undefined,
+      payment_id: paymentId.trim() || undefined,
+      q: q.trim() || undefined,
+      date_from: range?.[0]?.toISOString(),
+      date_to: range?.[1]?.toISOString(),
+    })
       .then(setRows)
       .catch((e) => {
         setRows([])
@@ -72,6 +85,11 @@ export function PaymentsPage() {
       render: (v: string) => <span className="ag-tag ag-tag-blue">{v}</span>,
     },
     {
+      title: 'Провайдер',
+      dataIndex: 'payment_provider',
+      render: (v?: string | null) => <span style={{ fontSize: 12 }}>{v ?? '—'}</span>,
+    },
+    {
       title: 'Сумма',
       dataIndex: 'amount',
       render: (v: string) => (
@@ -82,6 +100,11 @@ export function PaymentsPage() {
       title: 'Статус',
       dataIndex: 'status',
       render: (s: string) => statusTag(s),
+    },
+    {
+      title: 'Payment ID',
+      dataIndex: 'payment_id',
+      render: (v?: string | null) => <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{v ?? '—'}</span>,
     },
     {
       title: 'Дата',
@@ -171,8 +194,36 @@ export function PaymentsPage() {
               { value: 'canceled',  label: 'canceled' },
             ]}
           />
-          <RangePicker size="small" placeholder={['Дата от', 'Дата до']} />
-          <Button type="primary" size="small" onClick={load}>Применить</Button>
+          <Select
+            style={{ width: 160 }}
+            value={provider}
+            onChange={setProvider}
+            options={[
+              { value: '', label: 'Все провайдеры' },
+              { value: 'yookassa', label: 'yookassa' },
+            ]}
+          />
+          <Select
+            style={{ width: 160 }}
+            value={tariff}
+            onChange={setTariff}
+            options={[
+              { value: '', label: 'Все тарифы' },
+              { value: 'report', label: 'report' },
+              { value: 'bundle', label: 'bundle' },
+              { value: 'sub_monthly', label: 'sub_monthly' },
+              { value: 'sub_annual', label: 'sub_annual' },
+              { value: 'synastry_addon', label: 'synastry_addon' },
+            ]}
+          />
+          <Input
+            placeholder="Payment ID"
+            value={paymentId}
+            onChange={(e) => setPaymentId(e.target.value)}
+            style={{ width: 180 }}
+          />
+          <RangePicker size="small" placeholder={['Дата от', 'Дата до']} value={range as [Dayjs, Dayjs] | null} onChange={(value) => setRange(value as [Dayjs | null, Dayjs | null] | null)} />
+          <Button type="primary" size="small" onClick={load}>Обновить</Button>
         </div>
       </Card>
 

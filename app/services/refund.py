@@ -8,6 +8,8 @@ from sqlalchemy import select
 
 from app.models.order import Order, OrderStatus
 from app.models.report import Report, ReportStatus
+from app.models.tariff import Tariff
+from app.services.analytics import get_user_attribution, record_analytics_event
 
 logger = structlog.get_logger(__name__)
 
@@ -72,6 +74,30 @@ class RefundService:
                 report.status = ReportStatus.ARCHIVED
 
         await db.commit()
+
+        # Canonical event for event-based funnels/economics/audit.
+        if refund.status == "succeeded":
+            utm_source, utm_medium, utm_campaign, source_channel, platform, geo = await get_user_attribution(db, order.user_id)
+            tariff_code = (
+                (await db.execute(select(Tariff.code).where(Tariff.id == order.tariff_id))).scalar_one_or_none()
+            )
+            await record_analytics_event(
+                db,
+                event_name="refund_completed",
+                user_id=order.user_id,
+                order_id=order.id,
+                tariff_code=tariff_code,
+                source_channel=source_channel,
+                utm_source=utm_source,
+                utm_medium=utm_medium,
+                utm_campaign=utm_campaign,
+                platform=platform,
+                geo=geo,
+                amount=refund_amount,
+                correlation_id=str(refund.id),
+                dedupe_key=f"refund_completed:{refund.id}",
+            )
+
         logger.info("Refund created", order_id=order.id, refund_id=refund.id, status=refund.status)
 
         if order.celery_task_id:
@@ -113,4 +139,38 @@ class RefundService:
                 celery_app.control.revoke(order.celery_task_id, terminate=True)
 
         await db.commit()
+
+        if status == "succeeded":
+            # Best-effort extraction for analytics amount.
+            refund_amount_value = None
+            amount_obj = refund_obj.get("amount")
+            if isinstance(amount_obj, dict):
+                raw_val = amount_obj.get("value") or amount_obj.get("amount")
+                if raw_val is not None:
+                    refund_amount_value = Decimal(str(raw_val))
+
+            if refund_amount_value is None:
+                refund_amount_value = order.refunded_amount or Decimal("0.00")
+
+            utm_source, utm_medium, utm_campaign, source_channel, platform, geo = await get_user_attribution(db, order.user_id)
+            tariff_code = (
+                (await db.execute(select(Tariff.code).where(Tariff.id == order.tariff_id))).scalar_one_or_none()
+            )
+            await record_analytics_event(
+                db,
+                event_name="refund_completed",
+                user_id=order.user_id,
+                order_id=order.id,
+                tariff_code=tariff_code,
+                source_channel=source_channel,
+                utm_source=utm_source,
+                utm_medium=utm_medium,
+                utm_campaign=utm_campaign,
+                platform=platform,
+                geo=geo,
+                amount=refund_amount_value,
+                correlation_id=str(refund_id),
+                dedupe_key=f"refund_completed:{refund_id}",
+            )
+
         logger.info("Refund webhook processed", order_id=order.id, refund_id=refund_id, status=status)

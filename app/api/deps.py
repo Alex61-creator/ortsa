@@ -56,3 +56,54 @@ async def get_current_admin_user(
     if not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin privileges required")
     return current_user
+
+
+def _permission_value(user: User, permission_attr: str) -> bool | None:
+    # Column can be NULL for legacy admins; treat it as "not configured".
+    return getattr(user, permission_attr, None)
+
+
+async def require_admin_permission(
+    permission_attr: str,
+    current_user: User,
+    db: AsyncSession,
+) -> User:
+    # Read current permission value directly from DB to avoid any stale/unsafely loaded attributes.
+    allowed = await db.scalar(select(getattr(User, permission_attr)).where(User.id == current_user.id))
+    # Backward compatible behavior:
+    # - None => legacy admin => allow
+    # - True => allow
+    # - False => deny
+    deny_values = {False, 0, "0", "false", "False", "FALSE"}
+    # SQLite sometimes returns Boolean columns as 0/1 (or as truthy strings on some backends).
+    if allowed is not None and (allowed in deny_values or allowed is False):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
+    return current_user
+
+
+async def get_current_admin_user_can_refund(
+    current_user: User = Depends(get_current_admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    return await require_admin_permission("can_refund", current_user=current_user, db=db)
+
+
+async def get_current_admin_user_can_retry_report(
+    current_user: User = Depends(get_current_admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    return await require_admin_permission("can_retry_report", current_user=current_user, db=db)
+
+
+async def get_current_admin_user_can_resend_report_email(
+    current_user: User = Depends(get_current_admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    return await require_admin_permission("can_resend_report_email", current_user=current_user, db=db)
+
+
+async def get_current_admin_user_can_manual_override(
+    current_user: User = Depends(get_current_admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    return await require_admin_permission("can_manual_override", current_user=current_user, db=db)

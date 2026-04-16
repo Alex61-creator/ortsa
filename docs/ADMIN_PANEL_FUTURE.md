@@ -12,47 +12,42 @@
 - Экран и API промокодов: `frontend-admin/src/pages/PromosPage.tsx`, `GET/POST/PATCH /api/v1/admin/promos`.
 - Экран и API feature flags: `frontend-admin/src/pages/FlagsPage.tsx`, `GET/PATCH /api/v1/admin/flags`.
 - Экран мониторинга и логов действий: `HealthPage`, `ActionLogPage`, API `/api/v1/admin/health`, `/api/v1/admin/logs`.
-- Страница управления LLM-промптами в кодовой базе присутствует (`PromptsPage` + API-клиент), но не включена в рабочий роутинг/меню.
+- Экран управления LLM-промптами: `frontend-admin/src/pages/PromptsPage.tsx`, API `/api/v1/admin/prompts`, маршрут `/prompts` и пункт меню включены.
+- Growth & Economics (v1): `frontend-admin/src/pages/GrowthEconomicsPage.tsx`, API `/api/v1/admin/metrics/*` (overview/funnel/cohorts/economics) и manual marketing spend `/api/v1/admin/metrics/spend`.
 
 ## Что остаётся до продового уровня
 
-### 0) LLM Prompts: включение в рабочий админ-контур
+### 0) LLM Prompts: production-контур
 
-- Подключить `prompts`-router в `app/api/v1/admin/__init__.py`.
-- Добавить `/prompts` в `frontend-admin/src/routes/AppRoutes.tsx`.
-- Добавить пункт меню `/prompts` в `frontend-admin/src/layouts/AdminLayout.tsx`.
-- Добавить smoke-тест: list -> edit -> reset.
+- Готово: подключен `prompts`-router, включены маршрут `/prompts` и пункт меню, smoke `list -> edit -> reset` проведён.
 
 ### 1) Промокоды (из in-memory/cache в БД)
 
-- Сейчас данные промокодов хранятся в кеше (`PROMOS_KEY`), без отдельной SQL-модели.
-- Нужны миграции и таблицы: код, скидка, лимиты, период действия, аудит применений.
-- Нужна интеграция применения промокода в пользовательский checkout (`POST /api/v1/orders/`) с контролем идемпотентности.
+- Готово (v1): промокоды и применения персистятся в БД (`promocodes`, `promocode_redemptions`), CRUD и audit доступны в админке, применение работает через `POST /api/v1/orders/`.
+- Остаётся: проверить, что все клиентские checkout-потоки передают `promo_code` корректно, и добавить экспорт/retention контракта для redemption-логов.
 
 ### 2) Feature flags (из кеша в управляемую конфигурацию)
 
-- Сейчас флаги переключаются через кеш-ключи `feature:*`.
-- Нужен персистентный backend (БД или внешний конфиг) + история изменений (кто и когда переключил).
-- Нужна явная связка с публичным SPA и кабинетом пользователя (где именно флаг влияет на UX и API).
+- Частично готово: флаги и изменения персистятся в БД с аудитом; API админки и meta для UI работают.
+- Остаётся: перевести runtime-резолвер (где именно флаг применяется) на DB-backed / read-through режим без зависимости только от `feature:*` кеш-ключей.
 
-### 3) Воронка и аналитика (из эвристик в реальную продуктовую аналитику)
+### 3) Воронка и аналитика (event-based foundation -> витрины)
 
-- Сейчас часть значений воронки рассчитывается эвристически от агрегатов пользователей/заказов.
-- Нужен трекинг событий (landing -> форма -> тариф -> авторизация -> оплата -> получение отчёта) с `utm_*`, `session_id`, каналом привлечения.
-- Нужна модель хранения событий и расчёт воронки на фактических данных, а не на приближённых коэффициентах.
+- Growth & Economics (v1) доступен: метрики считаются из агрегатов пользователей/заказов + manual marketing spend, с атрибуцией через `utm_*` пользователя и fallback `source_channel`.
+- Остаётся (для event-based строгости):
+  - доделать недостающие события (`addon_attached`, `refund_completed`, `acquisition_cost_recorded`);
+  - перевести админ-витрины воронки/retention на расчёты строго по `analytics_events`, а не по упрощённым агрегатам.
 
-### 4) Задачи/Celery (из демонстрационных строк в live-состояние)
+### 4) Задачи/Celery (операционная observability)
 
-- Сейчас `/api/v1/admin/tasks` возвращает статический список задач.
-- Нужна интеграция с живыми очередями Celery/Redis/Flower API (active/reserved/scheduled/failed) и операционные действия (retry/revoke при политике доступа).
+- Готово (v1): `/api/v1/admin/tasks` теперь берёт snapshot через `celery inspect` и деградирует при недоступности Celery/Redis.
 
 ### 5) Платежи и action log (операционная глубина)
 
-- Зафиксировать состав колонок и фильтров для платежного журнала (провайдер, статус, сумма, время, корреляция с заказом).
-- Для action log добавить SLA по retention, фильтрацию по actor/action/date и экспорт.
+- Готово (v1): расширены фильтры платежей (provider/tariff/payment_id/email/date range), action log переведён в DB-backed storage.
+- Остаётся: SLA/retention contract и полноценный export timeline (в UI пока без экспорта).
 
 ## Как трактовать "готовность админки" сейчас
 
 - Для операционной поддержки заказов, пользователей и тарифов текущая админка пригодна.
-- Для управляемой продуктовой аналитики и финансового аудита нужен следующий цикл доработок из пунктов выше.
-- Для контент-операций по качеству LLM (prompts) контур пока не production-ready до включения маршрутов и меню.
+- Для финансового аудита и управляемой продуктовой аналитики (строго event-based, retention из когорт по событиям) требуется следующий цикл доработок.

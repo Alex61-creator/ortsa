@@ -14,9 +14,9 @@ import {
   Typography,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { fetchOrder, fetchOrders, postRefund, postRetryReport } from '@/api/orders'
+import { fetchOrder, fetchOrderTimeline, fetchOrders, postRefund, postRetryReport } from '@/api/orders'
 import { downloadOrderChart, downloadOrderPdf, postResendEmail } from '@/api/reports'
-import type { AdminOrderRow } from '@/types/admin'
+import type { AdminOrderRow, AdminOrderTimelineItem } from '@/types/admin'
 import { isAxiosError } from 'axios'
 
 const { Text } = Typography
@@ -68,6 +68,8 @@ export function OrdersPage() {
   const [drawerLoading, setDrawerLoading] = useState(false)
   const [resendEmail, setResendEmail]   = useState('')
   const [resendLoading, setResendLoading] = useState(false)
+  const [timelineLoading, setTimelineLoading] = useState(false)
+  const [timelineRows, setTimelineRows] = useState<AdminOrderTimelineItem[]>([])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -93,14 +95,19 @@ export function OrdersPage() {
     setSelected(row)
     setDrawerOpen(true)
     setDrawerLoading(true)
+    setTimelineRows([])
+    setTimelineLoading(true)
     setResendEmail('')
     try {
       const fresh = await fetchOrder(row.id)
       setSelected(fresh)
+      const timeline = await fetchOrderTimeline(row.id).catch(() => [])
+      setTimelineRows(timeline)
     } catch {
       message.error('Не удалось обновить заказ')
     } finally {
       setDrawerLoading(false)
+      setTimelineLoading(false)
     }
   }
 
@@ -111,6 +118,9 @@ export function OrdersPage() {
       message.success('Задача генерации поставлена в очередь')
       const fresh = await fetchOrder(selected.id)
       setSelected(fresh)
+      void fetchOrderTimeline(selected.id)
+        .then((t) => setTimelineRows(t))
+        .catch(() => undefined)
       void load()
     } catch (e) {
       if (isAxiosError(e) && e.response?.status === 429) {
@@ -165,6 +175,9 @@ export function OrdersPage() {
           message.success('Возврат инициирован')
           const fresh = await fetchOrder(selected.id)
           setSelected(fresh)
+          void fetchOrderTimeline(selected.id)
+            .then((t) => setTimelineRows(t))
+            .catch(() => undefined)
           void load()
         } catch (e) {
           if (isAxiosError(e)) {
@@ -340,6 +353,57 @@ export function OrdersPage() {
                 <span className="k">Обновлён</span>
                 <span className="v">{new Date(selected.updated_at).toLocaleString('ru-RU')}</span>
               </div>
+            </div>
+
+            <div className="ag-info-sect">
+              <div className="ag-info-sect-title">Timeline</div>
+              {timelineLoading ? (
+                <div className="admin-empty" style={{ height: 80 }}>Загрузка…</div>
+              ) : timelineRows.length ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 6 }}>
+                  {timelineRows.map((r, idx) => {
+                    const title =
+                      r.type === 'analytics'
+                        ? (r.event_name ?? '')
+                        : (r.action ?? '')
+
+                    const sub =
+                      r.type === 'admin_log'
+                        ? (r.entity ?? '')
+                        : (r.details && typeof r.details === 'object' && (r.details as any).correlation_id
+                          ? `corr:${(r.details as any).correlation_id}`
+                          : '')
+
+                    return (
+                      <div
+                        // eslint-disable-next-line react/no-array-index-key
+                        key={`${idx}-${r.time}`}
+                        style={{
+                          display: 'flex',
+                          gap: 10,
+                          alignItems: 'flex-start',
+                          borderBottom: '1px solid var(--ag-border)',
+                          paddingBottom: 6,
+                        }}
+                      >
+                        <div style={{ minWidth: 130, fontSize: 12, color: 'var(--ag-muted)' }}>
+                          {new Date(r.time).toLocaleString('ru-RU')}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600 }}>{title}</div>
+                          {sub ? (
+                            <div style={{ fontSize: 12, color: 'var(--ag-text-2)', wordBreak: 'break-word' }}>
+                              {sub}
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="admin-empty" style={{ height: 80 }}>Нет данных</div>
+              )}
             </div>
 
             {selected.report_ready && (

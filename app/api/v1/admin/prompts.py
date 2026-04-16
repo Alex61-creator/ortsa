@@ -9,12 +9,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin_user
-from app.api.v1.admin.logs import append_admin_log
 from app.constants.tariffs import CODE_TO_LLM_TIER, LlmTier, resolve_llm_tier
 from app.db.session import get_db
 from app.models.prompt_template import LlmPromptTemplate
 from app.models.user import User
 from app.services.llm import LLMService
+from app.services.admin_logs import append_admin_log
 
 router = APIRouter()
 
@@ -172,6 +172,7 @@ async def upsert_prompt(
     await db.refresh(rec)
 
     await append_admin_log(
+        db,
         actor_label,
         "prompt_update",
         f"{tariff_code}/{locale}",
@@ -213,6 +214,7 @@ async def reset_prompt(
         await db.delete(rec)
         await db.commit()
         await append_admin_log(
+            db,
             actor.email or f"user:{actor.id}",
             "prompt_reset",
             f"{tariff_code}/{locale}",

@@ -1,5 +1,5 @@
 import { api } from '@/api/client'
-import type { AdminOrderRow, RefundResponse, RetryReportResponse } from '@/types/admin'
+import type { AdminOrderRow, AdminOrderTimelineItem, RefundResponse, RetryReportResponse } from '@/types/admin'
 
 export interface OrdersListParams {
   page?: number
@@ -33,6 +33,13 @@ export async function postRefund(orderId: number, amount?: string): Promise<Refu
     {
       params: amount ? { amount } : {},
     }
+  )
+  return data
+}
+
+export async function fetchOrderTimeline(orderId: number): Promise<AdminOrderTimelineItem[]> {
+  const { data } = await api.get<AdminOrderTimelineItem[]>(
+    `/api/v1/admin/orders/${orderId}/timeline`
   )
   return data
 }

@@ -8,8 +8,11 @@ function statusTag(status: string) {
   switch (status) {
     case 'completed': return <span className="ag-tag ag-tag-green">completed</span>
     case 'running':   return <span className="ag-tag ag-tag-blue">running</span>
+    case 'scheduled': return <span className="ag-tag ag-tag-purple">scheduled</span>
     case 'pending':   return <span className="ag-tag ag-tag-amber">pending</span>
     case 'failed':    return <span className="ag-tag ag-tag-red">failed</span>
+    case 'degraded':  return <span className="ag-tag ag-tag-red">degraded</span>
+    case 'idle':      return <span className="ag-tag ag-tag-gray">idle</span>
     default:          return <span className="ag-tag ag-tag-gray">{status}</span>
   }
 }
@@ -51,6 +54,7 @@ export function TasksPage() {
   const failed    = rows.filter((r) => r.status === 'failed').length
   const running   = rows.filter((r) => r.status === 'running').length
   const pending   = rows.filter((r) => r.status === 'pending').length
+  const scheduled = rows.filter((r) => r.status === 'scheduled').length
 
   return (
     <>
@@ -70,6 +74,11 @@ export function TasksPage() {
           <div className="admin-metric-label">Pending</div>
           <div className="admin-metric-value" style={{ color: 'var(--ag-warning)' }}>{pending}</div>
           <div className="admin-metric-delta admin-metric-delta--dim">в очереди</div>
+        </div>
+        <div className="admin-metric-card">
+          <div className="admin-metric-label">Scheduled</div>
+          <div className="admin-metric-value" style={{ color: 'var(--ag-primary)' }}>{scheduled}</div>
+          <div className="admin-metric-delta admin-metric-delta--dim">отложено</div>
         </div>
         <div className="admin-metric-card">
           <div className="admin-metric-label">Failed</div>
@@ -95,8 +104,10 @@ export function TasksPage() {
               { value: 'all',       label: 'Все статусы' },
               { value: 'running',   label: 'running' },
               { value: 'pending',   label: 'pending' },
+              { value: 'scheduled', label: 'scheduled' },
               { value: 'completed', label: 'completed' },
               { value: 'failed',    label: 'failed' },
+              { value: 'degraded',  label: 'degraded' },
             ]}
           />
           <Button size="small" loading={loading} onClick={load}>Обновить</Button>
@@ -118,7 +129,9 @@ export function TasksPage() {
                 <div className="ag-task-meta">
                   {queueTag(item.queue)}
                   <span style={{ marginLeft: 8 }}>{fmtTime(item.created_at)}</span>
+                  {item.worker && <span style={{ marginLeft: 8, color: 'var(--ag-muted)' }}>{item.worker}</span>}
                 </div>
+                {item.error && <div style={{ marginTop: 6, color: 'var(--ag-danger)', fontSize: 12 }}>{item.error}</div>}
               </div>
               {statusTag(item.status)}
               {item.status === 'failed' && (

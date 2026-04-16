@@ -28,12 +28,17 @@ export function ActionLogPage() {
   const [rows, setRows]         = useState<AdminLogRow[]>([])
   const [q, setQ]               = useState('')
   const [actionType, setActionType] = useState('all')
+  const [actor, setActor] = useState('')
 
-  const load = () => void fetchAdminLogs().then(setRows).catch(() => setRows([]))
+  const load = () => void fetchAdminLogs({
+    actor: actor.trim() || undefined,
+    action: actionType === 'all' ? undefined : actionType,
+    entity: q.trim() || undefined,
+  }).then(setRows).catch(() => setRows([]))
   useEffect(() => { load() }, [])
 
   const filtered = rows.filter((r) => {
-    const matchQ = `${r.actor_email} ${r.action} ${r.entity}`
+    const matchQ = `${r.actor_email} ${r.action} ${r.entity} ${JSON.stringify(r.details ?? {})}`
       .toLowerCase()
       .includes(q.trim().toLowerCase())
     const matchType = actionType === 'all' || r.action.includes(actionType)
@@ -50,6 +55,13 @@ export function ActionLogPage() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             style={{ width: 300 }}
+            allowClear
+          />
+          <Input
+            placeholder="Actor email"
+            value={actor}
+            onChange={(e) => setActor(e.target.value)}
+            style={{ width: 220 }}
             allowClear
           />
           <Select
@@ -94,6 +106,11 @@ export function ActionLogPage() {
                     }}
                   >
                     {row.entity}
+                  </span>
+                )}
+                {row.details && (
+                  <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--ag-muted)' }}>
+                    {JSON.stringify(row.details)}
                   </span>
                 )}
               </div>

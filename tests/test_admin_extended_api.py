@@ -69,6 +69,81 @@ async def test_admin_tasks_health_logs(client: AsyncClient, db_session: AsyncSes
 
 
 @pytest.mark.asyncio
+async def test_admin_prompts_list_edit_reset(client: AsyncClient, db_session: AsyncSession):
+    headers = await _admin_headers(db_session)
+    listing = await client.get("/api/v1/admin/prompts/", headers=headers)
+    assert listing.status_code == 200
+    assert len(listing.json()) >= 1
+
+    updated = await client.put(
+        "/api/v1/admin/prompts/report/ru",
+        headers=headers,
+        json={"system_prompt": "UPDATED PROMPT"},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["is_custom"] is True
+
+    reset = await client.delete("/api/v1/admin/prompts/report/ru", headers=headers)
+    assert reset.status_code == 204
+
+
+@pytest.mark.asyncio
+async def test_admin_growth_metrics_and_spend(client: AsyncClient, db_session: AsyncSession):
+    headers = await _admin_headers(db_session)
+    user = User(
+        email="growth@example.com",
+        external_id="growth",
+        oauth_provider=OAuthProvider.GOOGLE,
+        consent_given_at=datetime.utcnow(),
+        source_channel="tg_ads",
+    )
+    db_session.add(user)
+    tariff = Tariff(
+        code="bundle",
+        name="Bundle",
+        price=Decimal("120.00"),
+        price_usd=Decimal("1.20"),
+        features={"max_natal_profiles": 3},
+        retention_days=30,
+        llm_tier="natal_full",
+    )
+    db_session.add(tariff)
+    await db_session.flush()
+    order = Order(
+        user_id=user.id,
+        natal_data_id=None,
+        tariff_id=tariff.id,
+        amount=Decimal("120.00"),
+        status=OrderStatus.COMPLETED,
+    )
+    db_session.add(order)
+    await db_session.commit()
+
+    spend = await client.post(
+        "/api/v1/admin/metrics/spend",
+        headers=headers,
+        json={
+            "period_start": datetime.utcnow().isoformat(),
+            "period_end": datetime.utcnow().isoformat(),
+            "channel": "tg_ads",
+            "spend_amount": "1000.00",
+            "currency": "RUB",
+            "notes": "test",
+        },
+    )
+    assert spend.status_code == 200
+
+    overview = await client.get("/api/v1/admin/metrics/overview", headers=headers)
+    economics = await client.get("/api/v1/admin/metrics/economics", headers=headers)
+    cohorts = await client.get("/api/v1/admin/metrics/cohorts", headers=headers)
+    assert overview.status_code == 200
+    assert economics.status_code == 200
+    assert cohorts.status_code == 200
+    assert "cards" in overview.json()
+    assert "channel_cac" in economics.json()
+
+
+@pytest.mark.asyncio
 async def test_admin_support_notes(client: AsyncClient, db_session: AsyncSession):
     admin_headers = await _admin_headers(db_session)
     user = User(

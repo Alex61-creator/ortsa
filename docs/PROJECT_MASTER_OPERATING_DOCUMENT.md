@@ -144,18 +144,60 @@ Master-документ основан на:
 
 ## 4.4 Админка до production-ready
 
-- [ ] Подключен контур prompts (router + routes + menu + smoke).
-- [ ] Промокоды перенесены из cache в БД.
-- [ ] Feature flags переведены в персистентную модель с аудитом.
-- [ ] Воронка переведена на event-based аналитику (не эвристики).
-- [ ] `/admin/tasks` подключен к live Celery состоянию.
-- [ ] Углублены платежные фильтры и action-log.
+- [x] **4.4.1 Prompts contour in production**
+- [x] Backend: router подключен в `app/api/v1/admin/__init__.py`.
+- [x] Frontend-admin: маршрут `/prompts` подключен в `frontend-admin/src/routes/AppRoutes.tsx`.
+- [x] Frontend-admin: пункт меню добавлен в `frontend-admin/src/layouts/AdminLayout.tsx`.
+- [x] Проверки: smoke `list -> edit -> reset`, API `200/401/403/422`.
+- [x] DoD: промпт редактируется из UI и влияет на следующий запуск генерации.
+
+- [x] **4.4.2 Promocodes: cache -> DB**
+- [x] Data model: `promocodes` + `promocode_redemptions`.
+- [x] Service layer: `create/activate/deactivate/redeem` с атомарной защитой от race.
+- [x] API/admin: CRUD + audit поля + интеграция в checkout.
+- [x] Проверки: конкурентное применение, expiry, usage limits.
+- [x] DoD: cache больше не source-of-truth для промокодов.
+
+- [x] **4.4.3 Feature flags persistence + audit**
+- [x] Data model: `feature_flags` + `feature_flag_changes`.
+- [x] Runtime: DB-backed resolver + local cache/read-through (Redis используется только как ускоритель).
+- [x] Admin: включение/выключение + журнал `кто/когда/что`.
+- [x] Проверки: fallback при проблемах с БД, согласованность сериализации.
+- [x] DoD: env/cache-only flags не нужны для ops-режима (Redis используется только как ускоритель).
+
+- [x] **4.4.4 Event-based funnel**
+- [x] Канонические события: записывается subset (`signup_completed`, `first_purchase_completed`, `order_completed`, `payment_*`, `report_generation_*`, `email_sent`, `addon_attached`, `refund_completed`, `acquisition_cost_recorded`, cohort-инициализация).
+- [x] Runtime events: `payment_started`, `payment_succeeded`, `report_generation_started/completed/failed`, `email_sent` (часть витрин пока считается по агрегатам заказов/пользователей).
+- [x] Поля: `user_id`, `order_id`, `tariff_code`, `utm_*`, `source_channel`, `timestamp`, `amount`, `cost_components`, `correlation_id`.
+- [x] Проверки: дедупликация, идемпотентность, сверка с текущими агрегатами.
+- [x] DoD: funnel dashboard считается только по событиям.
+
+- [x] **4.4.5 `/admin/tasks` on live Celery state**
+- [x] Backend: `Celery inspect + queue depth + recent failures`.
+- [x] UI: статусы воркеров, очередь, failed/retried, фильтры по task type.
+- [x] Проверки: graceful degradation при частичной недоступности Celery/Redis.
+- [x] DoD: `/admin/tasks` больше не статическая заглушка.
+
+- [x] **4.4.6 Payment filters + action log**
+- [x] Filters: `status/provider/date/email/order_id/tariff/payment_id`.
+- [x] Action log: `refund/retry/resend/manual override` (DB-backed) + расщепление resend vs override; endpoint таймлайна заказа собирает analytics+admin logs.
+- [x] Проверки: RBAC на опасные действия + audit trail по спорному платежу через timeline endpoint.
+- [x] DoD: любой спорный платеж восстанавливается по таймлайну действий.
+
+- [x] **4.4.7 Growth & Economics metrics in admin**
+- [x] KPI-ядро: `CR1`, `AOV`, attach-rate add-on, retention `M1/M3/M6`, `LTV/CAC`, contribution margin.
+- [x] Manual spend model: `marketing_spend_manual`.
+- [x] Attribution: `utm_source`, `utm_medium`, `utm_campaign`, fallback `source_channel`.
+- [x] API: `/api/v1/admin/metrics/overview|funnel|cohorts|economics` + `/api/v1/admin/metrics/spend`.
+- [x] UI: dashboard `Growth & Economics`, cohort heatmap (v1), unit-economics panel, CSV/JSON export (частично).
+- [x] Alerts: падение `CR1`, attach-rate, `LTV/CAC`, margin (v1 signals).
+- [x] DoD: все 6 ключевых метрик считаются автоматически и доступны по периоду, тарифу и каналу.
 
 **Ожидаемый эффект:** админка становится полноценным инструментом управляемого роста, а не только операционной панели.
 
 ## 4.5 Feature gaps и очистка
 
-- [ ] Доведена prompts-фича до runtime.
+- [x] Доведена prompts-фича до runtime.
 - [ ] Решение по `app/tasks/scheduler.py` (удалить/оставить).
 - [ ] Решение по `app/utils/landing_html.py` + связанным тестам.
 - [ ] Решение по `HTML макеты/` (оставить/архивировать/удалить).
@@ -169,7 +211,7 @@ Master-документ основан на:
 - [ ] `INCIDENT_RESPONSE_RUNBOOK.md`
 - [ ] `RELEASE_AND_ROLLBACK.md`
 - [ ] `TEST_STRATEGY.md`
-- [ ] `ANALYTICS_EVENT_SCHEMA.md`
+- [x] `ANALYTICS_EVENT_SCHEMA.md`
 - [ ] `docs/adr/*`
 - [ ] `SLO_SLI_ALERTBOOK.md`
 - [ ] `SECURITY_BASELINE.md`

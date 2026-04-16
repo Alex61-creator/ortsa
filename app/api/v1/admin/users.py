@@ -10,7 +10,7 @@ from sqlalchemy import delete, select
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_admin_user
+from app.api.deps import get_current_admin_user, get_current_admin_user_can_manual_override
 from app.core.cache import cache
 from app.db.session import get_db
 from app.models.natal_data import NatalData
@@ -18,6 +18,7 @@ from app.models.synastry_report import SynastryReport
 from app.models.user import User
 from app.models.user_synastry_override import UserSynastryOverride
 from app.schemas.admin_user import AdminUserListItem, AdminUserOut
+from app.services.admin_logs import append_admin_log
 
 router = APIRouter()
 
@@ -230,7 +231,7 @@ async def patch_synastry_override_admin(
     user_id: int,
     payload: SynastryOverridePatch,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_admin_user),
+    _: User = Depends(get_current_admin_user_can_manual_override),
 ):
     """
     Администратор может:
@@ -263,6 +264,18 @@ async def patch_synastry_override_admin(
 
     await db.commit()
     await db.refresh(override)
+
+    await append_admin_log(
+        db,
+        _.email or f"user:{_.id}",
+        "synastry_override_patch",
+        f"user:{user_id}",
+        details={
+            "synastry_enabled": override.synastry_enabled,
+            "free_synastries_granted": override.free_synastries_granted,
+            "admin_note": override.admin_note,
+        },
+    )
     return override
 
 

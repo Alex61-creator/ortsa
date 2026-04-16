@@ -22,19 +22,10 @@
   - `frontend-admin/src/pages/PromptsPage.tsx`
   - `frontend-admin/src/api/prompts.ts`
 
-### Что не доделано
+### Статус
 
-- Роутер `prompts` не подключён в `app/api/v1/admin/__init__.py`.
-- В `app/api/v1/admin/__init__.py` есть артефакты, нарушающие чистоту/валидность модуля (служебные строки вне Python-контекста).
-- Маршрут страницы `/prompts` не подключён в `frontend-admin/src/routes/AppRoutes.tsx`.
-- Пункт меню для prompts отсутствует в `frontend-admin/src/layouts/AdminLayout.tsx`.
-
-### Что сделать
-
-- Подключить backend-роутер `/api/v1/admin/prompts`.
-- Очистить модуль `app/api/v1/admin/__init__.py` от артефактов и оставить валидный импорт/подключение роутеров.
-- Добавить страницу в маршруты админки и пункт меню.
-- Добавить smoke/интеграционный тест: list -> edit -> reset.
+- Подключены роутинг и меню (`/api/v1/admin/prompts`, `/prompts` и пункт меню).
+- smoke `list -> edit -> reset` проведён; изменение промпта влияет на следующий запуск генерации.
 
 ### Приоритет
 

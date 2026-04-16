@@ -11,6 +11,7 @@ from app.core.config import settings
 from app.core.security import create_access_token
 from app.models.user import User, OAuthProvider
 from app.services.admin_allowlist import sync_admin_allowlist_from_env
+from app.services.analytics import derive_source_channel, record_analytics_event
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -52,7 +53,18 @@ class TWAAuthService:
         user_data = json.loads(parsed["user"][0])
         return user_data
 
-    async def get_or_create_user(self, db: AsyncSession, telegram_user_data: Dict[str, Any]) -> User:
+    async def get_or_create_user(
+        self,
+        db: AsyncSession,
+        telegram_user_data: Dict[str, Any],
+        *,
+        utm_source: str | None = None,
+        utm_medium: str | None = None,
+        utm_campaign: str | None = None,
+        source_channel: str | None = None,
+        platform: str | None = "telegram",
+        geo: str | None = None,
+    ) -> User:
         telegram_id = str(telegram_user_data["id"])
         stmt = select(User).where(
             User.external_id == telegram_id,
@@ -68,10 +80,43 @@ class TWAAuthService:
                 external_id=telegram_id,
                 oauth_provider=OAuthProvider.TELEGRAM,
                 privacy_policy_version="1.0",
+                utm_source=utm_source,
+                utm_medium=utm_medium,
+                utm_campaign=utm_campaign,
+                source_channel=source_channel or derive_source_channel(utm_source, "telegram"),
+                signup_platform=platform,
+                signup_geo=geo,
+                acquisition_at=datetime.utcnow(),
             )
             db.add(user)
             await db.commit()
             await db.refresh(user)
+            signup_event = await record_analytics_event(
+                db,
+                event_name="signup_completed",
+                user_id=user.id,
+                source_channel=user.source_channel,
+                utm_source=user.utm_source,
+                utm_medium=user.utm_medium,
+                utm_campaign=user.utm_campaign,
+                platform=user.signup_platform,
+                geo=user.signup_geo,
+                dedupe_key=f"signup:user:{user.id}",
+            )
+            await record_analytics_event(
+                db,
+                event_name="cohort_month_started",
+                user_id=user.id,
+                source_channel=user.source_channel,
+                utm_source=user.utm_source,
+                utm_medium=user.utm_medium,
+                utm_campaign=user.utm_campaign,
+                platform=user.signup_platform,
+                geo=user.signup_geo,
+                correlation_id=None,
+                dedupe_key=f"cohort_month_started:{user.id}",
+                event_time=signup_event.event_time,
+            )
             logger.info("New Telegram user created", user_id=user.id, telegram_id=telegram_id)
 
         return user
@@ -81,10 +126,27 @@ class TWAAuthService:
             {"sub": str(user.id), "email": user.email, "tv": user.token_version}
         )
 
-async def authenticate_twa(init_data: str, db: AsyncSession) -> Dict[str, str]:
+async def authenticate_twa(
+    init_data: str,
+    db: AsyncSession,
+    *,
+    utm_source: str | None = None,
+    utm_medium: str | None = None,
+    utm_campaign: str | None = None,
+    source_channel: str | None = None,
+    geo: str | None = None,
+) -> Dict[str, str]:
     service = TWAAuthService(settings.TELEGRAM_BOT_TOKEN)
     user_data = service.validate_init_data(init_data)
-    user = await service.get_or_create_user(db, user_data)
+    user = await service.get_or_create_user(
+        db,
+        user_data,
+        utm_source=utm_source,
+        utm_medium=utm_medium,
+        utm_campaign=utm_campaign,
+        source_channel=source_channel,
+        geo=geo,
+    )
     await sync_admin_allowlist_from_env(db, user)
     token = service.create_jwt_for_user(user)
     return {"access_token": token, "token_type": "bearer"}

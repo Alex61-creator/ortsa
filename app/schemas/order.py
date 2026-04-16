@@ -18,6 +18,10 @@ class OrderCreate(BaseModel):
         default=None,
         description="Email для PDF и фискального чека; обязателен, если у аккаунта нет реальной почты (Telegram / OAuth без email).",
     )
+    promo_code: Optional[str] = Field(
+        default=None,
+        description="Необязательный промокод для скидки.",
+    )
 
 
 class TariffSummary(BaseModel):

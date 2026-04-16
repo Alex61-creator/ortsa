@@ -20,6 +20,7 @@ from app.services.storage import StorageService
 from app.core.cache import cache
 from app.constants.tariffs import LlmTier, resolve_llm_tier
 from app.schemas.astrology import ChartResultSchema
+from app.services.analytics import get_user_attribution, record_analytics_event
 
 logger = structlog.get_logger(__name__)
 
@@ -53,6 +54,21 @@ async def _generate_report_async(order_id: int, task_id: str):
 
         order.status = OrderStatus.PROCESSING
         await db.commit()
+        utm_source, utm_medium, utm_campaign, source_channel, platform, geo = await get_user_attribution(db, order.user_id)
+        await record_analytics_event(
+            db,
+            event_name="report_generation_started",
+            user_id=order.user_id,
+            order_id=order.id,
+            tariff_code=None,
+            source_channel=source_channel,
+            utm_source=utm_source,
+            utm_medium=utm_medium,
+            utm_campaign=utm_campaign,
+            platform=platform,
+            geo=geo,
+            dedupe_key=f"report_generation_started:{order.id}",
+        )
 
         try:
             failed_step = "init"
@@ -254,6 +270,42 @@ async def _generate_report_async(order_id: int, task_id: str):
 
             order.status = OrderStatus.COMPLETED
             await db.commit()
+            await record_analytics_event(
+                db,
+                event_name="order_completed",
+                user_id=order.user_id,
+                order_id=order.id,
+                tariff_code=tariff.code,
+                source_channel=source_channel,
+                utm_source=utm_source,
+                utm_medium=utm_medium,
+                utm_campaign=utm_campaign,
+                platform=platform,
+                geo=geo,
+                amount=order.amount,
+                correlation_id=str(order.yookassa_id) if order.yookassa_id else None,
+                cost_components={
+                    "variable_cost_amount": float(order.variable_cost_amount or 0),
+                    "payment_fee_amount": float(order.payment_fee_amount or 0),
+                    "ai_cost_amount": float(order.ai_cost_amount or 0),
+                    "infra_cost_amount": float(order.infra_cost_amount or 0),
+                },
+                dedupe_key=f"order_completed:{order.id}",
+            )
+            await record_analytics_event(
+                db,
+                event_name="report_generation_completed",
+                user_id=order.user_id,
+                order_id=order.id,
+                tariff_code=tariff.code,
+                source_channel=source_channel,
+                utm_source=utm_source,
+                utm_medium=utm_medium,
+                utm_campaign=utm_campaign,
+                platform=platform,
+                geo=geo,
+                dedupe_key=f"report_generation_completed:{order.id}",
+            )
 
             failed_step = "email send"
             email_service = EmailService()
@@ -287,6 +339,20 @@ async def _generate_report_async(order_id: int, task_id: str):
                 },
                 attachments=generated_pdf_paths,
             )
+            await record_analytics_event(
+                db,
+                event_name="email_sent",
+                user_id=order.user_id,
+                order_id=order.id,
+                tariff_code=tariff.code,
+                source_channel=source_channel,
+                utm_source=utm_source,
+                utm_medium=utm_medium,
+                utm_campaign=utm_campaign,
+                platform=platform,
+                geo=geo,
+                dedupe_key=f"email_sent:{order.id}",
+            )
 
             logger.info(
                 "Report generation completed",
@@ -312,4 +378,18 @@ async def _generate_report_async(order_id: int, task_id: str):
                 db.add(report)
             report.status = ReportStatus.FAILED
             await db.commit()
+            await record_analytics_event(
+                db,
+                event_name="report_generation_failed",
+                user_id=order.user_id,
+                order_id=order.id,
+                source_channel=source_channel,
+                utm_source=utm_source,
+                utm_medium=utm_medium,
+                utm_campaign=utm_campaign,
+                platform=platform,
+                geo=geo,
+                notes=str(e),
+                dedupe_key=f"report_generation_failed:{order.id}",
+            )
             raise

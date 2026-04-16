@@ -8,14 +8,14 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from app.api.deps import get_current_admin_user
-from app.api.v1.admin.logs import append_admin_log
+from app.api.deps import get_current_admin_user, get_current_admin_user_can_resend_report_email
 from app.core.config import settings
 from app.db.session import get_db
 from app.models.order import Order
 from app.models.report import Report, ReportStatus
 from app.models.user import User
 from app.services.email import EmailService
+from app.services.admin_logs import append_admin_log
 
 router = APIRouter()
 
@@ -91,8 +91,14 @@ async def admin_resend_report_email(
     order_id: int,
     body: ResendEmailRequest,
     db: AsyncSession = Depends(get_db),
-    actor: User = Depends(get_current_admin_user),
+    actor: User = Depends(get_current_admin_user_can_resend_report_email),
 ):
+    deny_values = {False, 0, "0", "false", "False", "FALSE"}
+    # Re-read permission flag from the same DB session we use for order lookup.
+    can_resend = await db.scalar(select(User.can_resend_report_email).where(User.id == actor.id))
+    if can_resend is not None and (can_resend in deny_values or can_resend is False):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+
     stmt = (
         select(Order)
         .where(Order.id == order_id)
@@ -139,10 +145,16 @@ async def admin_resend_report_email(
         attachments=[pdf_path],
     )
 
+    action = "report_manual_override" if body.email_override else "report_resend_email"
     await append_admin_log(
+        db,
         actor.email or f"user:{actor.id}",
-        "report_resend_email",
-        f"order:{order_id}→{to_addr}",
+        action,
+        f"order:{order_id}",
+        details={
+            "to_addr": to_addr,
+            "email_override": bool(body.email_override),
+        },
     )
 
     return {"order_id": order_id, "sent_to": to_addr}

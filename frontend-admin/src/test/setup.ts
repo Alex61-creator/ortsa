@@ -2,11 +2,14 @@ import '@testing-library/jest-dom/vitest'
 import { vi } from 'vitest'
 
 // ResizeObserver не реализован в jsdom — нужен polyfill для Ant Design Table
-global.ResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}))
+class ResizeObserverMock {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+// @ts-expect-error test polyfill
+global.ResizeObserver = ResizeObserverMock
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -21,3 +24,11 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: () => false,
   }),
 })
+
+window.getComputedStyle = ((elt: Element) => {
+  return {
+    getPropertyValue: () => '',
+    display: '',
+    appearance: ['INPUT', 'TEXTAREA'].includes(elt.tagName) ? 'textfield' : '',
+  } as CSSStyleDeclaration
+}) as typeof window.getComputedStyle

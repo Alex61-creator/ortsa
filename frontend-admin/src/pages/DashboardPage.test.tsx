@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { DashboardPage } from '@/pages/DashboardPage'
@@ -18,6 +18,11 @@ describe('DashboardPage', () => {
         <DashboardPage />
       </MemoryRouter>
     )
-    await waitFor(() => expect(screen.getByText('FAILED')).toBeInTheDocument())
+    await waitFor(() => {
+      const label = screen.getByText('Failed заказов')
+      const card = label.parentElement
+      expect(card).not.toBeNull()
+      expect(within(card as HTMLElement).getByText('1')).toBeInTheDocument()
+    })
   })
 })

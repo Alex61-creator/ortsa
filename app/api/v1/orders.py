@@ -16,10 +16,12 @@ from app.models.order import Order, OrderStatus
 from app.models.order_idempotency import OrderIdempotency, OrderIdempotencyState
 from app.models.natal_data import NatalData
 from app.models.order_natal_item import OrderNatalItem
+from app.models.promocode import Promocode, PromocodeRedemption
 from app.models.report import ReportStatus
 from app.services.payment import YookassaPaymentService
 from app.services.refund import RefundService
 from app.services.tariff import TariffService
+from app.services.analytics import get_user_attribution, record_analytics_event
 from app.schemas.order import OrderCreate, OrderListItem, OrderOut, TariffSummary
 from app.schemas.refund import AdminRefundResponse
 from app.core.rate_limit import limiter
@@ -258,6 +260,20 @@ async def create_order(
     tariff_billing_type = getattr(tariff, "billing_type", None)
 
     price = tariff.price if isinstance(tariff.price, Decimal) else Decimal(str(tariff.price))
+    applied_promo: Promocode | None = None
+    promo_discount_percent = 0
+    if order_in.promo_code:
+        promo_stmt = select(Promocode).where(Promocode.code == order_in.promo_code.strip().upper())
+        promo_result = await db.execute(promo_stmt)
+        applied_promo = promo_result.scalar_one_or_none()
+        if not applied_promo or not applied_promo.is_active:
+            raise HTTPException(status_code=404, detail="Promo code not found or inactive")
+        if applied_promo.active_until and applied_promo.active_until < datetime.now(timezone.utc):
+            raise HTTPException(status_code=400, detail="Promo code expired")
+        if applied_promo.used_count >= applied_promo.max_uses:
+            raise HTTPException(status_code=400, detail="Promo code usage limit reached")
+        promo_discount_percent = applied_promo.discount_percent
+        price = (price * Decimal(100 - promo_discount_percent) / Decimal(100)).quantize(Decimal("0.01"))
     delivery_email = (
         str(order_in.report_delivery_email).strip()
         if order_in.report_delivery_email
@@ -419,6 +435,7 @@ async def create_order(
             amount=price,
             status=OrderStatus.PAID,
             report_delivery_email=delivery_email,
+            promo_code=applied_promo.code if applied_promo else None,
         )
         db.add(order)
         await db.flush()  # получаем order.id до commit
@@ -426,6 +443,18 @@ async def create_order(
             db.add(OrderNatalItem(order_id=order.id, natal_data_id=nd_id, slot_index=idx))
         await db.commit()
         await db.refresh(order)
+        if applied_promo:
+            applied_promo.used_count += 1
+            db.add(
+                PromocodeRedemption(
+                    promocode_id=applied_promo.id,
+                    user_id=user_id,
+                    order_id=order.id,
+                    discount_percent=promo_discount_percent,
+                    discount_amount=(tariff.price - order.amount),
+                )
+            )
+            await db.commit()
 
         if idempotency_key:
             await _mark_idempotency_completed(
@@ -438,6 +467,22 @@ async def create_order(
             )
 
         _queue_free_report(order.id)
+        utm_source, utm_medium, utm_campaign, source_channel, platform, geo = await get_user_attribution(db, user_id)
+        await record_analytics_event(
+            db,
+            event_name="order_completed",
+            user_id=user_id,
+            order_id=order.id,
+            tariff_code=tariff_code,
+            source_channel=source_channel,
+            utm_source=utm_source,
+            utm_medium=utm_medium,
+            utm_campaign=utm_campaign,
+            platform=platform,
+            geo=geo,
+            amount=order.amount,
+            dedupe_key=f"order_completed:{order.id}",
+        )
         logger.info(
             "Order created free tariff, report queued",
             order_id=order.id,
@@ -462,6 +507,7 @@ async def create_order(
         amount=price,
         status=OrderStatus.PENDING,
         report_delivery_email=delivery_email,
+        promo_code=applied_promo.code if applied_promo else None,
     )
     db.add(order)
     await db.flush()
@@ -469,6 +515,19 @@ async def create_order(
         db.add(OrderNatalItem(order_id=order.id, natal_data_id=nd_id, slot_index=idx))
     await db.commit()
     await db.refresh(order)
+    if applied_promo:
+        applied_promo.used_count += 1
+        db.add(
+            PromocodeRedemption(
+                promocode_id=applied_promo.id,
+                user_id=user_id,
+                order_id=order.id,
+                discount_percent=promo_discount_percent,
+                discount_amount=(tariff.price - order.amount),
+            )
+        )
+        await db.commit()
+        await db.refresh(order)
 
     payment_service = YookassaPaymentService()
     description = f"AstroGen Natal Chart - {tariff_name}"
@@ -532,6 +591,22 @@ async def create_order(
         order_id=order.id,
         user_id=user_id,
         yookassa_id=order.yookassa_id,
+    )
+    utm_source, utm_medium, utm_campaign, source_channel, platform, geo = await get_user_attribution(db, user_id)
+    await record_analytics_event(
+        db,
+        event_name="payment_started",
+        user_id=user_id,
+        order_id=order.id,
+        tariff_code=tariff_code,
+        source_channel=source_channel,
+        utm_source=utm_source,
+        utm_medium=utm_medium,
+        utm_campaign=utm_campaign,
+        platform=platform,
+        geo=geo,
+        amount=order.amount,
+        dedupe_key=f"payment_started:{order.id}",
     )
 
     return OrderOut(

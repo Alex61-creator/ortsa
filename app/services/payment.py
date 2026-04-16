@@ -13,6 +13,7 @@ from app.core.config import settings
 from app.core.cache import cache
 from app.models.order import Order, OrderStatus
 from app.models.subscription import Subscription, SubscriptionStatus
+from app.services.analytics import get_user_attribution, is_first_paid_order, record_analytics_event
 Configuration.account_id = settings.YOOKASSA_SHOP_ID
 Configuration.secret_key = settings.YOOKASSA_SECRET_KEY
 
@@ -232,6 +233,38 @@ class YookassaPaymentService:
                 )
                 orow = await db.execute(stmt)
                 order = orow.unique().scalar_one()
+                utm_source, utm_medium, utm_campaign, source_channel, platform, geo = await get_user_attribution(db, order.user_id)
+                await record_analytics_event(
+                    db,
+                    event_name="payment_succeeded",
+                    user_id=order.user_id,
+                    order_id=order.id,
+                    tariff_code=order.tariff.code,
+                    source_channel=source_channel,
+                    utm_source=utm_source,
+                    utm_medium=utm_medium,
+                    utm_campaign=utm_campaign,
+                    platform=platform,
+                    geo=geo,
+                    amount=order.amount,
+                    dedupe_key=f"payment_succeeded:{order.id}",
+                )
+                if await is_first_paid_order(db, order.user_id, order.id):
+                    await record_analytics_event(
+                        db,
+                        event_name="first_purchase_completed",
+                        user_id=order.user_id,
+                        order_id=order.id,
+                        tariff_code=order.tariff.code,
+                        source_channel=source_channel,
+                        utm_source=utm_source,
+                        utm_medium=utm_medium,
+                        utm_campaign=utm_campaign,
+                        platform=platform,
+                        geo=geo,
+                        amount=order.amount,
+                        dedupe_key=f"first_purchase_completed:{order.id}",
+                    )
                 pm_id = _payment_method_id_from_yookassa(payment_obj)
                 if order.tariff.billing_type == "subscription" and pm_id:
                     await self._upsert_subscription_from_order(db, order, pm_id)
@@ -239,16 +272,59 @@ class YookassaPaymentService:
                 # Тарифы-кредиты (synastry_addon и подобные) не требуют генерации отчёта —
                 # сразу переводим заказ в COMPLETED, чтобы кредит учёлся при проверке квоты.
                 if order.tariff.code == "synastry_addon":
-                    async with db.begin():
-                        await db.execute(
-                            update(Order)
-                            .where(Order.id == paid_order_id)
-                            .values(status=OrderStatus.COMPLETED)
-                        )
+                    # NOTE: avoid nested `db.begin()` here; the session may already
+                    # have an open transaction (autobegin after prior reads).
+                    await db.execute(
+                        update(Order)
+                        .where(Order.id == paid_order_id)
+                        .values(status=OrderStatus.COMPLETED)
+                    )
                     logger.info(
                         "synastry_addon order completed (no report generation)",
                         order_id=paid_order_id,
                     )
+
+                    # Canonical events for event-based funnels/retention/economics.
+                    correlation_id = str(payment_id)
+                    await record_analytics_event(
+                        db,
+                        event_name="addon_attached",
+                        user_id=order.user_id,
+                        order_id=order.id,
+                        tariff_code=order.tariff.code,
+                        source_channel=source_channel,
+                        utm_source=utm_source,
+                        utm_medium=utm_medium,
+                        utm_campaign=utm_campaign,
+                        platform=platform,
+                        geo=geo,
+                        amount=order.amount,
+                        correlation_id=correlation_id,
+                        dedupe_key=f"addon_attached:{order.id}",
+                    )
+                    await record_analytics_event(
+                        db,
+                        event_name="order_completed",
+                        user_id=order.user_id,
+                        order_id=order.id,
+                        tariff_code=order.tariff.code,
+                        source_channel=source_channel,
+                        utm_source=utm_source,
+                        utm_medium=utm_medium,
+                        utm_campaign=utm_campaign,
+                        platform=platform,
+                        geo=geo,
+                        amount=order.amount,
+                        correlation_id=correlation_id,
+                        cost_components={
+                            "variable_cost_amount": float(order.variable_cost_amount or 0),
+                            "payment_fee_amount": float(order.payment_fee_amount or 0),
+                            "ai_cost_amount": float(order.ai_cost_amount or 0),
+                            "infra_cost_amount": float(order.infra_cost_amount or 0),
+                        },
+                        dedupe_key=f"order_completed:{order.id}",
+                    )
+
                     # credit-like тариф: считаем latency сразу (report_generation не запустится)
                     try:
                         paid_at_value = await cache.get(paid_at_key)

@@ -496,7 +496,7 @@ export function UsersPage() {
             value={providerFilter}
             onChange={(v) => setProviderFilter(String(v))}
           />
-        </Space>
+        </div>
       </Card>
 
       <Card title="Пользователи">
@@ -662,7 +662,7 @@ export function UsersPage() {
                         <Button>Разблокировать</Button>
                       </Popconfirm>
                     </Space>
-                  </Space>
+                  </div>
                 ),
               },
 

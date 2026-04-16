@@ -16,6 +16,8 @@ import { FlagsPage } from '@/pages/FlagsPage'
 import { HealthPage } from '@/pages/HealthPage'
 import { ActionLogPage } from '@/pages/ActionLogPage'
 import { SettingsPage } from '@/pages/SettingsPage'
+import { PromptsPage } from '@/pages/PromptsPage'
+import { GrowthEconomicsPage } from '@/pages/GrowthEconomicsPage'
 
 export function AppRoutes() {
   return (
@@ -27,11 +29,13 @@ export function AppRoutes() {
         <Route element={<AdminLayout />}>
           <Route index element={<DashboardPage />} />
           <Route path="funnel" element={<FunnelPage />} />
+          <Route path="growth" element={<GrowthEconomicsPage />} />
           <Route path="orders" element={<OrdersPage />} />
           <Route path="payments" element={<PaymentsPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="tasks" element={<TasksPage />} />
           <Route path="promos" element={<PromosPage />} />
+          <Route path="prompts" element={<PromptsPage />} />
           <Route path="tariffs" element={<TariffsPage />} />
           <Route path="flags" element={<FlagsPage />} />
           <Route path="health" element={<HealthPage />} />

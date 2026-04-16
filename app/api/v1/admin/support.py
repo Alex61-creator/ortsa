@@ -7,11 +7,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin_user
-from app.api.v1.admin.logs import append_admin_log
 from app.core.cache import cache
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.admin_extra import UserNoteCreate, UserNoteOut
+from app.services.admin_logs import append_admin_log
 
 router = APIRouter()
 
@@ -42,7 +42,7 @@ async def patch_user_email(
     user = await _require_user(db, user_id)
     user.email = str(payload.email).lower()
     await db.commit()
-    await append_admin_log(_.email or f"user:{_.id}", "user_email_patch", f"user:{user_id}")
+    await append_admin_log(db, _.email or f"user:{_.id}", "user_email_patch", f"user:{user_id}")
     return {"user_id": user.id, "email": user.email}
 
 
@@ -54,7 +54,7 @@ async def block_user(
 ):
     await _require_user(db, user_id)
     await cache.set(f"admin:block:{user_id}", True)
-    await append_admin_log(_.email or f"user:{_.id}", "user_block", f"user:{user_id}")
+    await append_admin_log(db, _.email or f"user:{_.id}", "user_block", f"user:{user_id}")
     return UserBlockState(user_id=user_id, blocked=True)
 
 
@@ -66,7 +66,7 @@ async def unblock_user(
 ):
     await _require_user(db, user_id)
     await cache.set(f"admin:block:{user_id}", False)
-    await append_admin_log(_.email or f"user:{_.id}", "user_unblock", f"user:{user_id}")
+    await append_admin_log(db, _.email or f"user:{_.id}", "user_unblock", f"user:{user_id}")
     return UserBlockState(user_id=user_id, blocked=False)
 
 
@@ -97,5 +97,5 @@ async def add_note(
     row = UserNoteOut(id=str(uuid4()), text=payload.text, created_at=datetime.utcnow()).model_dump(mode="json")
     notes.append(row)
     await cache.set(key, notes)
-    await append_admin_log(_.email or f"user:{_.id}", "user_note_add", f"user:{user_id}")
+    await append_admin_log(db, _.email or f"user:{_.id}", "user_note_add", f"user:{user_id}")
     return UserNoteOut(**row)

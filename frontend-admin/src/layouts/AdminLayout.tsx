@@ -10,6 +10,7 @@ const items = [
   { type: 'group', label: 'Аналитика', key: 'g-analytics', children: [
     { key: '/', label: <Link to="/">Дашборд</Link> },
     { key: '/funnel', label: <Link to="/funnel">Воронка</Link> },
+    { key: '/growth', label: <Link to="/growth">Growth & Economics</Link> },
   ] },
   { type: 'group', label: 'Пользователи', key: 'g-users', children: [
     { key: '/users', label: <Link to="/users">Пользователи</Link> },
@@ -19,6 +20,7 @@ const items = [
   { type: 'group', label: 'Инструменты', key: 'g-tools', children: [
     { key: '/tasks', label: <Link to="/tasks">Задачи Celery</Link> },
     { key: '/promos', label: <Link to="/promos">Промокоды</Link> },
+    { key: '/prompts', label: <Link to="/prompts">Промпты LLM</Link> },
     { key: '/tariffs', label: <Link to="/tariffs">Тарифы</Link> },
     { key: '/flags', label: <Link to="/flags">Feature Flags</Link> },
   ] },
@@ -32,6 +34,7 @@ const items = [
 const TITLE_MAP: Record<string, string> = {
   '/': 'Дашборд',
   '/funnel': 'Воронка продаж',
+  '/growth': 'Growth & Economics',
   '/users': 'Пользователи',
   '/payments': 'Платежи',
   '/orders': 'Заказы',
@@ -63,17 +66,20 @@ export function AdminLayout() {
     }
   })()
   const toggleTheme = useUiStore((s) => s.toggleTheme)
-  const selected = ['/', '/funnel', '/users', '/payments', '/orders', '/tasks', '/promos', '/tariffs', '/flags', '/health', '/log', '/settings']
+  const adminInitial = (adminEmail ?? 'admin').slice(0, 1).toUpperCase()
+  const selected = ['/', '/funnel', '/growth', '/users', '/payments', '/orders', '/tasks', '/promos', '/prompts', '/tariffs', '/flags', '/health', '/log', '/settings']
     .find((key) => (key === '/' ? location.pathname === '/' : location.pathname.startsWith(key)))
   document.documentElement.setAttribute('data-theme', theme)
   const titleMap: Record<string, string> = {
     '/': 'Дашборд',
     '/funnel': 'Воронка',
+    '/growth': 'Growth & Economics',
     '/users': 'Пользователи',
     '/payments': 'Платежи',
     '/orders': 'Заказы',
     '/tasks': 'Задачи Celery',
     '/promos': 'Промокоды',
+    '/prompts': 'Промпты LLM',
     '/tariffs': 'Тарифы',
     '/flags': 'Feature Flags',
     '/health': 'Мониторинг',

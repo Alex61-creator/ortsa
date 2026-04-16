@@ -45,6 +45,12 @@ class Order(Base):
     refund_status: Mapped[str | None] = mapped_column(String(50), nullable=True)
     celery_task_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
     report_delivery_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    promo_code: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
+    payment_provider: Mapped[str | None] = mapped_column(String(50), nullable=True, default="yookassa")
+    variable_cost_amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0.00"), nullable=False)
+    payment_fee_amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0.00"), nullable=False)
+    ai_cost_amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0.00"), nullable=False)
+    infra_cost_amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0.00"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
 

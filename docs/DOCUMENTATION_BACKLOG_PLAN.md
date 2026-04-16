@@ -65,7 +65,8 @@
   - `order_id`;
 - источники и владельцы метрик.
 
-Статус: `TODO`
+Статус: `Done`
+Комментарий: документ добавлен в `docs/ANALYTICS_EVENT_SCHEMA.md` и зафиксировал naming/payload/обязательные поля и формулы KPI v1.
 
 ### 5) `TEST_STRATEGY.md`
 
