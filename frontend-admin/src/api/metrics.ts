@@ -6,6 +6,7 @@ import type {
   MarketingSpendRow,
   MetricsCohortsOut,
   MetricsEconomicsOut,
+  MetricsFunnelOut,
   MetricsOverviewOut,
   OneTimeMonthlyOut,
   PromoPerformanceOut,
@@ -20,7 +21,7 @@ export async function fetchMetricsOverview(params: { period?: string } = {}) {
 }
 
 export async function fetchMetricsFunnel(params: { period?: string } = {}) {
-  const { data } = await api.get<FunnelSummary>('/api/v1/admin/metrics/funnel', { params })
+  const { data } = await api.get<MetricsFunnelOut>('/api/v1/admin/metrics/funnel', { params })
   return data
 }
 

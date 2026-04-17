@@ -1,7 +1,11 @@
+import csv
+import io
+import json
 from decimal import Decimal
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
@@ -268,3 +272,101 @@ async def order_timeline_admin(
 
     items.sort(key=lambda x: x.time)
     return items
+
+
+@router.get(
+    "/{order_id}/timeline.csv",
+    summary="Таймлайн заказа — CSV-выгрузка",
+    response_class=StreamingResponse,
+)
+async def order_timeline_csv(
+    order_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin_user),
+    excel_bom: int = Query(default=0, ge=0, le=1),
+):
+    order_exists = await db.scalar(select(Order.id).where(Order.id == order_id))
+    if not order_exists:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+
+    analytics_event_names = [
+        "payment_started",
+        "payment_succeeded",
+        "first_purchase_completed",
+        "order_completed",
+        "addon_attached",
+        "refund_completed",
+        "email_sent",
+        "cohort_month_started",
+        "subscription_renewal_payment",
+    ]
+    analytics_stmt = (
+        select(AnalyticsEvent)
+        .where(AnalyticsEvent.order_id == order_id)
+        .where(
+            or_(
+                AnalyticsEvent.event_name.in_(analytics_event_names),
+                AnalyticsEvent.event_name.like("report_generation_%"),
+            )
+        )
+    )
+    analytics_events = (await db.execute(analytics_stmt)).scalars().all()
+
+    logs_stmt = (
+        select(AdminActionLog)
+        .where(AdminActionLog.entity.ilike(f"%order:{order_id}%"))
+        .order_by(AdminActionLog.created_at.asc())
+    )
+    admin_logs = (await db.execute(logs_stmt)).scalars().all()
+
+    header = ["time_utc", "type", "name", "entity", "details", "dedupe_key"]
+    rows: list[list[str]] = [header]
+
+    for ev in analytics_events:
+        details_dict = {
+            "amount": float(ev.amount) if ev.amount is not None else None,
+            "currency": ev.currency,
+            "tariff_code": ev.tariff_code,
+            "source_channel": ev.source_channel,
+            "utm_source": ev.utm_source,
+            "utm_campaign": ev.utm_campaign,
+            "cost_components": ev.cost_components,
+            "event_metadata": ev.event_metadata,
+        }
+        rows.append([
+            ev.event_time.isoformat() if ev.event_time else "",
+            "analytics",
+            ev.event_name or "",
+            "",
+            json.dumps(details_dict, ensure_ascii=False, default=str),
+            ev.dedupe_key or "",
+        ])
+
+    for lg in admin_logs:
+        rows.append([
+            lg.created_at.isoformat() if lg.created_at else "",
+            "admin_log",
+            lg.action or "",
+            lg.entity or "",
+            json.dumps(lg.details, ensure_ascii=False, default=str) if lg.details else "",
+            "",
+        ])
+
+    rows.sort(key=lambda r: r[0])
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    for row in rows:
+        writer.writerow(row)
+    data = buf.getvalue()
+    if excel_bom:
+        data = "\ufeff" + data
+
+    async def _stream():
+        yield data.encode("utf-8")
+
+    return StreamingResponse(
+        _stream(),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="order_{order_id}_timeline.csv"'},
+    )

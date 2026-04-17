@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Button, Card, DatePicker, Form, Input, InputNumber, Select, Table, message } from 'antd'
+import { Button, Card, DatePicker, Form, Input, InputNumber, Select, Table, Tag, Tooltip, message } from 'antd'
 import dayjs from 'dayjs'
 import { createMarketingSpend, fetchMarketingSpend, fetchMetricsCohorts, fetchMetricsEconomics, fetchMetricsFunnel, fetchMetricsOverview } from '@/api/metrics'
 import type {
@@ -174,12 +174,31 @@ export function GrowthEconomicsPage() {
         </Card>
       )}
 
-      <Card title="Воронка (event-based)" style={{ marginBottom: 16 }}>
+      <Card
+        title={
+          <span>
+            Воронка{' '}
+            <Tooltip title="Метрики рассчитываются по событиям AnalyticsEvent (event_based)">
+              <Tag color="blue" style={{ fontSize: 11, cursor: 'help' }}>event_based</Tag>
+            </Tooltip>
+          </span>
+        }
+        style={{ marginBottom: 16 }}
+      >
         <GrowthFunnelMini data={funnel} />
       </Card>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 16, marginBottom: 16 }}>
-        <Card title="Unit Economics">
+        <Card
+          title={
+            <span>
+              Unit Economics{' '}
+              <Tooltip title={economics?.methodology ?? 'event_based'}>
+                <Tag color="blue" style={{ fontSize: 11, cursor: 'help' }}>{economics?.methodology ?? 'event_based'}</Tag>
+              </Tooltip>
+            </span>
+          }
+        >
           <div className="ag-roi-row"><span>Blended CAC</span><strong>{economics ? fmtMoney(economics.blended_cac) : '—'}</strong></div>
           <div className="ag-roi-row"><span>LTV / CAC</span><strong>{economics?.ltv_cac?.toFixed(2) ?? '—'}</strong></div>
           <div className="ag-roi-row"><span>AOV</span><strong>{economics ? fmtMoney(economics.aov) : '—'}</strong></div>

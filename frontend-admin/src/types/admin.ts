@@ -257,6 +257,14 @@ export interface MetricsOverviewOut {
   period_end: string
   cards: MetricValueCard[]
   alerts: string[]
+  methodology: string
+}
+
+export interface MetricsFunnelOut {
+  period_start: string
+  period_end: string
+  steps: FunnelStep[]
+  methodology: string
 }
 
 export interface ChannelCacRow {
@@ -278,6 +286,7 @@ export interface MetricsCohortsOut {
   period_start: string
   period_end: string
   rows: CohortRow[]
+  methodology: string
 }
 
 export interface CampaignPerformanceRow {
@@ -308,6 +317,7 @@ export interface MetricsEconomicsOut {
   attach_rate: number
   channel_cac: ChannelCacRow[]
   action_hints: string[]
+  methodology: string
 }
 
 export interface SynastryOverrideRow {

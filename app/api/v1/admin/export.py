@@ -21,6 +21,7 @@ from app.models.user import User
 from app.models.subscription import Subscription
 from app.models.tariff import Tariff
 from app.models.user import User
+from app.models.promocode import Promocode, PromocodeRedemption
 from app.services.event_based_metrics import compute_campaign_performance
 
 router = APIRouter()
@@ -183,4 +184,49 @@ async def export_campaign_csv(
         _csv_stream(lines, bool(excel_bom)),
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": 'attachment; filename="campaign_performance.csv"'},
+    )
+
+
+@router.get("/promocode-redemptions.csv", summary="CSV использований промокодов")
+async def export_promocode_redemptions_csv(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin_user),
+    date_from: datetime | None = Query(default=None),
+    date_to: datetime | None = Query(default=None),
+    promo_code: str | None = Query(default=None),
+    excel_bom: int = Query(default=0, ge=0, le=1),
+    limit: int = Query(default=5000, ge=1, le=20000),
+):
+    now = datetime.now(timezone.utc)
+    end_at = date_to or now
+    start_at = date_from or (end_at - timedelta(days=365))
+
+    stmt = (
+        select(PromocodeRedemption, Promocode.code)
+        .join(Promocode, Promocode.id == PromocodeRedemption.promocode_id)
+        .where(PromocodeRedemption.created_at >= start_at, PromocodeRedemption.created_at < end_at)
+    )
+    if promo_code:
+        stmt = stmt.where(Promocode.code == promo_code.upper())
+    stmt = stmt.order_by(PromocodeRedemption.created_at.desc()).limit(limit)
+
+    results = (await db.execute(stmt)).all()
+
+    header = ["id", "code", "user_id", "order_id", "discount_percent", "discount_amount", "created_at"]
+    lines: list[list[str]] = [header]
+    for redemption, code in results:
+        lines.append([
+            str(redemption.id),
+            code,
+            str(redemption.user_id),
+            str(redemption.order_id),
+            str(redemption.discount_percent),
+            str(redemption.discount_amount),
+            redemption.created_at.isoformat() if redemption.created_at else "",
+        ])
+
+    return StreamingResponse(
+        _csv_stream(lines, bool(excel_bom)),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="promocode_redemptions.csv"'},
     )

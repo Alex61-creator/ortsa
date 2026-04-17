@@ -1,7 +1,7 @@
 # Аналитика в админке (указатель)
 
-Дата: `2026-04-16`  
-Статус: **чеклист внедрения §5 закрыт** (снимок на 2026-04-16). Полные таблицы метрик (§2–4), интерактивные чекбоксы §5 и раздел «следующие шаги» v1 перенесены в архив как зафиксированная справка по закрытому этапу.
+Дата: `2026-04-17`  
+Статус: **пункт 2 закрыт** (снимок на 2026-04-17). Полные таблицы метрик (§2–4), интерактивные чекбоксы §5 и раздел «следующие шаги» v1 перенесены в архив как зафиксированная справка по закрытому этапу.
 
 **Архивный снимок v1.0:** [archive/2026-04-16/ADMIN_ANALYTICS_AND_METRICS.v1-reference.archived-2026-04-16.md](archive/2026-04-16/ADMIN_ANALYTICS_AND_METRICS.v1-reference.archived-2026-04-16.md)
 
@@ -25,7 +25,10 @@
 
 - **Active subscriptions over time:** без отдельной таблицы исторических снимков — только текущий active и месячные ряды по новым/выручке; детали в архиве §4.2.
 - **Единый Pro-dashboard** в админке не делался; глубина по пользователю — через экраны пользователей и `/subscriptions`.
-- **`/funnel`:** упрощённые шаги относительно event-based воронки в `/admin/metrics/funnel`.
+- **`/funnel/summary`:** помечен `deprecated` — FunnelPage переключён на `/admin/metrics/funnel` (event-based, единые периоды).
+- **Прomo_code в checkout:** поле добавлено в `OrderConfirmPage`, передаётся в `createOrder`.
+- **CSV-выгрузки:** тайmlайн заказа — `GET /api/v1/admin/orders/{id}/timeline.csv`; redemptions — `GET /api/v1/admin/export/promocode-redemptions.csv`.
+- **Methodology labels:** все event-based ответы `/metrics/*` содержат поле `methodology: "event_based"`.
 
 ---
 

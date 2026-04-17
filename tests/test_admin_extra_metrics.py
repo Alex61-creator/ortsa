@@ -60,3 +60,22 @@ async def test_admin_subscriptions_overview_ok(client: AsyncClient, db_session: 
     r = await client.get("/api/v1/admin/metrics/subscriptions-overview", headers={"Authorization": f"Bearer {token}"})
     assert r.status_code == 200
     assert "monthly_rows" in r.json()
+
+
+@pytest.mark.asyncio
+async def test_admin_metrics_overview_has_methodology(client: AsyncClient, db_session: AsyncSession):
+    admin = User(
+        email="adm-meth@example.com",
+        external_id="adm-meth",
+        oauth_provider=OAuthProvider.GOOGLE,
+        consent_given_at=__import__("datetime").datetime.utcnow(),
+        is_admin=True,
+    )
+    db_session.add(admin)
+    await db_session.commit()
+    await db_session.refresh(admin)
+    token = create_access_token({"sub": str(admin.id), "tv": admin.token_version})
+    for endpoint in ("overview", "funnel", "cohorts", "economics"):
+        r = await client.get(f"/api/v1/admin/metrics/{endpoint}", headers={"Authorization": f"Bearer {token}"})
+        assert r.status_code == 200, f"{endpoint} failed: {r.text}"
+        assert r.json().get("methodology") == "event_based", f"{endpoint}: missing methodology"

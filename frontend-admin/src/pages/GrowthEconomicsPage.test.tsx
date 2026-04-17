@@ -42,6 +42,7 @@ describe('GrowthEconomicsPage', () => {
     await waitFor(() => expect(screen.getByText('CR1')).toBeInTheDocument())
     expect(screen.getByText('CAC by Channel')).toBeInTheDocument()
     expect(screen.getByText('Cohorts M1 / M3 / M6 (heatmap)')).toBeInTheDocument()
-    expect(screen.getByText('Воронка (event-based)')).toBeInTheDocument()
+    expect(screen.getByText('Воронка')).toBeInTheDocument()
+    expect(screen.getAllByText('event_based').length).toBeGreaterThan(0)
   })
 })

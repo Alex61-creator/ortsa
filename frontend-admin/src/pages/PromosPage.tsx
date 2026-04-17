@@ -1,8 +1,30 @@
 import { useEffect, useState } from 'react'
 import { Button, Card, DatePicker, Form, Input, InputNumber, Switch, message } from 'antd'
+import { DownloadOutlined } from '@ant-design/icons'
+import dayjs from 'dayjs'
+import { api } from '@/api/client'
 import { createPromo, fetchPromos, patchPromo } from '@/api/promos'
 import type { PromoRow } from '@/types/admin'
 import { extractApiErrorMessage } from '@/utils/apiError'
+
+const { RangePicker } = DatePicker
+
+async function downloadRedemptionsCsv(params: {
+  date_from?: string
+  date_to?: string
+  promo_code?: string
+}) {
+  const { data } = await api.get<Blob>('/api/v1/admin/export/promocode-redemptions.csv', {
+    params: { ...params, excel_bom: 1 },
+    responseType: 'blob',
+  })
+  const url = window.URL.createObjectURL(data)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'promocode_redemptions.csv'
+  a.click()
+  window.URL.revokeObjectURL(url)
+}
 
 function statusTag(active: boolean) {
   return active
@@ -24,6 +46,9 @@ export function PromosPage() {
   const [rows, setRows]     = useState<PromoRow[]>([])
   const [form]              = Form.useForm()
   const [loading, setLoading] = useState(false)
+  const [exportRange, setExportRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null)
+  const [exportCode, setExportCode] = useState('')
+  const [exportLoading, setExportLoading] = useState(false)
 
   const load = () => {
     setLoading(true)
@@ -173,6 +198,44 @@ export function PromosPage() {
             ))}
           </div>
         )}
+      </Card>
+
+      <Card title="Выгрузка использований промокодов" style={{ marginTop: 16 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div>
+            <div style={{ fontSize: 12, marginBottom: 4, color: 'var(--ag-muted)' }}>Период</div>
+            <RangePicker
+              value={exportRange}
+              onChange={(v) => setExportRange(v as [dayjs.Dayjs | null, dayjs.Dayjs | null] | null)}
+            />
+          </div>
+          <div>
+            <div style={{ fontSize: 12, marginBottom: 4, color: 'var(--ag-muted)' }}>Промокод (фильтр)</div>
+            <Input
+              placeholder="Все"
+              value={exportCode}
+              onChange={(e) => setExportCode(e.target.value.toUpperCase())}
+              style={{ width: 160 }}
+              allowClear
+            />
+          </div>
+          <Button
+            icon={<DownloadOutlined />}
+            loading={exportLoading}
+            onClick={() => {
+              setExportLoading(true)
+              const params: Record<string, string> = {}
+              if (exportRange?.[0]) params.date_from = exportRange[0].toISOString()
+              if (exportRange?.[1]) params.date_to = exportRange[1].toISOString()
+              if (exportCode.trim()) params.promo_code = exportCode.trim()
+              void downloadRedemptionsCsv(params)
+                .catch(() => message.error('Не удалось скачать CSV'))
+                .finally(() => setExportLoading(false))
+            }}
+          >
+            Скачать CSV
+          </Button>
+        </div>
       </Card>
     </>
   )

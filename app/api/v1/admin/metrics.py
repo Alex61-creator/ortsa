@@ -43,7 +43,7 @@ from app.schemas.admin_extra import (
 )
 from app.schemas.admin_extra import FunnelStep
 from app.services.admin_logs import append_admin_log
-from app.services.analytics import fetch_addon_counts, fetch_first_paid_users_by_period, fetch_paid_orders_revenue, record_analytics_event
+from app.services.analytics import fetch_first_paid_users_by_period, record_analytics_event
 from app.services.event_based_metrics import (
     compute_campaign_performance,
     compute_channel_cac_rows,
@@ -104,47 +104,6 @@ def _period_bounds(period: str, date_from: datetime | None, date_to: datetime | 
     prev_start = start_at - length
     return start_at, end_at, prev_start, prev_end
 
-
-async def _compute_growth_metrics(
-    db: AsyncSession,
-    start_at: datetime,
-    end_at: datetime,
-) -> dict:
-    signups = int((await db.scalar(select(func.count(User.id)).where(User.created_at >= start_at, User.created_at < end_at))) or 0)
-    first_paid_users = await fetch_first_paid_users_by_period(db, start_at, end_at)
-    revenue, paid_orders = await fetch_paid_orders_revenue(db, start_at, end_at)
-    addon_orders, eligible_orders = await fetch_addon_counts(db, start_at, end_at)
-    refunded = Decimal((await db.scalar(select(func.coalesce(func.sum(Order.refunded_amount), Decimal("0.00"))).where(Order.created_at >= start_at, Order.created_at < end_at))) or Decimal("0.00"))
-    variable_costs = Decimal((await db.scalar(select(func.coalesce(func.sum(Order.variable_cost_amount + Order.payment_fee_amount + Order.ai_cost_amount + Order.infra_cost_amount), Decimal("0.00"))).where(Order.created_at >= start_at, Order.created_at < end_at))) or Decimal("0.00"))
-    spend = Decimal((await db.scalar(select(func.coalesce(func.sum(MarketingSpendManual.spend_amount), Decimal("0.00"))).where(MarketingSpendManual.period_start < end_at, MarketingSpendManual.period_end >= start_at))) or Decimal("0.00"))
-
-    cr1 = (first_paid_users / signups) if signups else 0.0
-    aov = float(revenue / paid_orders) if paid_orders else 0.0
-    attach_rate = (addon_orders / eligible_orders) if eligible_orders else 0.0
-    blended_cac = float(spend / first_paid_users) if first_paid_users else 0.0
-    gross_profit = revenue - refunded - variable_costs
-    ltv = float(gross_profit / first_paid_users) if first_paid_users else 0.0
-    ltv_cac = (ltv / blended_cac) if blended_cac else 0.0
-    contribution_margin = float(gross_profit / revenue) if revenue else 0.0
-
-    return {
-        "signups": signups,
-        "first_paid_users": first_paid_users,
-        "revenue": float(revenue),
-        "paid_orders": paid_orders,
-        "addon_orders": addon_orders,
-        "eligible_orders": eligible_orders,
-        "spend": float(spend),
-        "refunded": float(refunded),
-        "variable_costs": float(variable_costs),
-        "cr1": cr1,
-        "aov": aov,
-        "attach_rate": attach_rate,
-        "blended_cac": blended_cac,
-        "ltv": ltv,
-        "ltv_cac": ltv_cac,
-        "contribution_margin": contribution_margin,
-    }
 
 
 async def _channel_cac_rows(db: AsyncSession, start_at: datetime, end_at: datetime) -> list[ChannelCacRow]:
