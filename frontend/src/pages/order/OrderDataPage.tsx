@@ -30,7 +30,7 @@ import { getSelectableTimezones } from '@/lib/timezones'
 import { HOUSE_SYSTEMS, canChooseHouseSystem } from '@/lib/tariff'
 import { useOrderWizardStore } from '@/stores/orderWizardStore'
 import type { NatalDataOut } from '@/types/api'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 const { Title } = Typography
 
@@ -68,6 +68,7 @@ export function OrderDataPage() {
   // For bundle: checked IDs; for single: selected single ID
   const [checkedIds, setCheckedIds] = useState<number[]>([])
   const [selectedId, setSelectedId] = useState<number | null>(null)
+  const autoSelectedRef = useRef(false)
 
   const { data: me } = useQuery({ queryKey: ['me'], queryFn: fetchMe })
   const { data: existingProfiles = [] } = useQuery({
@@ -77,8 +78,10 @@ export function OrderDataPage() {
 
   // Auto-select single profile if only one exists and not bundle
   useEffect(() => {
-    if (!isBundle && existingProfiles.length === 1 && selectedId === null) {
+    if (!isBundle && existingProfiles.length === 1 && selectedId === null && !autoSelectedRef.current) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedId(existingProfiles[0].id)
+      autoSelectedRef.current = true
     }
   }, [existingProfiles, isBundle, selectedId])
 
