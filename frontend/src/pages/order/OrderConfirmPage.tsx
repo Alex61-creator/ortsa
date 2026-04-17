@@ -330,7 +330,7 @@ export function OrderConfirmPage() {
               />
               {pay.error ? (
                 <div style={{ marginTop: 4, fontSize: 12, color: 'var(--ag-danger)' }}>
-                  {(pay.error as any)?.response?.data?.detail ?? 'Ошибка оплаты'}
+                  {(pay.error as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Ошибка оплаты'}
                 </div>
               ) : null}
             </div>
