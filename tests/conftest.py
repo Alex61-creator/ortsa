@@ -1,7 +1,9 @@
 import os
 import sys
+import tempfile
 from datetime import datetime
 from decimal import Decimal
+from pathlib import Path
 from types import ModuleType
 
 import fakeredis.aioredis
@@ -36,6 +38,7 @@ _defaults = {
     "OAUTH_GOOGLE_CLIENT_SECRET": "test-google-secret",
     "OAUTH_YANDEX_CLIENT_ID": "test-yandex-client",
     "OAUTH_YANDEX_CLIENT_SECRET": "test-yandex-secret",
+    "STORAGE_DIR": str(Path(tempfile.gettempdir()) / "astro-tests-storage"),
 }
 for _k, _v in _defaults.items():
     os.environ.setdefault(_k, _v)
