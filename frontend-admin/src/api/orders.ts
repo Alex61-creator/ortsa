@@ -43,3 +43,16 @@ export async function fetchOrderTimeline(orderId: number): Promise<AdminOrderTim
   )
   return data
 }
+
+export async function downloadOrderTimelineCsv(orderId: number): Promise<void> {
+  const { data } = await api.get<Blob>(`/api/v1/admin/orders/${orderId}/timeline.csv`, {
+    params: { excel_bom: 1 },
+    responseType: 'blob',
+  })
+  const url = window.URL.createObjectURL(data)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `order_${orderId}_timeline.csv`
+  a.click()
+  window.URL.revokeObjectURL(url)
+}

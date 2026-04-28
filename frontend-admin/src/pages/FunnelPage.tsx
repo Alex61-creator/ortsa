@@ -1,24 +1,24 @@
 import { useEffect, useState } from 'react'
-import { Card, Select, Spin } from 'antd'
-import { fetchFunnelSummary } from '@/api/funnel'
-import type { FunnelSummary } from '@/types/admin'
+import { Card, Select, Spin, Tag, Tooltip } from 'antd'
+import { fetchMetricsFunnel } from '@/api/metrics'
+import type { MetricsFunnelOut } from '@/types/admin'
 
 const FUNNEL_COLORS = ['#1677FF', '#4096FF', '#722ED1', '#EB2F96', '#52C41A']
 
 const PERIOD_OPTIONS = [
-  { value: 'today',         label: 'Сегодня' },
-  { value: 'current_week',  label: 'Эта неделя' },
-  { value: 'current_month', label: 'Этот месяц' },
+  { value: 'current_month', label: 'Текущий месяц' },
+  { value: 'wow',           label: 'Последние 7 дней' },
+  { value: 'qoq',           label: 'Последние 90 дней' },
 ]
 
 export function FunnelPage() {
-  const [summary, setSummary]   = useState<FunnelSummary | null>(null)
+  const [summary, setSummary]   = useState<MetricsFunnelOut | null>(null)
   const [period, setPeriod]     = useState('current_month')
   const [loading, setLoading]   = useState(false)
 
   useEffect(() => {
     setLoading(true)
-    void fetchFunnelSummary(period)
+    void fetchMetricsFunnel({ period })
       .then(setSummary)
       .catch(() => setSummary(null))
       .finally(() => setLoading(false))
@@ -70,7 +70,14 @@ export function FunnelPage() {
 
       {/* ── Main funnel card ── */}
       <Card
-        title={`Воронка продаж · ${summary?.period ?? '...'}`}
+        title={
+          <span>
+            Воронка продаж{' '}
+            <Tooltip title={summary?.methodology ?? 'event_based'}>
+              <Tag color="blue" style={{ fontSize: 11, cursor: 'help' }}>{summary?.methodology ?? 'event_based'}</Tag>
+            </Tooltip>
+          </span>
+        }
         extra={
           <Select
             value={period}

@@ -167,18 +167,21 @@ class MetricsOverviewOut(BaseModel):
     period_end: datetime
     cards: list[MetricValueCard]
     alerts: list[str] = Field(default_factory=list)
+    methodology: str = "event_based"
 
 
 class MetricsFunnelOut(BaseModel):
     period_start: datetime
     period_end: datetime
     steps: list[FunnelStep]
+    methodology: str = "event_based"
 
 
 class MetricsCohortsOut(BaseModel):
     period_start: datetime
     period_end: datetime
     rows: list[CohortRow]
+    methodology: str = "event_based"
 
 
 class MetricsEconomicsOut(BaseModel):
@@ -191,6 +194,7 @@ class MetricsEconomicsOut(BaseModel):
     attach_rate: float
     channel_cac: list[ChannelCacRow]
     action_hints: list[str] = Field(default_factory=list)
+    methodology: str = "event_based"
 
 
 class UserNoteOut(BaseModel):

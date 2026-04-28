@@ -11,10 +11,12 @@ import {
   Space,
   Spin,
   Table,
+  Tooltip,
   Typography,
 } from 'antd'
+import { DownloadOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
-import { fetchOrder, fetchOrderTimeline, fetchOrders, postRefund, postRetryReport } from '@/api/orders'
+import { downloadOrderTimelineCsv, fetchOrder, fetchOrderTimeline, fetchOrders, postRefund, postRetryReport } from '@/api/orders'
 import { downloadOrderChart, downloadOrderPdf, postResendEmail } from '@/api/reports'
 import type { AdminOrderRow, AdminOrderTimelineItem } from '@/types/admin'
 import { isAxiosError } from 'axios'
@@ -410,7 +412,22 @@ export function OrdersPage() {
             </div>
 
             <div className="ag-info-sect">
-              <div className="ag-info-sect-title">Timeline</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <div className="ag-info-sect-title" style={{ marginBottom: 0 }}>Timeline</div>
+                <Tooltip title="Скачать CSV-выгрузку тайmlайна">
+                  <Button
+                    size="small"
+                    icon={<DownloadOutlined />}
+                    onClick={() =>
+                      void downloadOrderTimelineCsv(selected.id).catch(() =>
+                        message.error('Не удалось скачать CSV')
+                      )
+                    }
+                  >
+                    CSV
+                  </Button>
+                </Tooltip>
+              </div>
               {timelineLoading ? (
                 <div className="admin-empty" style={{ height: 80 }}>Загрузка…</div>
               ) : timelineRows.length ? (

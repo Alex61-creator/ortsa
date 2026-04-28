@@ -27,7 +27,7 @@ def _period_bounds(period: str) -> tuple[datetime, datetime]:
     return start_at, end_at
 
 
-@router.get("/summary", response_model=FunnelSummary, summary="Воронка: сводка")
+@router.get("/summary", response_model=FunnelSummary, summary="Воронка: сводка [deprecated — использовать /api/v1/admin/metrics/funnel]", deprecated=True)
 async def funnel_summary(
     period: str = Query("current_month"),
     db: AsyncSession = Depends(get_db),

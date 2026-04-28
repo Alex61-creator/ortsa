@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { Typography, Button, Card, Steps, App, Switch, Flex, Space, Spin, Alert } from 'antd'
+import { useMemo, useState } from 'react'
+import { Typography, Button, Card, Steps, App, Switch, Flex, Space, Spin, Alert, Input } from 'antd'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery } from '@tanstack/react-query'
@@ -42,6 +42,7 @@ export function OrderConfirmPage() {
   const natalDataIds = useOrderWizardStore((s) => s.natalDataIds)
   const reportOptions = useOrderWizardStore((s) => s.reportOptions)
   const setReportOption = useOrderWizardStore((s) => s.setReportOption)
+  const [promoCode, setPromoCode] = useState('')
 
   const isBundle = tariffCode === 'bundle'
   const upsellTariff = isReportUpsellTariff(tariffCode)
@@ -92,6 +93,7 @@ export function OrderConfirmPage() {
         natal_data_id: natalDataId,
         natal_data_ids: isBundle && natalDataIds.length > 0 ? natalDataIds : null,
         report_delivery_email: deliveryEmail,
+        promo_code: promoCode.trim() || null,
         ...(report_options ? { report_options } : {}),
       })
     },
@@ -317,6 +319,21 @@ export function OrderConfirmPage() {
               </div>
             )}
             <div className="order-summary-note">После оплаты откроется защищенная страница ЮKassa</div>
+            <div style={{ marginBottom: 12 }}>
+              <Input
+                placeholder="Промокод (необязательно)"
+                value={promoCode}
+                onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                maxLength={50}
+                allowClear
+                aria-label="Промокод"
+              />
+              {pay.error ? (
+                <div style={{ marginTop: 4, fontSize: 12, color: 'var(--ag-danger)' }}>
+                  {(pay.error as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Ошибка оплаты'}
+                </div>
+              ) : null}
+            </div>
             <Button type="primary" size="large" block loading={pay.isPending} onClick={() => pay.mutate()}>
               Оплатить через ЮKassa
             </Button>
