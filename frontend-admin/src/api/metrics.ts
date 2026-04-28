@@ -2,6 +2,8 @@ import { api } from '@/api/client'
 import type {
   CampaignPerformanceOut,
   FunnelSummary,
+  LlmMarginOut,
+  LlmUsageOut,
   MarketingSpendCreate,
   MarketingSpendRow,
   MetricsCohortsOut,
@@ -80,5 +82,15 @@ export async function fetchSubscriptionsOverview(params: { months?: number } = {
 
 export async function fetchSubscriptionsList(params: { limit?: number } = {}) {
   const { data } = await api.get<SubscriptionListOut>('/api/v1/admin/metrics/subscriptions-list', { params })
+  return data
+}
+
+export async function fetchLlmUsage(params: { date_from?: string; date_to?: string } = {}) {
+  const { data } = await api.get<LlmUsageOut>('/api/v1/admin/metrics/llm-usage', { params })
+  return data
+}
+
+export async function fetchLlmMargin() {
+  const { data } = await api.get<LlmMarginOut>('/api/v1/admin/metrics/llm-margin')
   return data
 }

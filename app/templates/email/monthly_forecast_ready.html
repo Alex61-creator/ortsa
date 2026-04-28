@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="{{ locale or 'ru' }}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body { font-family: Arial, sans-serif; background: #f5f0e8; margin: 0; padding: 0; color: #1a1f3c; }
+  .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; }
+  .header { background: #1a1f3c; padding: 24px 32px; }
+  .header h1 { color: #c9a96e; margin: 0; font-size: 20px; }
+  .header p { color: #aaa; margin: 4px 0 0; font-size: 13px; }
+  .body { padding: 28px 32px; }
+  .body p { line-height: 1.6; margin: 0 0 14px; }
+  .preview { background: #f5f0e8; border-left: 3px solid #c9a96e; padding: 12px 16px; margin: 16px 0; font-size: 13px; line-height: 1.6; white-space: pre-wrap; }
+  .btn { display: inline-block; background: #1a1f3c; color: #c9a96e !important; text-decoration: none; padding: 12px 28px; border-radius: 4px; font-weight: bold; margin-top: 8px; }
+  .ics-note { font-size: 12px; color: #888; margin-top: 12px; }
+  .footer { text-align: center; padding: 16px 32px; font-size: 11px; color: #aaa; border-top: 1px solid #eee; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>
+      {% if locale == "en" %}Your personal forecast for {{ month_name }} is ready{% else %}Ваш персональный прогноз на {{ month_name }} готов{% endif %}
+    </h1>
+    <p>Astro Pro · {{ month_name }}</p>
+  </div>
+  <div class="body">
+    <p>{% if locale == "en" %}Hello{% else %}Здравствуйте{% endif %}{% if user_name %}, {{ user_name }}{% endif %}!</p>
+    <p>
+      {% if locale == "en" %}
+        Your personal astrological forecast for <strong>{{ month_name }}</strong> has been generated
+        based on the transits to your natal chart. Attached you will find the PDF report
+        and an ICS file — open it to add all key astrological dates to your Google, Apple
+        or Outlook Calendar in one click.
+      {% else %}
+        Ваш персональный астрологический прогноз на <strong>{{ month_name }}</strong> сформирован
+        на основе транзитов к вашей натальной карте. Во вложении — PDF-отчёт
+        и ICS-файл: откройте его, чтобы одним кликом добавить все ключевые даты
+        в Google, Apple или Outlook Календарь.
+      {% endif %}
+    </p>
+    {% if forecast_text %}
+    <div class="preview">{{ forecast_text[:800] }}{% if forecast_text|length > 800 %}…{% endif %}</div>
+    {% endif %}
+    <a href="{{ cabinet_link }}" class="btn">
+      {% if locale == "en" %}Open dashboard{% else %}Открыть личный кабинет{% endif %}
+    </a>
+    <p class="ics-note">
+      {% if locale == "en" %}
+        📅 The ICS file is attached to this email. Open it to import all transit events into your calendar.
+      {% else %}
+        📅 ICS-файл прикреплён к этому письму. Откройте его для импорта транзитных событий в календарь.
+      {% endif %}
+    </p>
+  </div>
+  <div class="footer">Astro Pro · <a href="{{ cabinet_link }}">astro.app</a></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="{{ locale }}">
+<head>
+<meta charset="UTF-8">
+<style>
+:root {
+  --navy:       #1a1f3c;
+  --navy-2:     #252b50;
+  --gold:       #c9a96e;
+  --gold-light: #e8d5a3;
+  --cream:      #f5f0e8;
+  --cream-2:    #ede8de;
+  --white:      #ffffff;
+  --text:       #1a1f3c;
+  --text-2:     #5a5f7c;
+  --good:       #e8f5e9;
+  --good-b:     #2e7d32;
+  --hard:       #fce4e4;
+  --hard-b:     #c62828;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+@page { size: A4; margin: 15mm 15mm 15mm 15mm; }
+body { font-family: 'DejaVu Serif', Georgia, serif; font-size: 9.5pt; line-height: 1.55; color: var(--text); background: var(--cream); }
+
+/* ── Cover ─────────────────────────────────────────────────────────────── */
+.cover { background: var(--navy); padding: 18mm 15mm 12mm; page-break-after: always; }
+.cover-stripe { height: 4px; background: var(--gold); margin-bottom: 8mm; }
+.cover-label { color: var(--gold); font-size: 8pt; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 4mm; }
+.cover-title { color: var(--white); font-size: 22pt; font-weight: bold; margin-bottom: 3mm; }
+.cover-sub { color: var(--gold-light); font-size: 11pt; margin-bottom: 8mm; }
+.cover-person { color: var(--gold); font-size: 10pt; border-top: 1px solid rgba(201,169,110,0.3); padding-top: 5mm; }
+
+/* ── Calendar mini ──────────────────────────────────────────────────────── */
+.mini-calendar { margin: 6mm 0; }
+.mini-cal-title { font-size: 8pt; color: var(--text-2); margin-bottom: 2mm; font-variant: small-caps; }
+.cal-grid { display: flex; flex-wrap: wrap; gap: 1.5mm; }
+.cal-day { width: 8mm; height: 8mm; border-radius: 2px; display: flex; align-items: center; justify-content: center; font-size: 7pt; }
+.cal-day.good    { background: var(--good); color: var(--good-b); font-weight: bold; }
+.cal-day.hard    { background: var(--hard); color: var(--hard-b); font-weight: bold; }
+.cal-day.neutral { background: #e3f2fd; color: #1565c0; }
+.cal-day.empty   { background: transparent; }
+
+/* ── Key dates ─────────────────────────────────────────────────────────── */
+.key-dates { margin: 6mm 0; }
+.key-date-item { display: flex; gap: 3mm; margin-bottom: 2mm; font-size: 9pt; }
+.key-date-badge { min-width: 14mm; font-weight: bold; color: var(--navy); }
+.key-date-badge.good { color: var(--good-b); }
+.key-date-badge.hard { color: var(--hard-b); }
+
+/* ── Section ───────────────────────────────────────────────────────────── */
+.section { margin-bottom: 6mm; page-break-inside: avoid; }
+.section-title {
+  font-size: 10pt; font-weight: bold;
+  color: var(--navy);
+  border-bottom: 1px solid var(--gold);
+  padding-bottom: 1.5mm; margin-bottom: 3mm;
+  letter-spacing: 0.05em;
+}
+.section-body p { margin-bottom: 2.5mm; }
+.section-body ul { margin-left: 5mm; margin-bottom: 2.5mm; }
+.section-body li { margin-bottom: 1mm; }
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+.footer { text-align: center; font-size: 7pt; color: var(--text-2); margin-top: 8mm; padding-top: 2mm; border-top: 1px solid var(--cream-2); }
+</style>
+</head>
+<body>
+
+<!-- Cover -->
+<div class="cover">
+  <div class="cover-stripe"></div>
+  <div class="cover-label">Astro Pro · {% if locale == "en" %}Personal Forecast{% else %}Персональный прогноз{% endif %}</div>
+  <div class="cover-title">
+    {% if locale == "en" %}{{ calendar.month_name_en }} {{ calendar.year }}
+    {% else %}{{ calendar.month_name }} {{ calendar.year }}{% endif %}
+  </div>
+  <div class="cover-sub">
+    {% if locale == "en" %}Monthly Astrological Report{% else %}Ежемесячный астрологический отчёт{% endif %}
+  </div>
+  <div class="cover-person">{{ user_name }}</div>
+</div>
+
+<!-- Transit highlights mini-calendar -->
+<div class="mini-calendar">
+  <div class="mini-cal-title">
+    {% if locale == "en" %}Energy map of the month{% else %}Карта энергий месяца{% endif %}
+  </div>
+  <div class="cal-grid">
+    {% for week in calendar.weeks %}
+      {% for day in week.days %}
+        {% if day is none %}
+          <div class="cal-day empty"></div>
+        {% else %}
+          <div class="cal-day {{ day.energy }}" title="{{ day.date.day }}">{{ day.date.day }}</div>
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Key transits -->
+{% if calendar.transit_summary %}
+<div class="key-dates">
+  <div class="mini-cal-title">{% if locale == "en" %}Key transits of the month{% else %}Ключевые транзиты месяца{% endif %}</div>
+  {% for t in calendar.transit_summary %}
+  <div class="key-date-item">
+    <span class="key-date-badge {{ t.energy }}">{{ t.date[5:] }}</span>
+    <span>{{ t.label }}</span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- LLM Forecast sections -->
+{% if forecast and forecast.sections %}
+  {% for section_key, section_text in forecast.sections.items() %}
+  <div class="section">
+    <div class="section-title">{{ section_key | replace("_", " ") | title }}</div>
+    <div class="section-body">{{ section_text | md_to_html }}</div>
+  </div>
+  {% endfor %}
+{% elif forecast and forecast.raw_content %}
+  <div class="section">
+    <div class="section-body">{{ forecast.raw_content | md_to_html }}</div>
+  </div>
+{% endif %}
+
+<div class="footer">Astro Pro · astro.app · {{ calendar.year }}</div>
+
+</body>
+</html>

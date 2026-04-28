@@ -1,28 +1,38 @@
 """
 LLM-сервис для генерации интерпретации синастрии.
 
-Использует тот же DeepSeek клиент, что и LLMService,
-но со своими промптами и разделами.
+Поддерживает DeepSeek, Grok (OpenAI-compatible) и Claude (Anthropic SDK).
+Использует llm_router для автоматического failover с circuit breaker.
+Проверяет структуру и язык ответа через llm_validator (1 повтор при фейле).
+Пишет LlmUsageLog в БД после каждого успешного LLM-вызова.
 """
-
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
+from decimal import Decimal
 
-import httpx
 import structlog
-from openai import AsyncOpenAI, APIError, RateLimitError
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from app.core.cache import cache
 from app.core.config import settings
 from app.schemas.llm import LLMResponseSchema
+from app.services.llm_client import LLMProvider
+from app.services.llm import _call_api, _compute_cost, _write_usage_log  # переиспользуем хелперы
+from app.services.llm_router import call_with_fallback
+from app.services.llm_validator import (
+    LLMValidationError,
+    validate_response,
+    language_enforcement_suffix,
+)
+from app.constants.tariffs import LlmTier
 
 logger = structlog.get_logger(__name__)
 
-SYNASTRY_CACHE_PREFIX = "synastry_llm:v1"
+SYNASTRY_CACHE_PREFIX = "synastry_llm:v2"
 
+# ── Промпты ───────────────────────────────────────────────────────────────────
 
 SYNASTRY_SYSTEM_PROMPT_RU = """
 Ты — профессиональный астролог с 20-летним опытом в синастрии.
@@ -68,10 +78,6 @@ def build_synastry_user_prompt(
     locale: str = "ru",
     chart_context: str | None = None,
 ) -> str:
-    """
-    Строит user-промпт с данными двух карт и аспектами синастрии.
-    chart_data содержит: subject1, subject2, aspects
-    """
     if chart_context:
         if locale == "en":
             return (
@@ -89,21 +95,19 @@ def build_synastry_user_prompt(
         )
 
     if locale == "en":
-        prompt = (
+        return (
             f"Synastry analysis for:\n"
             f"  Person 1: {person1_name}\n"
             f"  Person 2: {person2_name}\n\n"
             f"Chart data:\n{json.dumps(chart_data, indent=2, ensure_ascii=False)}\n\n"
             "Write the entire analysis in clear, fluent English."
         )
-    else:
-        prompt = (
-            f"Синастрия (совместность) двух людей:\n"
-            f"  Человек 1: {person1_name}\n"
-            f"  Человек 2: {person2_name}\n\n"
-            f"Данные карт и аспекты:\n{json.dumps(chart_data, indent=2, ensure_ascii=False)}"
-        )
-    return prompt
+    return (
+        f"Синастрия (совместность) двух людей:\n"
+        f"  Человек 1: {person1_name}\n"
+        f"  Человек 2: {person2_name}\n\n"
+        f"Данные карт и аспекты:\n{json.dumps(chart_data, indent=2, ensure_ascii=False)}"
+    )
 
 
 def make_synastry_cache_key(chart_data: dict, locale: str = "ru") -> str:
@@ -111,25 +115,11 @@ def make_synastry_cache_key(chart_data: dict, locale: str = "ru") -> str:
     return f"{SYNASTRY_CACHE_PREFIX}:{hashlib.sha256(raw.encode()).hexdigest()}"
 
 
-class SynastryLLMService:
-    def __init__(self) -> None:
-        timeout = httpx.Timeout(
-            settings.LLM_HTTP_TIMEOUT_SECONDS,
-            connect=min(30.0, float(settings.LLM_HTTP_TIMEOUT_SECONDS)),
-        )
-        self.client = AsyncOpenAI(
-            api_key=settings.DEEPSEEK_API_KEY,
-            base_url="https://api.deepseek.com",
-            timeout=timeout,
-        )
-        self.model = settings.LLM_MODEL
+# ── Основной сервис ───────────────────────────────────────────────────────────
 
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=2, max=10),
-        retry=retry_if_exception_type((RateLimitError, APIError)),
-        reraise=True,
-    )
+class SynastryLLMService:
+    """Генерация интерпретации синастрии с multi-provider failover."""
+
     async def generate_synastry_interpretation(
         self,
         person1_name: str,
@@ -138,43 +128,81 @@ class SynastryLLMService:
         locale: str = "ru",
         system_prompt_override: str | None = None,
         chart_context: str | None = None,
-    ) -> LLMResponseSchema:
+        *,
+        user_id: int | None = None,
+        synastry_id: int | None = None,
+    ) -> tuple[LLMResponseSchema, LLMProvider]:
+        """Генерирует интерпретацию синастрии с multi-provider failover.
+
+        Returns:
+            (LLMResponseSchema, LLMProvider) — схема ответа и провайдер.
+        """
         if locale not in ("ru", "en"):
             locale = "ru"
 
         cache_key = make_synastry_cache_key(chart_data, locale)
+
+        # ── Cache hit ─────────────────────────────────────────────────────────
         cached = await cache.get(cache_key)
         if cached:
             logger.info("Synastry LLM cache hit", locale=locale)
-            return LLMResponseSchema(**cached)
+            if "response" in cached and "provider" in cached:
+                cached_provider = LLMProvider(cached.get("provider", LLMProvider.DEEPSEEK.value))
+                return LLMResponseSchema(**cached["response"]), cached_provider
+            # Старый формат v1
+            return LLMResponseSchema(**cached), LLMProvider.DEEPSEEK
 
+        # ── Подготовка промптов ───────────────────────────────────────────────
         system_prompt = system_prompt_override or build_synastry_system_prompt(locale)
         user_prompt = build_synastry_user_prompt(
-            person1_name,
-            person2_name,
-            chart_data,
-            locale,
-            chart_context=chart_context,
+            person1_name, person2_name, chart_data, locale, chart_context=chart_context
+        )
+        max_tokens = settings.LLM_MAX_TOKENS_PRO
+
+        # ── Closure для router ────────────────────────────────────────────────
+        async def _fn(provider: LLMProvider) -> tuple[LLMResponseSchema, dict]:
+            response, usage = await _call_api(provider, system_prompt, user_prompt, max_tokens)
+
+            try:
+                # Синастрия — особый тип: is_synastry=True
+                validate_response(response, LlmTier.PRO, locale, is_synastry=True)
+            except LLMValidationError as first_err:
+                logger.warning(
+                    "Synastry LLM validation failed, retrying",
+                    provider=provider.value,
+                    error=str(first_err),
+                )
+                enhanced_prompt = user_prompt + language_enforcement_suffix(locale)
+                response, usage = await _call_api(provider, system_prompt, enhanced_prompt, max_tokens)
+                validate_response(response, LlmTier.PRO, locale, is_synastry=True)
+
+            logger.info(
+                "Synastry LLM tokens used",
+                provider=provider.value,
+                prompt_tokens=usage["prompt_tokens"],
+                completion_tokens=usage["completion_tokens"],
+                cached_tokens=usage["cached_tokens"],
+            )
+            return response, usage
+
+        # ── Вызов с failover ──────────────────────────────────────────────────
+        (response, usage), provider_used = await call_with_fallback(
+            _fn,
+            validation_error_cls=LLMValidationError,
         )
 
-        response = await self.client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            temperature=settings.LLM_TEMPERATURE,
-            top_p=settings.LLM_TOP_P,
-            max_tokens=settings.LLM_MAX_TOKENS_PRO,
+        # ── Кеш ──────────────────────────────────────────────────────────────
+        await cache.set(
+            cache_key,
+            {"provider": provider_used.value, "response": response.model_dump()},
+            ttl=90 * 24 * 3600,
         )
 
-        content = response.choices[0].message.content
-        logger.info(
-            "Synastry LLM tokens used",
-            prompt_tokens=response.usage.prompt_tokens,
-            completion_tokens=response.usage.completion_tokens,
-        )
+        # ── LlmUsageLog (fire-and-forget) ─────────────────────────────────────
+        cost_usd, cost_rub = _compute_cost(provider_used, usage)
+        if user_id is not None:
+            asyncio.ensure_future(
+                _write_usage_log(user_id, synastry_id, provider_used, usage, cost_usd, cost_rub)
+            )
 
-        validated = LLMResponseSchema.from_markdown(content)
-        await cache.set(cache_key, validated.model_dump(), ttl=90 * 24 * 3600)
-        return validated
+        return response, provider_used

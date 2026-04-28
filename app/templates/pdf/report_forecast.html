@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="{{ locale }}">
+<head>
+<meta charset="UTF-8">
+<style>
+/* ═══ Palette ═══════════════════════════════════════════════════════════════ */
+:root {
+  --navy:       #1a1f3c;
+  --navy-2:     #252b50;
+  --gold:       #c9a96e;
+  --gold-light: #e8d5a3;
+  --cream:      #f5f0e8;
+  --cream-2:    #ede8de;
+  --white:      #ffffff;
+  --text:       #1a1f3c;
+  --text-2:     #5a5f7c;
+  --fire:       #c94e2b;
+  --earth:      #6b8c3a;
+  --air:        #3a7fa5;
+  --water:      #3a6fa0;
+  --retro:      #b03020;
+  --forecast:   #2e5e8a;
+  --forecast-2: #d6e8f5;
+}
+
+/* ═══ Page ══════════════════════════════════════════════════════════════════ */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DejaVu Serif', Georgia, serif;
+  font-size: 9.5pt;
+  color: var(--text);
+  background: var(--cream);
+}
+
+/* ═══ Cover ═════════════════════════════════════════════════════════════════ */
+.cover {
+  background: var(--navy);
+  width: 100%;
+  padding: 0;
+}
+.cover-stripe-top { height: 5px; background: var(--gold); }
+.cover-body { padding: 30px 36px 26px; }
+.cover-label {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 7pt;
+  letter-spacing: 3px;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.cover-name {
+  font-family: 'DejaVu Serif', Georgia, serif;
+  font-size: 22pt;
+  font-weight: bold;
+  color: var(--white);
+  margin-bottom: 6px;
+  line-height: 1.15;
+}
+.cover-subtitle {
+  font-family: 'DejaVu Serif', Georgia, serif;
+  font-size: 11pt;
+  color: var(--gold-light);
+  margin-bottom: 20px;
+  font-style: italic;
+}
+.cover-rule { width: 56px; height: 2px; background: var(--gold); margin-bottom: 18px; }
+.cover-meta-table { border-collapse: collapse; width: 100%; max-width: 420px; }
+.cover-meta-table td { padding: 3px 0; vertical-align: top; }
+.cover-meta-label {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 7pt;
+  letter-spacing: 1.5px;
+  color: var(--gold);
+  text-transform: uppercase;
+  white-space: nowrap;
+  padding-right: 16px;
+  width: 80px;
+}
+.cover-meta-value { font-size: 9pt; color: var(--white); font-weight: 600; }
+.cover-stripe-bot { height: 3px; background: var(--gold); opacity: 0.6; }
+
+/* ═══ Main ══════════════════════════════════════════════════════════════════ */
+.main { padding: 20px 28px 30px; }
+
+/* ═══ Chart ═════════════════════════════════════════════════════════════════ */
+.chart-wrap {
+  text-align: center;
+  padding: 14px 0 10px;
+  background: var(--white);
+  border: 1px solid var(--cream-2);
+  margin-bottom: 14px;
+}
+.chart-wrap-label {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 7pt;
+  letter-spacing: 2px;
+  color: var(--text-2);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.chart-wrap img { max-width: 310px; max-height: 310px; }
+
+/* ═══ Section heading ═══════════════════════════════════════════════════════ */
+.sect-heading {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 7.5pt;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--text-2);
+  padding-bottom: 4px;
+  border-bottom: 1.5px solid var(--gold);
+  margin: 16px 0 8px;
+}
+
+/* ═══ Forecast period banner ════════════════════════════════════════════════ */
+.forecast-banner {
+  background: var(--forecast);
+  color: var(--white);
+  padding: 10px 16px;
+  margin-bottom: 14px;
+  display: table;
+  width: 100%;
+}
+.forecast-banner-inner { display: table-row; }
+.forecast-banner-icon {
+  display: table-cell;
+  vertical-align: middle;
+  font-size: 16pt;
+  padding-right: 12px;
+  width: 30px;
+}
+.forecast-banner-text { display: table-cell; vertical-align: middle; }
+.forecast-banner-title {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 9pt;
+  font-weight: bold;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.forecast-banner-period {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 8.5pt;
+  color: var(--gold-light);
+  margin-top: 2px;
+}
+
+/* ═══ Forecast context pre-block ════════════════════════════════════════════ */
+.forecast-context {
+  background: var(--forecast-2);
+  border-left: 3px solid var(--forecast);
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  font-family: 'DejaVu Sans Mono', 'Courier New', monospace;
+  font-size: 7.5pt;
+  color: var(--navy);
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+/* ═══ Interpretation sections ═══════════════════════════════════════════════ */
+.interp-block {
+  margin-bottom: 14px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.interp-hdr {
+  background: var(--navy);
+  padding: 7px 12px;
+  display: table;
+  width: 100%;
+}
+.interp-hdr-inner { display: table-row; }
+.interp-num-cell {
+  display: table-cell;
+  vertical-align: middle;
+  width: 24px;
+  padding-right: 10px;
+}
+.interp-num {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  line-height: 20px;
+  text-align: center;
+  background: var(--gold);
+  color: var(--navy);
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 8pt;
+  font-weight: bold;
+  border-radius: 50%;
+}
+.interp-title-cell { display: table-cell; vertical-align: middle; }
+.interp-title {
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 8.5pt;
+  font-weight: bold;
+  color: var(--white);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.interp-body {
+  background: var(--white);
+  padding: 10px 12px;
+  border: 1px solid var(--cream-2);
+  border-top: none;
+}
+.interp-body p { margin-bottom: 7px; line-height: 1.6; color: var(--text); }
+.interp-body p:last-child { margin-bottom: 0; }
+.interp-body ul { padding-left: 16px; margin-bottom: 7px; }
+.interp-body li { margin-bottom: 3px; line-height: 1.55; }
+.interp-body strong { color: var(--navy); }
+.interp-body em { color: var(--text-2); }
+
+/* Fallback */
+.raw-interp {
+  background: var(--white);
+  padding: 12px 14px;
+  border: 1px solid var(--cream-2);
+  line-height: 1.6;
+}
+
+/* ═══ Footer ════════════════════════════════════════════════════════════════ */
+.footer-rule { height: 1px; background: var(--gold); margin-top: 24px; margin-bottom: 8px; opacity: 0.7; }
+.footer-table { width: 100%; border-collapse: collapse; }
+.footer-table td {
+  vertical-align: middle;
+  font-family: 'DejaVu Sans', Arial, sans-serif;
+  font-size: 6.5pt;
+  color: var(--text-2);
+  padding: 0;
+}
+.footer-brand { font-size: 8pt; font-weight: bold; color: var(--navy); letter-spacing: 1px; }
+.footer-note { text-align: right; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════ COVER ══════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-stripe-top"></div>
+  <div class="cover-body">
+    <div class="cover-label">
+      {% if locale == 'en' %}Monthly Forecast · AstroGen{% else %}Прогноз на Месяц · AstroGen{% endif %}
+    </div>
+    <div class="cover-name">{{ full_name }}</div>
+    <div class="cover-subtitle">
+      {% if locale == 'en' %}Transits &amp; Progressions Forecast{% else %}Транзиты и Прогрессии{% endif %}
+    </div>
+    <div class="cover-rule"></div>
+    <table class="cover-meta-table">
+      <tr>
+        <td class="cover-meta-label">{% if locale == 'en' %}Birth{% else %}Рождение{% endif %}</td>
+        <td class="cover-meta-value">{{ birth_data }}</td>
+      </tr>
+      <tr>
+        <td class="cover-meta-label">{% if locale == 'en' %}Place{% else %}Место{% endif %}</td>
+        <td class="cover-meta-value">{{ birth_place }}</td>
+      </tr>
+      {% if forecast_window_start and forecast_window_end %}
+      <tr>
+        <td class="cover-meta-label">{% if locale == 'en' %}Period{% else %}Период{% endif %}</td>
+        <td class="cover-meta-value">{{ forecast_window_start }} — {{ forecast_window_end }}</td>
+      </tr>
+      {% endif %}
+      <tr>
+        <td class="cover-meta-label">{% if locale == 'en' %}Generated{% else %}Создан{% endif %}</td>
+        <td class="cover-meta-value">{{ generated_at }}</td>
+      </tr>
+    </table>
+  </div>
+  <div class="cover-stripe-bot"></div>
+</div>
+
+<!-- ══════════════════════════════════════ MAIN ═══════════════════════════════════════ -->
+<div class="main">
+
+  <!-- ── Natal wheel ─────────────────────────────────────────────────────── -->
+  <div class="chart-wrap">
+    <div class="chart-wrap-label">
+      {% if locale == 'en' %}Natal Wheel{% else %}Натальная Карта{% endif %}
+    </div>
+    <img src="{{ chart_img_path }}" alt="Natal Chart">
+  </div>
+
+  <!-- ── Forecast period banner ──────────────────────────────────────────── -->
+  {% if forecast_window_start and forecast_window_end %}
+  <div class="forecast-banner">
+    <div class="forecast-banner-inner">
+      <div class="forecast-banner-icon">☽</div>
+      <div class="forecast-banner-text">
+        <div class="forecast-banner-title">
+          {% if locale == 'en' %}Forecast Period{% else %}Период Прогноза{% endif %}
+        </div>
+        <div class="forecast-banner-period">{{ forecast_window_start }} — {{ forecast_window_end }}</div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── Forecast data (raw computed context) ───────────────────────────── -->
+  {% if forecast_context_text %}
+  <div class="sect-heading">
+    {% if locale == 'en' %}Planetary Data{% else %}Астрологические Данные{% endif %}
+  </div>
+  <div class="forecast-context">{{ forecast_context_text }}</div>
+  {% endif %}
+
+  <!-- ── Interpretation sections ─────────────────────────────────────────── -->
+  <div class="sect-heading">
+    {% if locale == 'en' %}Forecast Interpretation{% else %}Интерпретация Прогноза{% endif %}
+  </div>
+
+  {% if interpretation_sections %}
+    {% for section_name, section_text in interpretation_sections.items() %}
+    <div class="interp-block">
+      <div class="interp-hdr">
+        <div class="interp-hdr-inner">
+          <div class="interp-num-cell">
+            <span class="interp-num">{{ loop.index }}</span>
+          </div>
+          <div class="interp-title-cell">
+            <span class="interp-title">{{ section_name }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="interp-body">
+        {{ section_text | md_to_html | safe }}
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+  <div class="raw-interp">
+    {{ interpretation | md_to_html | safe }}
+  </div>
+  {% endif %}
+
+  <!-- ── Footer ──────────────────────────────────────────────────────────── -->
+  <div class="footer-rule"></div>
+  <table class="footer-table">
+    <tr>
+      <td><span class="footer-brand">AstroGen</span></td>
+      <td class="footer-note">
+        {% if locale == 'en' %}
+          Forecast generated automatically. For informational purposes only.
+          AstroGen © 2024. All rights reserved.
+        {% else %}
+          Прогноз сгенерирован автоматически. Информация носит ознакомительный характер.
+          AstroGen © 2024. Все права защищены.
+        {% endif %}
+      </td>
+    </tr>
+  </table>
+
+</div>
+</body>
+</html>

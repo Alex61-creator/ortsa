@@ -29,6 +29,10 @@ const items = [
     { key: '/tariffs', label: <Link to="/tariffs">Тарифы</Link> },
     { key: '/flags', label: <Link to="/flags">Feature Flags</Link> },
   ] },
+  { type: 'group', label: 'LLM', key: 'g-llm', children: [
+    { key: '/llm-settings', label: <Link to="/llm-settings">LLM Настройки</Link> },
+    { key: '/llm-analytics', label: <Link to="/llm-analytics">LLM Аналитика</Link> },
+  ] },
   { type: 'group', label: 'Система', key: 'g-system', children: [
     { key: '/health', label: <Link to="/health">Мониторинг</Link> },
     { key: '/log', label: <Link to="/log">Лог действий</Link> },
@@ -53,6 +57,8 @@ const TITLE_MAP: Record<string, string> = {
   '/tariffs': 'Тарифы',
   '/prompts': 'Промпты LLM',
   '/flags': 'Feature Flags',
+  '/llm-settings': 'LLM Настройки',
+  '/llm-analytics': 'LLM Аналитика',
   '/health': 'Мониторинг',
   '/log': 'Лог действий',
 }
@@ -77,7 +83,7 @@ export function AdminLayout() {
   })()
   const toggleTheme = useUiStore((s) => s.toggleTheme)
   const adminInitial = (adminEmail ?? 'admin').slice(0, 1).toUpperCase()
-  const selected = ['/', '/funnel', '/growth', '/campaigns', '/one-time-sales', '/report-options', '/promo-analytics', '/subscriptions', '/users', '/payments', '/orders', '/tasks', '/promos', '/prompts', '/tariffs', '/flags', '/health', '/log', '/settings']
+  const selected = ['/', '/funnel', '/growth', '/campaigns', '/one-time-sales', '/report-options', '/promo-analytics', '/subscriptions', '/users', '/payments', '/orders', '/tasks', '/promos', '/prompts', '/tariffs', '/flags', '/llm-settings', '/llm-analytics', '/health', '/log', '/settings']
     .find((key) => (key === '/' ? location.pathname === '/' : location.pathname.startsWith(key)))
   document.documentElement.setAttribute('data-theme', theme)
   const titleMap: Record<string, string> = {
@@ -97,6 +103,8 @@ export function AdminLayout() {
     '/prompts': 'Промпты LLM',
     '/tariffs': 'Тарифы',
     '/flags': 'Feature Flags',
+    '/llm-settings': 'LLM Настройки',
+    '/llm-analytics': 'LLM Аналитика',
     '/health': 'Мониторинг',
     '/log': 'Лог действий',
     '/settings': 'Настройки',

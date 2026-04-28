@@ -19,6 +19,10 @@ celery_app = Celery(
         "app.tasks.subscription_finalize",
         "app.tasks.addon_generation",
         "app.tasks.addon_offer_retargeting",
+        "app.tasks.forecast_scheduler",
+        "app.tasks.monthly_forecast",
+        "app.tasks.weekly_digest",
+        "app.tasks.annual_progressions",
     ]
 )
 
@@ -38,11 +42,17 @@ celery_app.conf.update(
         "app.tasks.synastry_generation.*": {"queue": "heavy"},
         "app.tasks.addon_generation.*": {"queue": "heavy"},
         "app.tasks.addon_offer_retargeting.*": {"queue": "io"},
+        "app.tasks.forecast_scheduler.*": {"queue": "io"},
         "app.tasks.report_notifications.*": {"queue": "io"},
         "app.tasks.monthly_digest.*": {"queue": "io"},
         "app.tasks.subscription_renewal.*": {"queue": "io"},
         "app.tasks.subscription_finalize.*": {"queue": "io"},
         "app.tasks.cleanup.*": {"queue": "io"},
+        "app.tasks.monthly_forecast.dispatch_monthly_forecasts": {"queue": "io"},
+        "app.tasks.monthly_forecast.send_monthly_forecast_task": {"queue": "heavy"},
+        "app.tasks.weekly_digest.*": {"queue": "io"},
+        "app.tasks.annual_progressions.dispatch_annual_progressions": {"queue": "io"},
+        "app.tasks.annual_progressions.send_annual_progressions_task": {"queue": "heavy"},
     },
     worker_prefetch_multiplier=1,
     broker_transport_options={"visibility_timeout": 3600},
@@ -71,6 +81,22 @@ celery_app.conf.beat_schedule = {
     "finalize-subscriptions-period-end": {
         "task": "app.tasks.subscription_finalize.finalize_subscriptions_at_period_end",
         "schedule": crontab(minute=30, hour=4),
+    },
+    "monthly-forecast-dispatch": {
+        "task": "app.tasks.monthly_forecast.dispatch_monthly_forecasts",
+        "schedule": crontab(minute=0, hour=9),          # ежедневно в 9:00 UTC
+    },
+    "monthly-forecast-scheduler": {
+        "task": "app.tasks.forecast_scheduler.schedule_monthly_forecasts",
+        "schedule": crontab(minute=0, hour=6),          # ежедневно в 6:00 UTC — pipeline через Orders
+    },
+    "annual-progressions-dispatch": {
+        "task": "app.tasks.annual_progressions.dispatch_annual_progressions",
+        "schedule": crontab(minute=0, hour=10),         # ежедневно в 10:00 UTC
+    },
+    "weekly-transit-digest": {
+        "task": "app.tasks.weekly_digest.run_weekly_transit_digest",
+        "schedule": crontab(minute=0, hour=9, day_of_week=1),  # каждый понедельник 9:00 UTC
     },
 }
 

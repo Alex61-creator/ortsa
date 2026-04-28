@@ -1,5 +1,9 @@
+from datetime import datetime
+from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
@@ -12,6 +16,20 @@ from app.models.order import Order, OrderStatus
 from app.services.storage import StorageService
 
 router = APIRouter()
+
+
+class ReportStatusResponse(BaseModel):
+    order_id: int
+    order_status: str
+    report_status: str | None
+    report_type: str | None          # 'natal' | 'forecast' | 'synastry'
+    report_ready: bool
+    # Forecast-специфичные поля
+    forecast_window_start: datetime | None
+    forecast_window_end: datetime | None
+    includes_transits: bool
+    includes_progressions: bool
+    generated_at: datetime | None
 
 
 async def _get_user_completed_order_with_report(
@@ -97,3 +115,52 @@ async def download_chart(
         raise HTTPException(status_code=404, detail="File not found on server")
 
     return FileResponse(path=chart_path, media_type="image/png")
+
+
+@router.get(
+    "/{order_id}/status",
+    response_model=ReportStatusResponse,
+    summary="Статус отчёта",
+    description=(
+        "Возвращает статус заказа и отчёта, тип отчёта (natal/forecast/synastry) "
+        "и forecast-окно для прогностических отчётов. Только владелец заказа."
+    ),
+)
+async def get_report_status(
+    order_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    stmt = (
+        select(Order)
+        .where(Order.id == order_id, Order.user_id == current_user.id)
+        .options(joinedload(Order.report), joinedload(Order.tariff))
+    )
+    result = await db.execute(stmt)
+    order = result.unique().scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    report = order.report
+    report_ready = bool(
+        order.status == OrderStatus.COMPLETED
+        and report
+        and report.status == ReportStatus.ACTIVE
+    )
+
+    tariff_features: dict[str, Any] = {}
+    if order.tariff and isinstance(order.tariff.features, dict):
+        tariff_features = order.tariff.features
+
+    return ReportStatusResponse(
+        order_id=order.id,
+        order_status=order.status.value,
+        report_status=report.status.value if report else None,
+        report_type=getattr(report, "report_type", "natal") if report else None,
+        report_ready=report_ready,
+        forecast_window_start=order.forecast_window_start,
+        forecast_window_end=order.forecast_window_end,
+        includes_transits=bool(tariff_features.get("includes_transits", False)),
+        includes_progressions=bool(tariff_features.get("includes_progressions", False)),
+        generated_at=report.generated_at if report else None,
+    )

@@ -101,3 +101,116 @@ async def update_setting(
         description=row.description,
         updated_at=row.updated_at,
     )
+
+
+# ── LLM провайдеры ────────────────────────────────────────────────────────────
+
+_LLM_PROVIDER_KEYS = ["claude", "grok", "deepseek"]
+_LLM_ENABLED_KEY = "llm_provider_{provider}_enabled"
+_LLM_FALLBACK_ORDER_KEY = "llm_fallback_order"
+
+
+async def _upsert_setting(db: AsyncSession, key: str, value: str, description: str = "") -> None:
+    result = await db.execute(select(AppSettings).where(AppSettings.key == key))
+    row = result.scalar_one_or_none()
+    if row:
+        row.value = value
+        row.updated_at = datetime.utcnow()
+    else:
+        db.add(AppSettings(key=key, value=value, description=description))
+
+
+@router.get(
+    "/llm-providers",
+    response_model=None,
+    summary="LLM: список провайдеров и статус",
+)
+async def list_llm_providers(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin_user),
+):
+    from app.schemas.admin_extra import LlmProviderConfig, LlmProvidersOut
+
+    keys_needed = [_LLM_ENABLED_KEY.format(provider=p) for p in _LLM_PROVIDER_KEYS] + [_LLM_FALLBACK_ORDER_KEY]
+    result = await db.execute(select(AppSettings).where(AppSettings.key.in_(keys_needed)))
+    rows = {r.key: r.value for r in result.scalars().all()}
+
+    raw_order = rows.get(_LLM_FALLBACK_ORDER_KEY, ",".join(_LLM_PROVIDER_KEYS))
+    fallback_order = [p.strip() for p in raw_order.split(",") if p.strip()]
+
+    providers = []
+    for idx, p in enumerate(fallback_order):
+        enabled_key = _LLM_ENABLED_KEY.format(provider=p)
+        enabled = rows.get(enabled_key, "false").lower() == "true"
+        providers.append(LlmProviderConfig(provider=p, enabled=enabled, order_index=idx))
+
+    # Добавляем провайдеры не из fallback_order (если вдруг есть)
+    in_order = {p.provider for p in providers}
+    for p in _LLM_PROVIDER_KEYS:
+        if p not in in_order:
+            enabled_key = _LLM_ENABLED_KEY.format(provider=p)
+            enabled = rows.get(enabled_key, "false").lower() == "true"
+            providers.append(LlmProviderConfig(provider=p, enabled=enabled, order_index=len(providers)))
+
+    return LlmProvidersOut(providers=providers, fallback_order=fallback_order)
+
+
+class LlmProviderToggleInBody(BaseModel):
+    enabled: bool
+
+
+class LlmFallbackOrderInBody(BaseModel):
+    order: list[str]
+
+
+@router.put(
+    "/llm-providers/{provider}/toggle",
+    response_model=None,
+    summary="LLM: вкл/выкл провайдер",
+)
+async def toggle_llm_provider(
+    provider: str,
+    payload: LlmProviderToggleInBody,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin_user),
+):
+    from app.schemas.admin_extra import LlmProviderConfig
+
+    if provider not in _LLM_PROVIDER_KEYS:
+        raise HTTPException(status_code=404, detail=f"Провайдер '{provider}' не поддерживается.")
+
+    key = _LLM_ENABLED_KEY.format(provider=provider)
+    value = "true" if payload.enabled else "false"
+    await _upsert_setting(db, key, value, f"Провайдер {provider} включён")
+    await db.commit()
+
+    from app.services.llm_router import invalidate_router_cache
+    await invalidate_router_cache()
+
+    return LlmProviderConfig(provider=provider, enabled=payload.enabled, order_index=0)
+
+
+@router.put(
+    "/llm-providers/order",
+    response_model=None,
+    summary="LLM: изменить порядок fallback",
+)
+async def set_llm_fallback_order(
+    payload: LlmFallbackOrderInBody,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin_user),
+):
+    unknown = [p for p in payload.order if p not in _LLM_PROVIDER_KEYS]
+    if unknown:
+        raise HTTPException(status_code=400, detail=f"Неизвестные провайдеры: {unknown}")
+    if not payload.order:
+        raise HTTPException(status_code=400, detail="order не может быть пустым")
+
+    value = ",".join(payload.order)
+    await _upsert_setting(db, _LLM_FALLBACK_ORDER_KEY, value, "Порядок fallback LLM-провайдеров")
+    await db.commit()
+
+    from app.services.llm_router import invalidate_router_cache
+    await invalidate_router_cache()
+
+    return {"fallback_order": payload.order}

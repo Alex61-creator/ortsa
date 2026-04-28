@@ -1,16 +1,20 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Button, Card, DatePicker, Form, Input, InputNumber, Select, Table, message } from 'antd'
+import { Button, Card, DatePicker, Form, Input, InputNumber, Select, Table, Tag, message } from 'antd'
 import dayjs from 'dayjs'
-import { createMarketingSpend, fetchMarketingSpend, fetchMetricsCohorts, fetchMetricsEconomics, fetchMetricsFunnel, fetchMetricsOverview } from '@/api/metrics'
+import { createMarketingSpend, fetchLlmMargin, fetchMarketingSpend, fetchMetricsCohorts, fetchMetricsEconomics, fetchMetricsFunnel, fetchMetricsOverview } from '@/api/metrics'
 import type {
   CohortRow,
   FunnelStep,
   FunnelSummary,
+  LlmMarginOut,
+  LlmMarginRow,
   MarketingSpendRow,
   MetricsEconomicsOut,
   MetricsOverviewOut,
 } from '@/types/admin'
 import { extractApiErrorMessage } from '@/utils/apiError'
+
+const PROVIDER_COLORS: Record<string, string> = { claude: 'purple', grok: 'blue', deepseek: 'green' }
 
 const { RangePicker } = DatePicker
 
@@ -94,24 +98,27 @@ export function GrowthEconomicsPage() {
   const [cohorts, setCohorts] = useState<CohortRow[]>([])
   const [spendRows, setSpendRows] = useState<MarketingSpendRow[]>([])
   const [funnel, setFunnel] = useState<FunnelSummary | null>(null)
+  const [llmMargin, setLlmMargin] = useState<LlmMarginOut | null>(null)
   const [loading, setLoading] = useState(false)
   const [form] = Form.useForm()
 
   const load = async () => {
     setLoading(true)
     try {
-      const [overviewData, economicsData, cohortData, spendData, funnelData] = await Promise.all([
+      const [overviewData, economicsData, cohortData, spendData, funnelData, llmMarginData] = await Promise.all([
         fetchMetricsOverview({ period }),
         fetchMetricsEconomics({ period }),
         fetchMetricsCohorts({ period }),
         fetchMarketingSpend(),
         fetchMetricsFunnel({ period }),
+        fetchLlmMargin(),
       ])
       setOverview(overviewData)
       setEconomics(economicsData)
       setCohorts(cohortData.rows)
       setSpendRows(spendData)
       setFunnel(funnelData)
+      setLlmMargin(llmMarginData)
     } catch (error) {
       message.error(extractApiErrorMessage(error, 'Не удалось загрузить growth-метрики'))
     } finally {
@@ -267,6 +274,75 @@ export function GrowthEconomicsPage() {
               { title: 'M3', dataIndex: 'm3', render: (v: number) => heatCellPct(v) },
               { title: 'M6', dataIndex: 'm6', render: (v: number) => heatCellPct(v) },
             ]}
+          />
+        </Card>
+
+        {/* ── Маржинальность по LLM ───────────────────────────────────── */}
+        <Card title="Маржинальность по LLM-провайдерам" style={{ marginTop: 16 }}>
+          <Table
+            rowKey="provider"
+            pagination={false}
+            size="small"
+            dataSource={llmMargin?.current_month ?? []}
+            loading={loading}
+            columns={[
+              {
+                title: 'Провайдер',
+                dataIndex: 'provider',
+                render: (v: string) => <Tag color={PROVIDER_COLORS[v] ?? 'default'}>{v}</Tag>,
+              },
+              {
+                title: 'Выручка',
+                dataIndex: 'revenue_rub',
+                render: (v: number) => fmtMoney(v),
+              },
+              {
+                title: 'AI-расходы',
+                dataIndex: 'ai_cost_rub',
+                render: (v: number) => fmtMoney(v),
+              },
+              {
+                title: 'Маржа',
+                dataIndex: 'margin_rub',
+                render: (v: number) => (
+                  <span style={{ color: v >= 0 ? 'var(--ag-success, green)' : 'var(--ag-danger, red)' }}>
+                    {fmtMoney(v)}
+                  </span>
+                ),
+              },
+              {
+                title: 'Маржа %',
+                dataIndex: 'margin_pct',
+                render: (v: number) => (
+                  <span style={{ color: v >= 0 ? 'var(--ag-success, green)' : 'var(--ag-danger, red)' }}>
+                    {v.toFixed(1)}%
+                  </span>
+                ),
+              },
+            ]}
+            summary={(rows) => {
+              if (!rows.length) return null
+              const totalRev = rows.reduce((s, r: LlmMarginRow) => s + r.revenue_rub, 0)
+              const totalCost = rows.reduce((s, r: LlmMarginRow) => s + r.ai_cost_rub, 0)
+              const totalMargin = totalRev - totalCost
+              return (
+                <Table.Summary.Row>
+                  <Table.Summary.Cell index={0}><strong>Итого</strong></Table.Summary.Cell>
+                  <Table.Summary.Cell index={1}><strong>{fmtMoney(totalRev)}</strong></Table.Summary.Cell>
+                  <Table.Summary.Cell index={2}><strong>{fmtMoney(totalCost)}</strong></Table.Summary.Cell>
+                  <Table.Summary.Cell index={3}>
+                    <strong style={{ color: totalMargin >= 0 ? 'green' : 'red' }}>
+                      {fmtMoney(totalMargin)}
+                    </strong>
+                  </Table.Summary.Cell>
+                  <Table.Summary.Cell index={4}>
+                    <strong style={{ color: totalMargin >= 0 ? 'green' : 'red' }}>
+                      {totalRev > 0 ? ((totalMargin / totalRev) * 100).toFixed(1) : '0'}%
+                    </strong>
+                  </Table.Summary.Cell>
+                </Table.Summary.Row>
+              )
+            }}
           />
         </Card>
       </div>

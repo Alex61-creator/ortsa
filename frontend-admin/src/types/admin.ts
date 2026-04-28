@@ -398,3 +398,49 @@ export interface SubscriptionExportRow {
 export interface SubscriptionListOut {
   rows: SubscriptionExportRow[]
 }
+
+// ── LLM аналитика ─────────────────────────────────────────────────────────────
+
+export interface LlmProviderUsageRow {
+  provider: string
+  calls_count: number
+  cost_rub: number
+  cached_tokens: number
+  pct_of_total: number
+}
+
+export interface LlmUsageOut {
+  period_start: string
+  period_end: string
+  rows: LlmProviderUsageRow[]
+  most_used_provider: string | null
+  total_calls: number
+  total_cost_rub: number
+}
+
+export interface LlmMarginRow {
+  provider: string
+  revenue_rub: number
+  ai_cost_rub: number
+  margin_rub: number
+  margin_pct: number
+}
+
+export interface LlmMarginOut {
+  current_month: LlmMarginRow[]
+  total: LlmMarginRow[]
+}
+
+// ── LLM настройки ─────────────────────────────────────────────────────────────
+
+export interface LlmProviderConfig {
+  provider: string
+  enabled: boolean
+  order_index: number
+}
+
+export interface LlmProvidersOut {
+  providers: LlmProviderConfig[]
+  fallback_order: string[]
+}
+

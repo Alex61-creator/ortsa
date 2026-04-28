@@ -18,6 +18,10 @@ class Report(Base):
     chart_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     llm_response_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     prompt_version: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    # Провайдер генерации: deepseek | grok | claude
+    llm_provider: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
+    # Тип отчёта: 'natal' | 'forecast' | 'synastry'
+    report_type: Mapped[str] = mapped_column(String(20), default="natal", nullable=False)
     status: Mapped[ReportStatus] = mapped_column(SQLEnum(ReportStatus), default=ReportStatus.ACTIVE, nullable=False)
     generated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)

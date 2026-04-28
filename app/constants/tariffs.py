@@ -7,6 +7,9 @@ class LlmTier(StrEnum):
     FREE = "free"
     NATAL_FULL = "natal_full"
     PRO = "pro"
+    MONTHLY_FORECAST = "monthly_forecast"
+    WEEKLY_DIGEST = "weekly_digest"
+    ANNUAL_PROGRESSIONS = "annual_progressions"
 
 
 FEATURE_KEY_MAX_NATAL_PROFILES = "max_natal_profiles"
@@ -23,7 +26,8 @@ CODE_TO_LLM_TIER: dict[str, LlmTier] = {
     "bundle": LlmTier.NATAL_FULL,
     "sub_monthly": LlmTier.PRO,
     "sub_annual": LlmTier.PRO,
-    "transit_month_pack": LlmTier.NATAL_FULL,
+    "transit_month_pack": LlmTier.PRO,
+    "forecast_month_pack": LlmTier.PRO,
     "compatibility_deep_dive": LlmTier.NATAL_FULL,
     "return_pack": LlmTier.NATAL_FULL,
 }
@@ -35,16 +39,17 @@ REPORT_RETENTION_DAYS_BY_CODE: dict[str, int] = {
     "sub_monthly": 180,
     "sub_annual": 180,
     "transit_month_pack": 30,
+    "forecast_month_pack": 30,
     "compatibility_deep_dive": 30,
     "return_pack": 180,
 }
 
 ADDON_TARIFF_CODES: frozenset[str] = frozenset(
-    {"transit_month_pack", "compatibility_deep_dive", "return_pack", "synastry_addon"}
+    {"transit_month_pack", "forecast_month_pack", "compatibility_deep_dive", "return_pack", "synastry_addon"}
 )
 
 ADDON_REPORT_TARIFF_CODES: frozenset[str] = frozenset(
-    {"transit_month_pack", "compatibility_deep_dive", "return_pack"}
+    {"transit_month_pack", "forecast_month_pack", "compatibility_deep_dive", "return_pack"}
 )
 
 # Максимум натальных профилей по умолчанию (если features.max_natal_profiles не задан)

@@ -670,3 +670,122 @@ async def subscriptions_list(
         for s in subs
     ]
     return SubscriptionListOut(rows=rows)
+
+
+# ── LLM аналитика ─────────────────────────────────────────────────────────────
+
+@router.get(
+    "/llm-usage",
+    response_model=None,
+    summary="LLM: использование по провайдерам",
+)
+async def llm_usage(
+    date_from: datetime | None = Query(default=None),
+    date_to: datetime | None = Query(default=None),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin_user),
+):
+    from app.models.llm_usage_log import LlmUsageLog
+    from app.schemas.admin_extra import LlmProviderUsageRow, LlmUsageOut
+
+    now = datetime.now(timezone.utc)
+    period_start = date_from or now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    period_end = date_to or now
+
+    stmt = (
+        select(
+            LlmUsageLog.provider,
+            func.count(LlmUsageLog.id).label("calls_count"),
+            func.sum(LlmUsageLog.cost_rub).label("total_cost_rub"),
+            func.sum(LlmUsageLog.cached_tokens).label("cached_tokens"),
+        )
+        .where(LlmUsageLog.created_at >= period_start, LlmUsageLog.created_at <= period_end)
+        .group_by(LlmUsageLog.provider)
+    )
+    results = (await db.execute(stmt)).all()
+
+    total_calls = sum(r.calls_count for r in results)
+    total_cost = float(sum(r.total_cost_rub or 0 for r in results))
+
+    rows = [
+        LlmProviderUsageRow(
+            provider=r.provider,
+            calls_count=r.calls_count,
+            cost_rub=float(r.total_cost_rub or 0),
+            cached_tokens=r.cached_tokens or 0,
+            pct_of_total=round(r.calls_count / total_calls * 100, 1) if total_calls else 0.0,
+        )
+        for r in sorted(results, key=lambda x: x.calls_count, reverse=True)
+    ]
+
+    most_used = rows[0].provider if rows else None
+    return LlmUsageOut(
+        period_start=period_start,
+        period_end=period_end,
+        rows=rows,
+        most_used_provider=most_used,
+        total_calls=total_calls,
+        total_cost_rub=total_cost,
+    )
+
+
+@router.get(
+    "/llm-margin",
+    response_model=None,
+    summary="LLM: маржинальность по провайдерам",
+)
+async def llm_margin(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin_user),
+):
+    from app.models.llm_usage_log import LlmUsageLog
+    from app.models.report import Report
+    from app.schemas.admin_extra import LlmMarginRow, LlmMarginOut
+
+    now = datetime.now(timezone.utc)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    async def _margin_rows(date_from: datetime | None) -> list[LlmMarginRow]:
+        cost_stmt = (
+            select(
+                LlmUsageLog.provider,
+                func.sum(LlmUsageLog.cost_rub).label("ai_cost_rub"),
+            )
+            .group_by(LlmUsageLog.provider)
+        )
+        if date_from:
+            cost_stmt = cost_stmt.where(LlmUsageLog.created_at >= date_from)
+        cost_rows = {r.provider: float(r.ai_cost_rub or 0) for r in (await db.execute(cost_stmt)).all()}
+
+        # Revenue: из заказов с llm_provider через отчёты
+        rev_stmt = (
+            select(
+                Report.llm_provider,
+                func.sum(Order.amount).label("revenue_rub"),
+            )
+            .join(Order, Order.id == Report.order_id)
+            .where(Report.llm_provider.is_not(None))
+            .group_by(Report.llm_provider)
+        )
+        if date_from:
+            rev_stmt = rev_stmt.where(Report.generated_at >= date_from)
+        rev_rows = {r.llm_provider: float(r.revenue_rub or 0) for r in (await db.execute(rev_stmt)).all()}
+
+        providers = set(list(cost_rows.keys()) + list(rev_rows.keys()))
+        result = []
+        for p in sorted(providers):
+            rev = rev_rows.get(p, 0.0)
+            cost = cost_rows.get(p, 0.0)
+            margin = rev - cost
+            result.append(LlmMarginRow(
+                provider=p,
+                revenue_rub=rev,
+                ai_cost_rub=cost,
+                margin_rub=margin,
+                margin_pct=round(margin / rev * 100, 1) if rev else 0.0,
+            ))
+        return result
+
+    current_month = await _margin_rows(month_start)
+    total = await _margin_rows(None)
+    return LlmMarginOut(current_month=current_month, total=total)

@@ -76,6 +76,8 @@ class SynastryReport(Base):
     input_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     retention_days: Mapped[int] = mapped_column(Integer, nullable=False, default=30)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Провайдер, которым сгенерирован отчёт: deepseek | grok | claude
+    llm_provider: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
     # ── Timestamps ────────────────────────────────────────────────────────────
     created_at: Mapped[datetime] = mapped_column(

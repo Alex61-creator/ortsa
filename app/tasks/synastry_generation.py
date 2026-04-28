@@ -98,7 +98,7 @@ async def _generate_synastry_async(synastry_id: int, tariff_code: str, task_id: 
                 "aspects": chart_result_valid.aspects,
             }
             llm_service = SynastryLLMService()
-            interpretation = await llm_service.generate_synastry_interpretation(
+            interpretation, llm_provider_used = await llm_service.generate_synastry_interpretation(
                 person1_name=nd1.full_name,
                 person2_name=nd2.full_name,
                 chart_data=llm_data,
@@ -106,6 +106,8 @@ async def _generate_synastry_async(synastry_id: int, tariff_code: str, task_id: 
                 chart_context=(
                     chart_result_valid.llm_context if settings.LLM_USE_KERYKEION_CONTEXT else None
                 ),
+                user_id=report.user_id,
+                synastry_id=synastry_id,
             )
 
             # ── Генерация PDF ─────────────────────────────────────────────
@@ -140,6 +142,7 @@ async def _generate_synastry_async(synastry_id: int, tariff_code: str, task_id: 
             report.input_hash = current_hash
             report.generation_count = (report.generation_count or 0) + 1
             report.last_generated_at = datetime.now(timezone.utc)
+            report.llm_provider = llm_provider_used.value
             if report.retention_days and not report.expires_at:
                 report.expires_at = datetime.now(timezone.utc) + timedelta(days=report.retention_days)
             await db.commit()

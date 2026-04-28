@@ -1,6 +1,6 @@
 import asyncio
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from celery import shared_task
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
@@ -21,6 +21,7 @@ from app.services.prompt_templates import PromptTemplateService
 from app.core.cache import cache
 from app.constants.report_options import build_report_options_prompt_addon
 from app.constants.tariffs import LlmTier, resolve_llm_tier
+from app.constants.forecast import FORECAST_TARIFF_CODES, DEFAULT_FORECAST_WINDOW_DAYS
 from app.schemas.astrology import ChartResultSchema
 from app.services.analytics import get_user_attribution, record_analytics_event
 from app.constants.tariffs import ADDON_REPORT_TARIFF_CODES
@@ -147,16 +148,98 @@ async def _generate_report_async(order_id: int, task_id: str):
                 report_locale = "ru"
             system_prompt_override = await PromptTemplateService.get_system_prompt(
                 db, tariff.code, report_locale
+                # provider будет подставлен внутри generate_interpretation через router
             )
+
+            # ── Forecast context (транзиты + прогрессии) ─────────────────────
+            forecast_context_text: str | None = None
+            forecast_system_prompt: str | None = None
+            is_forecast = tariff.code in FORECAST_TARIFF_CODES or (
+                isinstance(tariff.features, dict)
+                and (
+                    tariff.features.get("includes_transits")
+                    or tariff.features.get("includes_progressions")
+                )
+            )
+            # Feature flag: forecasts_enabled (по умолчанию включён)
+            forecasts_ff_enabled = True
+            try:
+                from app.models.feature_flag import FeatureFlag
+                ff_stmt = select(FeatureFlag).where(FeatureFlag.name == "forecasts_enabled")
+                ff_res = await db.execute(ff_stmt)
+                ff = ff_res.scalar_one_or_none()
+                if ff is not None:
+                    forecasts_ff_enabled = bool(ff.enabled)
+            except Exception:
+                pass  # если таблица недоступна — работаем без флага
+
+            if is_forecast and primary_natal and forecasts_ff_enabled:
+                from app.services.forecast import ForecastService
+                forecast_service = ForecastService()
+                window_start = order.forecast_window_start
+                if window_start is None:
+                    # По умолчанию: начало текущего месяца UTC
+                    now_utc = datetime.now(timezone.utc)
+                    window_start = now_utc.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+                window_days = (
+                    tariff.features.get("forecast_window_days", DEFAULT_FORECAST_WINDOW_DAYS)
+                    if isinstance(tariff.features, dict)
+                    else DEFAULT_FORECAST_WINDOW_DAYS
+                )
+                window_end = order.forecast_window_end or (
+                    window_start + timedelta(days=int(window_days))
+                )
+                include_transits = (
+                    tariff.features.get("includes_transits", True)
+                    if isinstance(tariff.features, dict)
+                    else True
+                )
+                include_progressions = (
+                    tariff.features.get("includes_progressions", True)
+                    if isinstance(tariff.features, dict)
+                    else True
+                )
+                try:
+                    forecast_ctx = await forecast_service.build_forecast_context(
+                        natal_data=primary_natal,
+                        window_start=window_start,
+                        window_end=window_end,
+                        include_transits=include_transits,
+                        include_progressions=include_progressions,
+                    )
+                    forecast_context_text = forecast_ctx.to_llm_text(locale=report_locale)
+                    # Если в БД нет переопределения промпта — используем forecast-специфичный
+                    if not system_prompt_override:
+                        from app.services.llm import LLMService as _LLMSvc
+                        forecast_system_prompt = _LLMSvc().build_forecast_system_prompt(
+                            locale=report_locale
+                        )
+                    logger.info(
+                        "Forecast context built",
+                        order_id=order_id,
+                        transits=len(forecast_ctx.transits),
+                        progressions=len(forecast_ctx.progressions),
+                        exact_hits=len(forecast_ctx.exact_hits),
+                    )
+                except Exception as fc_exc:
+                    logger.error(
+                        "Forecast context build failed — falling back to standard generation",
+                        order_id=order_id,
+                        error=str(fc_exc),
+                    )
+                    forecast_context_text = None
 
             astro_service = AstrologyService()
             llm_service = LLMService()
             pdf_generator = PDFGenerator()
             storage = StorageService()
-            pdf_template = "report_free.html" if tier == LlmTier.FREE else "report.html"
+            pdf_template = "report_free.html" if tier == LlmTier.FREE else (
+                "report_forecast.html" if is_forecast else "report.html"
+            )
 
             generated_pdf_paths = []
             chart_paths = []
+            llm_provider_used = None
 
             if not natal_profiles:
                 raise ValueError("No natal profiles for order")
@@ -204,6 +287,9 @@ async def _generate_report_async(order_id: int, task_id: str):
                     sp_override = await PromptTemplateService.get_system_prompt(
                         db, tariff.code, nd_locale
                     )
+                # Для forecast slot 0: используем специализированный промпт (если нет DB override)
+                if is_forecast and slot_idx == 0 and not sp_override and forecast_system_prompt:
+                    sp_override = forecast_system_prompt
 
                 flags_dict = (
                     order.report_option_flags
@@ -221,7 +307,7 @@ async def _generate_report_async(order_id: int, task_id: str):
                     sp_override = base_sp + ro_addon
                 llm_cache_extra = json.dumps(flags_dict, sort_keys=True) if flags_dict else None
 
-                interpretation = await llm_service.generate_interpretation(
+                interpretation, llm_provider_used = await llm_service.generate_interpretation(
                     chart_data=chart_data,
                     tariff=tariff,
                     locale=nd_locale,
@@ -230,6 +316,9 @@ async def _generate_report_async(order_id: int, task_id: str):
                         chart_result_valid.llm_context if settings.LLM_USE_KERYKEION_CONTEXT else None
                     ),
                     llm_cache_extra=llm_cache_extra,
+                    forecast_context_text=forecast_context_text if slot_idx == 0 else None,
+                    user_id=order.user_id,
+                    order_id=order.id,
                 )
 
                 failed_step = f"pdf generation (slot {slot_idx})"
@@ -244,6 +333,17 @@ async def _generate_report_async(order_id: int, task_id: str):
                     "chart_data": chart_data,
                     "tariff_name": tariff.name,
                     "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+                    # forecast-специфичные поля (None для natal-отчётов)
+                    "is_forecast": is_forecast and slot_idx == 0,
+                    "forecast_context_text": forecast_context_text if slot_idx == 0 else None,
+                    "forecast_window_start": (
+                        order.forecast_window_start.strftime("%d.%m.%Y")
+                        if order.forecast_window_start else None
+                    ),
+                    "forecast_window_end": (
+                        order.forecast_window_end.strftime("%d.%m.%Y")
+                        if order.forecast_window_end else None
+                    ),
                 }
 
                 # Canonical: first PDF goes to `report.pdf_path`
@@ -295,8 +395,12 @@ async def _generate_report_async(order_id: int, task_id: str):
 
             report.pdf_path = storage.to_storage_key(generated_pdf_paths[0])
             report.chart_path = storage.to_storage_key(chart_paths[0])  # canonical chart = slot 0
+            report.report_type = "forecast" if is_forecast else "natal"
             report.status = ReportStatus.ACTIVE
             report.generated_at = datetime.now(timezone.utc)
+            # Провайдер последнего слота (или единственного) — для аналитики
+            if llm_provider_used is not None:
+                report.llm_provider = llm_provider_used.value
 
             order.status = OrderStatus.COMPLETED
             await db.commit()

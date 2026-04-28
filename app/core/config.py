@@ -96,9 +96,19 @@ class Settings(BaseSettings):
 
     SENTRY_DSN: Optional[str] = None
 
-    DEEPSEEK_API_KEY: str
+    # ── DeepSeek ──────────────────────────────────────────────────────────────
+    DEEPSEEK_API_KEY: str = ""
     LLM_MODEL: str = "deepseek-chat"
-    # Таймаут HTTP к api.deepseek.com (сек.); меньше soft limit Celery-таска
+
+    # ── Grok (xAI) ────────────────────────────────────────────────────────────
+    GROK_API_KEY: Optional[str] = None
+    GROK_MODEL: str = "grok-4.20"
+
+    # ── Claude (Anthropic) ────────────────────────────────────────────────────
+    ANTHROPIC_API_KEY: Optional[str] = None
+    CLAUDE_MODEL: str = "claude-sonnet-4-6"
+
+    # ── Общие LLM параметры ───────────────────────────────────────────────────
     LLM_HTTP_TIMEOUT_SECONDS: float = 300.0
     LLM_MAX_TOKENS: int = 4096
     LLM_MAX_TOKENS_FREE: int = 2048
@@ -107,6 +117,27 @@ class Settings(BaseSettings):
     LLM_TEMPERATURE: float = 0.2
     LLM_TOP_P: float = 0.9
     LLM_USE_KERYKEION_CONTEXT: bool = False
+    LLM_USD_TO_RUB_RATE: float = 90.0
+    LLM_CIRCUIT_BREAKER_THRESHOLD: int = 10
+    LLM_CIRCUIT_BREAKER_WINDOW_SECONDS: int = 300
+
+    # ── Pricing per provider (USD per 1M tokens) ──────────────────────────────
+    DEEPSEEK_INPUT_PRICE_PER_1M_USD: float = 0.27
+    DEEPSEEK_OUTPUT_PRICE_PER_1M_USD: float = 1.10
+    GROK_INPUT_PRICE_PER_1M_USD: float = 2.00
+    GROK_OUTPUT_PRICE_PER_1M_USD: float = 6.00
+    CLAUDE_INPUT_PRICE_PER_1M_USD: float = 3.00
+    CLAUDE_CACHE_READ_PRICE_PER_1M_USD: float = 0.30
+    CLAUDE_OUTPUT_PRICE_PER_1M_USD: float = 15.00
+
+    # Обратная совместимость
+    @property
+    def LLM_INPUT_PRICE_PER_1M_USD(self) -> float:  # noqa: N802
+        return self.DEEPSEEK_INPUT_PRICE_PER_1M_USD
+
+    @property
+    def LLM_OUTPUT_PRICE_PER_1M_USD(self) -> float:  # noqa: N802
+        return self.DEEPSEEK_OUTPUT_PRICE_PER_1M_USD
 
     SMTP_HOST: str = "localhost"
     SMTP_PORT: int = 587

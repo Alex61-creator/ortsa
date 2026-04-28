@@ -308,3 +308,56 @@ class SubscriptionExportRow(BaseModel):
 class SubscriptionListOut(BaseModel):
     rows: list[SubscriptionExportRow]
 
+
+# ── LLM аналитика ─────────────────────────────────────────────────────────────
+
+class LlmProviderUsageRow(BaseModel):
+    provider: str
+    calls_count: int
+    cost_rub: float
+    cached_tokens: int
+    pct_of_total: float
+
+
+class LlmUsageOut(BaseModel):
+    period_start: datetime
+    period_end: datetime
+    rows: list[LlmProviderUsageRow]
+    most_used_provider: str | None = None
+    total_calls: int
+    total_cost_rub: float
+
+
+class LlmMarginRow(BaseModel):
+    provider: str
+    revenue_rub: float
+    ai_cost_rub: float
+    margin_rub: float
+    margin_pct: float
+
+
+class LlmMarginOut(BaseModel):
+    current_month: list[LlmMarginRow]
+    total: list[LlmMarginRow]
+
+
+# ── LLM настройки провайдеров ─────────────────────────────────────────────────
+
+class LlmProviderConfig(BaseModel):
+    provider: str
+    enabled: bool
+    order_index: int
+
+
+class LlmProvidersOut(BaseModel):
+    providers: list[LlmProviderConfig]
+    fallback_order: list[str]
+
+
+class LlmProviderToggleIn(BaseModel):
+    enabled: bool
+
+
+class LlmFallbackOrderIn(BaseModel):
+    order: list[str]  # e.g. ["claude", "grok", "deepseek"]
+

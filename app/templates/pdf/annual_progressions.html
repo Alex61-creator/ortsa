@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="{{ locale }}">
+<head>
+<meta charset="UTF-8">
+<style>
+:root {
+  --navy:       #1a1f3c;
+  --navy-2:     #252b50;
+  --gold:       #c9a96e;
+  --gold-light: #e8d5a3;
+  --cream:      #f5f0e8;
+  --cream-2:    #ede8de;
+  --white:      #ffffff;
+  --text:       #1a1f3c;
+  --text-2:     #5a5f7c;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+@page { size: A4; margin: 15mm; }
+body { font-family: 'DejaVu Serif', Georgia, serif; font-size: 9.5pt; line-height: 1.55; color: var(--text); background: var(--cream); }
+
+.cover { background: var(--navy); padding: 18mm 15mm 12mm; page-break-after: always; }
+.cover-stripe { height: 4px; background: var(--gold); margin-bottom: 8mm; }
+.cover-label { color: var(--gold); font-size: 8pt; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 4mm; }
+.cover-title { color: var(--white); font-size: 22pt; font-weight: bold; margin-bottom: 3mm; }
+.cover-sub { color: var(--gold-light); font-size: 11pt; margin-bottom: 8mm; }
+.cover-person { color: var(--gold); font-size: 10pt; border-top: 1px solid rgba(201,169,110,0.3); padding-top: 5mm; }
+
+/* Progressed planets table */
+.prog-table { width: 100%; border-collapse: collapse; margin: 4mm 0 6mm; font-size: 8.5pt; }
+.prog-table th { background: var(--navy); color: var(--gold); padding: 2mm 3mm; text-align: left; font-size: 8pt; }
+.prog-table td { padding: 1.5mm 3mm; border-bottom: 1px solid var(--cream-2); }
+.prog-table tr:nth-child(even) td { background: var(--cream-2); }
+.retrograde { color: #c62828; font-size: 8pt; }
+
+/* Aspects */
+.aspect-item { display: flex; gap: 3mm; margin-bottom: 2mm; font-size: 9pt; }
+.aspect-orb { color: var(--text-2); font-size: 8pt; min-width: 20mm; }
+
+/* Sections */
+.section { margin-bottom: 6mm; page-break-inside: avoid; }
+.section-title {
+  font-size: 10pt; font-weight: bold; color: var(--navy);
+  border-bottom: 1px solid var(--gold);
+  padding-bottom: 1.5mm; margin-bottom: 3mm;
+  letter-spacing: 0.05em;
+}
+.section-body p { margin-bottom: 2.5mm; }
+.section-body ul { margin-left: 5mm; margin-bottom: 2.5mm; }
+.section-body li { margin-bottom: 1mm; }
+
+/* Quarter grid */
+.quarter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; margin: 4mm 0; }
+.quarter-box { border: 1px solid var(--cream-2); padding: 3mm; border-radius: 2px; }
+.quarter-label { font-size: 8pt; font-weight: bold; color: var(--gold); margin-bottom: 2mm; }
+
+.footer { text-align: center; font-size: 7pt; color: var(--text-2); margin-top: 8mm; padding-top: 2mm; border-top: 1px solid var(--cream-2); }
+</style>
+</head>
+<body>
+
+<!-- Cover -->
+<div class="cover">
+  <div class="cover-stripe"></div>
+  <div class="cover-label">Astro Pro · {% if locale == "en" %}Annual Progressions{% else %}Прогрессии на год{% endif %}</div>
+  <div class="cover-title">{{ year }}</div>
+  <div class="cover-sub">
+    {% if locale == "en" %}Secondary Progressions Report (1 day = 1 year)
+    {% else %}Отчёт по вторичным прогрессиям (1 день = 1 год){% endif %}
+  </div>
+  <div class="cover-person">{{ user_name }}</div>
+</div>
+
+<!-- Progressed planets table -->
+{% if prog_result and prog_result.planets %}
+<div class="section">
+  <div class="section-title">
+    {% if locale == "en" %}Progressed Planets{% else %}Прогрессированные планеты{% endif %}
+  </div>
+  <table class="prog-table">
+    <thead>
+      <tr>
+        <th>{% if locale == "en" %}Planet{% else %}Планета{% endif %}</th>
+        <th>{% if locale == "en" %}Sign{% else %}Знак{% endif %}</th>
+        <th>{% if locale == "en" %}Position{% else %}Позиция{% endif %}</th>
+        <th>{% if locale == "en" %}House{% else %}Дом{% endif %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in prog_result.planets %}
+      <tr>
+        <td>{{ p.name_ru if locale == "ru" else p.name }}</td>
+        <td>{{ p.sign_ru if locale == "ru" else p.sign }}</td>
+        <td>
+          {{ p.position | round(1) }}°
+          {% if p.retrograde %}<span class="retrograde">℞</span>{% endif %}
+        </td>
+        <td>{{ p.house }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<!-- Key aspects -->
+{% if prog_result and prog_result.aspects_to_natal %}
+<div class="section">
+  <div class="section-title">
+    {% if locale == "en" %}Key Progressed Aspects{% else %}Ключевые прогрессированные аспекты{% endif %}
+  </div>
+  {% for a in prog_result.aspects_to_natal[:10] %}
+  <div class="aspect-item">
+    <span class="aspect-orb">орбис {{ a.orb }}°</span>
+    <span>{{ a.label_ru if locale == "ru" else (a.progressed_planet + " " + a.aspect + " natal " + a.natal_planet) }}</span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- LLM Report sections -->
+{% if report and report.sections %}
+  {% for section_key, section_text in report.sections.items() %}
+  <div class="section">
+    <div class="section-title">{{ section_key | replace("_", " ") | title }}</div>
+    <div class="section-body">{{ section_text | md_to_html }}</div>
+  </div>
+  {% endfor %}
+{% elif report and report.raw_content %}
+  <div class="section">
+    <div class="section-body">{{ report.raw_content | md_to_html }}</div>
+  </div>
+{% endif %}
+
+<div class="footer">Astro Pro · astro.app · {{ year }}</div>
+
+</body>
+</html>

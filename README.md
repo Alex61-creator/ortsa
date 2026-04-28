@@ -1,12 +1,14 @@
 # Astro (AstroGen)
 
-Backend сервиса онлайн-натальной карты: FastAPI, PostgreSQL, Redis, Celery, ЮKassa, LLM, PDF.
+Сервис онлайн-натальной карты: **FastAPI** (PostgreSQL, Redis, Celery, ЮKassa, LLM, PDF), **пользовательское React SPA** (`frontend/`), **админ-SPA** (`frontend-admin/`).
 
 ## Документация
 
 - Product flow, бизнес-логика и маршруты SPA: [`docs/PRODUCT_FLOW_AND_BUSINESS_LOGIC.md`](docs/PRODUCT_FLOW_AND_BUSINESS_LOGIC.md)
 - Прод-ready, масштабирование и post-launch план: [`docs/PRODUCTION_READINESS_AND_GROWTH_PLAN.md`](docs/PRODUCTION_READINESS_AND_GROWTH_PLAN.md)
 - URL для внешних интеграций (OAuth/ЮKassa/почта): [`docs/DEPLOY_URLS.md`](docs/DEPLOY_URLS.md)
+- Аудит рисков (безопасность, эксплуатация): [`docs/CODE_REVIEW_RISK_ASSESSMENT_P0_P3.md`](docs/CODE_REVIEW_RISK_ASSESSMENT_P0_P3.md)
+- Полноценная SEO-стратегия (цели, техника, контент, off-page, метрики): [`docs/SEO_STRATEGY_FULL.md`](docs/SEO_STRATEGY_FULL.md)
 
 ## Требования
 
@@ -30,7 +32,7 @@ Backend сервиса онлайн-натальной карты: FastAPI, Post
    docker compose up --build
    ```
 
-3. API: `http://localhost:8000`, OpenAPI: `http://localhost:8000/api/v1/openapi.json`, health: `GET /health`. Публичный вход в приложение и заказ — **React SPA**: корень `/` и маршруты `/order/...`, `/dashboard/...`, `/reports/...` ведут в SPA (см. `Caddyfile`).
+3. API: `http://localhost:8000`, OpenAPI: `http://localhost:8000/api/v1/openapi.json`, health: `GET /health`. Публичный вход и заказ — **React SPA** и статический лендинг в `frontend/public/static/` (корень `/`, маршруты `/order/...`, `/dashboard/...`, `/reports/...`; см. `Caddyfile` и [`docs/PRODUCT_FLOW_AND_BUSINESS_LOGIC.md`](docs/PRODUCT_FLOW_AND_BUSINESS_LOGIC.md)).
 
 4. Миграции (из корня репозитория, с установленными зависимостями):
 
@@ -77,6 +79,17 @@ celery -A app.tasks.worker.celery_app beat --loglevel=info
 2. Затем поднимаем отдельный `heavy` worker.
 3. После стабилизации — физически разделяем `io` и `default` воркеры.
 
+## Пользовательское SPA (`frontend`)
+
+```bash
+cd frontend
+cp .env.example .env   # при необходимости задайте переменные Vite
+npm install
+npm run dev            # http://localhost:5173; прокси /api → http://localhost:8000
+```
+
+Сборка для Caddy (каталог рядом с репозиторием): `npm run build:deploy` → `frontend-dist/` (см. раздел про `docker-compose.prod.yml` выше). Тесты UI: `npm run test`.
+
 ## Вспомогательные скрипты
 
 Из корня репозитория:
@@ -99,7 +112,7 @@ PYTHONPATH=. python scripts/create_admin.py
 
 ## Админ-панель (`frontend-admin`)
 
-Отдельное SPA для операторов: дашборд, заказы (перезапуск отчёта, скачивание PDF/PNG, возврат), пользователи, тарифы. REST API: `/api/v1/admin/*`. Вход через Google: `/api/v1/auth/google/authorize-admin`. Переменные окружения (`ADMIN_APP_ORIGIN`, allowlist админов) и выкладка на поддомен — в [`docs/PRODUCTION_READINESS_AND_GROWTH_PLAN.md`](docs/PRODUCTION_READINESS_AND_GROWTH_PLAN.md).
+Отдельное SPA для операторов: дашборд и метрики, заказы (перезапуск отчёта, PDF/PNG, возврат), пользователи, тарифы, промпты LLM, feature flags, воронка, промокоды, задачи Celery и др. REST API: `/api/v1/admin/*`. Вход через Google: `/api/v1/auth/google/authorize-admin`. Переменные окружения (`ADMIN_APP_ORIGIN`, allowlist админов) и выкладка на поддомен — в [`docs/PRODUCTION_READINESS_AND_GROWTH_PLAN.md`](docs/PRODUCTION_READINESS_AND_GROWTH_PLAN.md).
 
 ```bash
 cd frontend-admin
@@ -125,178 +138,48 @@ Redis в тестах подменяется на **fakeredis** (in-memory) в `
 
 ## Структура репозитория
 
-Корень проекта — это сам backend (каталога `backend/` нет). Ниже — фактическое дерево исходников.
+Монорепозиторий: backend в `app/`, пользовательское и админское SPA, документация. Исчерпывающий список HTTP-роутов — в `app/api/v1/` и `app/api/v1/admin/` (подключение в `app/api/v1/__init__.py`).
 
 ```
 .
-├── .env.example
-├── .gitignore
+├── app/                      # FastAPI: API, модели, сервисы, Celery, шаблоны PDF/email, middleware
+├── frontend/                 # пользовательское React SPA; public/static — лендинг для «/»
+├── frontend-admin/           # админ React SPA
+├── docs/                     # продукт, деплой, аудит рисков
+├── alembic/                  # env.py, script.py.mako, versions/ (миграции)
+├── scripts/                  # init_db, create_admin, seed_tariffs, backup_*.sh, verify_pg_backup, …
+├── deploy/                   # примеры Caddy для prod
+├── tests/                    # pytest; Redis — fakeredis в conftest
+├── .github/workflows/        # CI (pytest)
+├── docker-compose.yml
+├── docker-compose.prod.yml
 ├── Caddyfile
 ├── Dockerfile
 ├── alembic.ini
-├── docker-compose.yml
-├── pyproject.toml
 ├── requirements.txt
 ├── requirements-dev.txt
-├── .github/
-│   └── workflows/
-│       └── tests.yml
-├── alembic/
-│   ├── env.py
-│   ├── script.py.mako
-│   └── versions/           # миграции Alembic (при необходимости добавьте revision)
-├── app/
-│   ├── __init__.py
-│   ├── main.py
-│   ├── admin/
-│   │   ├── __init__.py
-│   │   ├── auth.py
-│   │   └── views.py
-│   ├── api/
-│   │   ├── __init__.py
-│   │   ├── deps.py
-│   │   └── v1/
-│   │       ├── __init__.py
-│   │       ├── auth.py
-│   │       ├── natal_data.py
-│   │       ├── orders.py
-│   │       ├── reports.py
-│   │       ├── users.py
-│   │       └── webhooks.py
-│   ├── core/
-│   │   ├── __init__.py
-│   │   ├── cache.py
-│   │   ├── config.py
-│   │   ├── exceptions.py
-│   │   ├── feature_flags.py
-│   │   ├── logging.py
-│   │   ├── rate_limit.py
-│   │   └── security.py
-│   ├── db/
-│   │   ├── __init__.py
-│   │   ├── base.py
-│   │   └── session.py
-│   ├── models/
-│   │   ├── __init__.py
-│   │   ├── natal_data.py
-│   │   ├── order.py
-│   │   ├── report.py
-│   │   ├── tariff.py
-│   │   └── user.py
-│   ├── schemas/
-│   │   ├── __init__.py
-│   │   ├── common.py
-│   │   ├── llm.py
-│   │   ├── natal.py
-│   │   ├── order.py
-│   │   ├── payment.py
-│   │   └── user.py
-│   ├── services/
-│   │   ├── __init__.py
-│   │   ├── astrology.py
-│   │   ├── auth_twa.py
-│   │   ├── email.py
-│   │   ├── llm.py
-│   │   ├── oauth.py
-│   │   ├── oauth_clients.py   # Яндекс / Apple (httpx-oauth без встроенных клиентов)
-│   │   ├── payment.py
-│   │   ├── pdf.py
-│   │   ├── refund.py
-│   │   ├── storage.py
-│   │   └── tariff.py
-│   ├── tasks/
-│   │   ├── __init__.py
-│   │   ├── cleanup.py
-│   │   ├── report_generation.py
-│   │   ├── scheduler.py         # пояснение к Celery Beat (расписание в worker.py)
-│   │   └── worker.py
-│   ├── templates/
-│   │   ├── email/
-│   │   │   ├── refund_processed.html
-│   │   │   └── report_ready.html
-│   │   └── pdf/
-│   │       └── report.html
-│   └── utils/
-│       ├── __init__.py
-│       ├── hashing.py
-│       ├── sanitize.py
-│       ├── tz.py
-│       └── validation.py
-├── scripts/
-│   ├── create_admin.py
-│   └── init_db.py
-└── tests/
-    ├── conftest.py
-    ├── test_api_auth.py
-    ├── test_api_natal_data.py
-    ├── test_api_orders.py
-    ├── test_rate_limit.py
-    ├── test_services.py
-    └── test_webhooks.py
+└── pyproject.toml
 ```
 
-### Описание файлов
+### Описание ключевых каталогов
 
-**Корень**
+| Каталог | Содержание |
+|---------|------------|
+| **`app/api/v1/`** | Публичные роутеры: `auth`, `users`, `natal_data`, `tariffs`, `orders`, `reports`, `subscriptions`, `synastry`, `addons`, `geocode`, `webhooks`, `system`, `ops` и др. |
+| **`app/api/v1/admin/`** | REST админки: дашборд, заказы, пользователи, тарифы, промпты LLM, флаги, метрики, воронка, промокоды, логи, задачи и т.д. |
+| **`app/services/`** | Доменная логика: астрология, LLM, PDF, ЮKassa, почта, хранилище, промпты, синастрия, аналитика, возвраты и др. |
+| **`app/tasks/`** | Celery: `worker.py` (в т.ч. beat), `report_generation`, `synastry_generation`, cleanup, уведомления |
+| **`app/models/`**, **`app/schemas/`** | Модели SQLAlchemy и Pydantic-схемы (много файлов; ориентир — импорты в соответствующих роутерах) |
+| **`app/admin/`** | SQLAdmin (`auth.py`, `views.py`) — обход основного admin-SPA |
+| **`app/core/`** | `config`, `cache`, JWT, rate limit, feature flags, логирование |
+| **`scripts/`** | Инициализация БД и админа, сиды тарифов, скрипты бэкапа и проверки дампов |
 
-| Файл | Назначение |
-|------|------------|
-| `.env.example` | Шаблон переменных окружения для локального и Docker-запуска |
-| `.gitignore` | Исключения для Git (venv, `.env`, кэши и т.д.) |
-| `Caddyfile` | Конфиг reverse proxy Caddy (TLS, проксирование на бэкенд) |
-| `Dockerfile` | Сборка образа приложения и запуск uvicorn |
-| `alembic.ini` | Настройки Alembic (путь к миграциям, БД) |
-| `docker-compose.yml` | Сервисы: API, Postgres, Redis, Celery и связанные контейнеры |
-| `pyproject.toml` | Метаданные проекта, зависимости Poetry, опции pytest |
-| `requirements.txt` | Зафиксированные версии пакетов для `pip install` |
-| `requirements-dev.txt` | Зависимости для pytest и fakeredis (ставить вместе с `requirements.txt`) |
-| `.github/workflows/tests.yml` | GitHub Actions: установка зависимостей и `pytest` |
-
-**`alembic/`**
-
-| Файл | Назначение |
-|------|------------|
-| `env.py` | Окружение миграций: подключение к БД, импорт моделей, `run_migrations` |
-| `script.py.mako` | Шаблон генерируемых файлов ревизий |
-| `versions/` | Файлы миграций схемы БД (revision up/down) |
-
-**`app/`**
-
-| Файл | Назначение |
-|------|------------|
-| `__init__.py` | Пакет приложения |
-| `main.py` | FastAPI: middleware (CORS, security headers), роутеры, lifespan, `GET /health` |
-
-**`app/admin/`** — SQLAdmin: `auth.py` (вход в админку), `views.py` (модели и экраны), `__init__.py`.
-
-**`app/api/`** — `deps.py` (зависимости FastAPI: БД, пользователь); **`v1/`**: `auth.py` (OAuth, TWA), `natal_data.py` (натальные данные), `orders.py` (заказы), `reports.py` (PDF-отчёты), `users.py` (пользователь), `webhooks.py` (вебхуки, например ЮKassa); `__init__.py` в пакетах.
-
-**`app/middleware/`** — `security_headers.py` (CSP и заголовки для HTML).
-
-**`app/core/`** — `cache.py` (Redis), `config.py` (Settings), `exceptions.py` (ошибки API), `feature_flags.py`, `logging.py` (structlog), `rate_limit.py` (slowapi), `security.py` (JWT, пароли).
-
-**`app/db/`** — `base.py` (declarative Base), `session.py` (async engine, сессии, `get_db`).
-
-**`app/models/`** — SQLAlchemy-модели: `user`, `natal_data`, `order`, `report`, `tariff`.
-
-**`app/schemas/`** — Pydantic-схемы API: `common`, `natal`, `order`, `payment`, `user`, `llm`.
-
-**`app/services/`** — бизнес-логика: `astrology` (расчёты), `auth_twa` (Telegram Web App), `email`, `llm`, `oauth` / `oauth_clients` (Яндекс, Apple), `apple_id_token` (проверка Apple `id_token` по JWKS), `payment` (ЮKassa), `pdf`, `refund`, `storage` (файлы отчётов), `tariff` (тарифы и кеш).
-
-**`app/tasks/`** — Celery: `worker.py` (приложение и beat), `report_generation.py`, `cleanup.py`, `scheduler.py` (пояснения к расписанию).
-
-**`app/templates/`** — `email/*.html` (письма: отчёт готов, возврат), `pdf/report.html` (шаблон PDF).
-
-**`app/utils/`** — `hashing`, `sanitize`, `tz`, `validation`, `email_policy` (плейсхолдер-email для чеков), `landing_html` (вспомогательный SEO helper для legacy-шаблонов).
-
-**`scripts/`** — `init_db.py` (инициализация БД), `create_admin.py` (учётка администратора).
-
-**`tests/`** — `conftest.py` (фикстуры, SQLite in-memory, подмена Redis через fakeredis); `test_api_*`, `test_services`, `test_rate_limit`, `test_webhooks`.
+Дополнительно: **`app/middleware/`** (например `security_headers.py`), **`app/utils/`** (sanitize, IP, email policy и т.д.), **`app/templates/`** (email и PDF).
 
 ### Фронтенд и HTML-макеты
 
-- **Продакшен:** интерфейс пользователя отдаётся из сборки **React SPA** (`frontend-dist/`) через Caddy. Backend обслуживает API и служебные маршруты.
-- Каталог **`HTML макеты/`** (если присутствует в репозитории) — визуальные референсы и черновики; актуальная пользовательская версия живёт в `frontend/src/`.
+- **Продакшен:** пользовательская сборка **React SPA** → `frontend-dist/` через Caddy; лендинг на `/` может отдаваться из `frontend/public/static/` (см. `LandingPage` и `Caddyfile`). Backend — API, `robots.txt` / `sitemap.xml`, health.
+- Каталог **`HTML макеты/`** (если есть) — визуальные референсы; актуальный UI — `frontend/src/`.
 
 ### SEO и языки
 
@@ -311,9 +194,8 @@ Redis в тестах подменяется на **fakeredis** (in-memory) в `
 3. Запущены процессы: API (uvicorn/gunicorn), **Celery worker**, **Celery beat** (подписки и отчёты).
 4. Проверка **`GET /health/ready`** (PostgreSQL и Redis).
 5. За reverse proxy: доверенные заголовки для IP клиента (важно для вебхуков ЮKassa), список **`BACKEND_CORS_ORIGINS`**.
-6. При необходимости: **`SENTRY_DSN`**, верификация сайта в поисковиках (мета-теги через переменные в `.env`), отправка sitemap в кабинетах Google / Яндекс.
+6. Для продакшена: **`SENTRY_DSN`** (ошибки API и необработанные исключения), при необходимости верификация сайта в поисковиках (мета через `.env`), отправка sitemap в кабинеты Google / Яндекс.
 7. Контрольный тестовый платёж в ЮKassa (тестовый магазин) и обработка вебхука.
-8. Включить **`SENTRY_DSN`** для продакшена (ошибки API и необработанные исключения).
 
 ### Прокси, IP и вебхуки ЮKassa
 
@@ -334,7 +216,7 @@ Redis в тестах подменяется на **fakeredis** (in-memory) в `
 
 ### API: идемпотентность и типовые ответы
 
-- **`POST /api/v1/orders/`** каждый раз создаёт **новый** заказ. Идемпотентность на стороне клиента (кнопка «Оплатить» один раз, свой ключ в UI) или будущий серверный dedup — отдельная задача. Вызов **ЮKassa** `Payment.create` использует **idempotency_key** = `str(order_id)` ([`app/services/payment.py`](app/services/payment.py)).
+- **`POST /api/v1/orders/`** поддерживает заголовок **`Idempotency-Key`**: повтор с тем же ключом и тем же телом возвращает тот же заказ/ответ; параллельные запросы блокируются; зависший `processing` снимается по TTL. Реализация: [`app/api/v1/orders.py`](app/api/v1/orders.py), модель `order_idempotency`. Вызов **ЮKassa** `Payment.create` дополнительно получает `idempotency_key` при создании оплаты ([`app/services/payment.py`](app/services/payment.py)).
 - Версия API: префикс **`/api/v1`**. Ломающие изменения — только со сменой версии (`/api/v2`) или согласованием клиентов.
 
 Типовые поля **`detail`** (строка или список при 422):

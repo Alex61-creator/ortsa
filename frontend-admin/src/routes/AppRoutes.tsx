@@ -23,6 +23,8 @@ import { OneTimeSalesPage } from '@/pages/OneTimeSalesPage'
 import { PromoAnalyticsPage } from '@/pages/PromoAnalyticsPage'
 import { ReportOptionsAnalyticsPage } from '@/pages/ReportOptionsAnalyticsPage'
 import { SubscriptionsPage } from '@/pages/SubscriptionsPage'
+import { LlmSettingsPage } from '@/pages/LlmSettingsPage'
+import { LlmAnalyticsPage } from '@/pages/LlmAnalyticsPage'
 
 export function AppRoutes() {
   return (
@@ -51,6 +53,8 @@ export function AppRoutes() {
           <Route path="health" element={<HealthPage />} />
           <Route path="log" element={<ActionLogPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="llm-settings" element={<LlmSettingsPage />} />
+          <Route path="llm-analytics" element={<LlmAnalyticsPage />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
